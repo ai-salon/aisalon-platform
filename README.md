@@ -5,7 +5,7 @@ Full-stack web platform for the AI Salon community.
 ## Architecture
 
 - **Backend**: FastAPI (Python 3.11) — deployed on Railway
-- **Frontend**: Next.js 15 + Tailwind CSS — deployed on Vercel
+- **Frontend**: Next.js 15 + Tailwind CSS — deployed on Railway
 - **Database**: PostgreSQL on Railway
 
 ## Development
@@ -42,5 +42,6 @@ Dev server runs on http://localhost:3000
 
 ## Deployment
 
-- **Railway**: Backend + PostgreSQL (`api.aisalon.xyz`)
-- **Vercel**: Frontend (`admin.aisalon.xyz`)
+All services deployed on Railway:
+- Backend + PostgreSQL (`api.aisalon.xyz`)
+- Frontend (`admin.aisalon.xyz`)
