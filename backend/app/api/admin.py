@@ -1,18 +1,21 @@
 """Admin API endpoints: api-keys, jobs, articles, chapters, team."""
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+import logging
+from datetime import datetime, timezone
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.core.database import get_db
+from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
 from app.core.config import settings
 from app.core.encryption import encrypt_key, decrypt_key
 from app.models.user import User, UserRole
 from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.models.job import Job, JobStatus
-from app.models.article import Article
+from app.models.article import Article, ArticleStatus
 from app.models.chapter import Chapter
 from app.models.team_member import TeamMember
+from app.models.hosting_interest import HostingInterest, InterestType
 from app.core.security import hash_password
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
@@ -23,6 +26,9 @@ from app.schemas.admin import (
     UserCreate, UserUpdate, UserResponse,
 )
 from app.services.storage import save_upload
+from app.services.processor import SocraticProcessor
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -40,6 +46,47 @@ def _chapter_filter(user: User):
     if user.role == UserRole.chapter_lead:
         return user.chapter_id
     return None
+
+
+# ── Background job runner ─────────────────────────────────────────────────────
+
+async def run_job(job_id: str) -> None:
+    """Background task: transcribe audio → generate article → update job status."""
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Job).where(Job.id == job_id))
+        job = result.scalar_one_or_none()
+        if not job:
+            logger.error("run_job: job %s not found", job_id)
+            return
+
+        job.status = JobStatus.processing
+        job.started_at = datetime.now(timezone.utc)
+        await db.commit()
+
+        try:
+            processor = SocraticProcessor()
+            article_data = await processor.process(
+                storage_key=job.input_storage_key or "",
+                chapter_id=job.chapter_id,
+                user_id=job.user_id,
+                db=db,
+            )
+            article = Article(
+                job_id=job.id,
+                chapter_id=job.chapter_id,
+                title=article_data["title"],
+                content_md=article_data["content_md"],
+                status=ArticleStatus.draft,
+            )
+            db.add(article)
+            job.status = JobStatus.completed
+            job.completed_at = datetime.now(timezone.utc)
+        except Exception as exc:
+            logger.exception("run_job %s failed", job_id)
+            job.status = JobStatus.failed
+            job.error_message = str(exc)
+
+        await db.commit()
 
 
 # ── API Keys ──────────────────────────────────────────────────────────────────
@@ -106,6 +153,7 @@ async def delete_api_key(
 
 @router.post("/jobs", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
+    background_tasks: BackgroundTasks,
     chapter_id: str = Form(...),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
@@ -129,6 +177,7 @@ async def create_job(
     db.add(job)
     await db.commit()
     await db.refresh(job)
+    background_tasks.add_task(run_job, job.id)
     return job
 
 
@@ -343,3 +392,34 @@ async def update_user(
     await db.commit()
     await db.refresh(user)
     return user
+
+
+# ── Hosting Interest (superadmin only) ────────────────────────────────────────
+
+from datetime import datetime as _dt  # noqa: E402
+from pydantic import BaseModel as _BM  # noqa: E402
+
+
+class HostingInterestAdminResponse(_BM):
+    id: str
+    name: str
+    email: str
+    city: str
+    interest_type: InterestType
+    existing_chapter: str | None
+    message: str | None
+    created_at: _dt
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/hosting-interest", response_model=list[HostingInterestAdminResponse])
+async def list_hosting_interest(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_admin(current_user)
+    result = await db.execute(
+        select(HostingInterest).order_by(HostingInterest.created_at.desc())
+    )
+    return result.scalars().all()

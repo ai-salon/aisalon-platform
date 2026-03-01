@@ -1,5 +1,8 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -11,36 +14,69 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   failed:     { bg: "#fee2e2", color: "#dc2626" },
 };
 
-async function getJobs(token: string) {
-  const r = await fetch(`${API_URL}/admin/jobs`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!r.ok) return [];
-  return r.json();
-}
+const TERMINAL = new Set(["completed", "failed"]);
 
-async function getArticles(token: string) {
-  const r = await fetch(`${API_URL}/admin/articles`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!r.ok) return [];
-  return r.json();
-}
+export default function JobsPage() {
+  const { data: session, status: authStatus } = useSession();
+  const router = useRouter();
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [articleByJob, setArticleByJob] = useState<Record<string, string>>({});
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-export default async function JobsPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
+  useEffect(() => {
+    if (authStatus === "unauthenticated") router.replace("/login");
+  }, [authStatus, router]);
 
-  const token = (session as any).accessToken as string;
-  const [jobs, articles] = await Promise.all([getJobs(token), getArticles(token)]);
+  const token = (session as any)?.accessToken as string | undefined;
 
-  // Map job_id → article id for "View Article" links
-  const articleByJob: Record<string, string> = {};
-  for (const a of articles) {
-    if (a.job_id) articleByJob[a.job_id] = a.id;
-  }
+  const fetchData = async () => {
+    if (!token) return;
+    const [jobsRes, articlesRes] = await Promise.all([
+      fetch(`${API_URL}/admin/jobs`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API_URL}/admin/articles`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const jobsData = jobsRes.ok ? await jobsRes.json() : [];
+    const articlesData = articlesRes.ok ? await articlesRes.json() : [];
+
+    setJobs(jobsData);
+    setLastUpdated(new Date());
+
+    const map: Record<string, string> = {};
+    for (const a of articlesData) if (a.job_id) map[a.job_id] = a.id;
+    setArticleByJob(map);
+
+    return jobsData;
+  };
+
+  // Initial load + set up polling if needed
+  useEffect(() => {
+    if (!token) return;
+
+    fetchData().then((jobsData) => {
+      if (!jobsData) return;
+      const hasActive = jobsData.some((j: any) => !TERMINAL.has(j.status));
+      if (hasActive && !intervalRef.current) {
+        intervalRef.current = setInterval(async () => {
+          const refreshed = await fetchData();
+          if (refreshed && refreshed.every((j: any) => TERMINAL.has(j.status))) {
+            clearInterval(intervalRef.current!);
+            intervalRef.current = null;
+          }
+        }, 5000);
+      }
+    });
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  if (authStatus === "loading") return null;
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 30px" }}>
@@ -49,6 +85,11 @@ export default async function JobsPage() {
           <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Jobs</h1>
           <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
             {jobs.length} job{jobs.length !== 1 ? "s" : ""}
+            {lastUpdated && (
+              <span style={{ marginLeft: 12, fontSize: 12, color: "#9ca3af" }}>
+                · Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
           </p>
         </div>
         <Link
@@ -109,6 +150,7 @@ export default async function JobsPage() {
               {jobs.map((job: any, i: number) => {
                 const style = STATUS_STYLES[job.status] ?? STATUS_STYLES.pending;
                 const articleId = articleByJob[job.id];
+                const isActive = !TERMINAL.has(job.status);
                 return (
                   <tr key={job.id} style={{ borderBottom: i < jobs.length - 1 ? "1px solid #f8f6ec" : "none" }}>
                     <td style={{ padding: "14px 20px", fontSize: 14, color: "#111", fontWeight: 500, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -121,6 +163,9 @@ export default async function JobsPage() {
                     <td style={{ padding: "14px 20px" }}>
                       <span
                         style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 6,
                           fontSize: 12,
                           fontWeight: 600,
                           padding: "3px 10px",
@@ -130,6 +175,18 @@ export default async function JobsPage() {
                           textTransform: "capitalize",
                         }}
                       >
+                        {isActive && (
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: style.color,
+                              animation: "pulse 1.2s ease-in-out infinite",
+                              display: "inline-block",
+                            }}
+                          />
+                        )}
                         {job.status}
                       </span>
                     </td>
@@ -161,6 +218,13 @@ export default async function JobsPage() {
           </table>
         </div>
       )}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
+      `}</style>
     </div>
   );
 }
