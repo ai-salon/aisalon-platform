@@ -24,3 +24,9 @@ Thumbs.db
 .env.local
 .env.*.local
 backend/uploads/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Screenshots (root-level)
+/*.png
