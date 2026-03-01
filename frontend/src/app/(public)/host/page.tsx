@@ -133,7 +133,7 @@ export default function HostPage() {
               </p>
 
               {/* Interest type toggle */}
-              <div style={{ display: "flex", gap: 12, marginBottom: 32, flexWrap: "wrap" }}>
+              <div className="host-toggle-buttons" style={{ display: "flex", gap: 12, marginBottom: 32, flexWrap: "wrap" }}>
                 {[
                   { value: "start_chapter", label: "Start a Chapter", icon: "fa-plus-circle" },
                   { value: "host_existing", label: "Host in an Existing Chapter", icon: "fa-users" },
@@ -169,7 +169,7 @@ export default function HostPage() {
               </div>
 
               {/* Fields — two columns on desktop */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 24px" }}>
+              <div className="host-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 24px" }}>
                 <div style={{ marginBottom: 20 }}>
                   <label style={labelStyle} htmlFor="name">Full Name</label>
                   <input id="name" type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inputStyle} />

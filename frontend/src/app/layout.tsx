@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
+import MobileNav from "./MobileNav";
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -28,8 +29,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className={`${openSans.className} antialiased`}>
+        {/* Skip to content */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+
         {/* ── Navigation ── */}
         <nav
+          aria-label="Main navigation"
           style={{
             height: 71,
             background: "#f8f6ec",
@@ -61,8 +68,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               />
             </Link>
 
-            {/* Nav links */}
+            {/* Nav links — hidden on mobile */}
             <ul
+              className="desktop-nav-links"
               style={{
                 display: "flex",
                 gap: 4,
@@ -73,8 +81,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               }}
             >
               <li className="dropdown">
-                <a
-                  href="#about"
+                <Link
+                  href="/#about"
                   style={{
                     padding: "8px 14px",
                     fontSize: 13,
@@ -86,17 +94,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     gap: 4,
                   }}
                 >
-                  About <i className="fa fa-angle-down" style={{ fontSize: 12 }} />
-                </a>
+                  About <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
+                </Link>
                 <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
-                  <li><a href="#values">Values</a></li>
-                  <li><a href="#chapters">Chapters</a></li>
-                  <li><a href="#team">Team</a></li>
+                  <li><Link href="/#values">Values</Link></li>
+                  <li><Link href="/#chapters">Chapters</Link></li>
+                  <li><Link href="/#team">Team</Link></li>
                 </ul>
               </li>
               <li className="dropdown">
-                <a
-                  href="#events"
+                <Link
+                  href="/#events"
                   style={{
                     padding: "8px 14px",
                     fontSize: 13,
@@ -108,17 +116,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     gap: 4,
                   }}
                 >
-                  Our Work <i className="fa fa-angle-down" style={{ fontSize: 12 }} />
-                </a>
+                  Our Work <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
+                </Link>
                 <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
-                  <li><a href="#events">Events</a></li>
+                  <li><Link href="/#events">Events</Link></li>
                   <li><Link href="/insights">Insights</Link></li>
                 </ul>
               </li>
+              <li>
+                <Link
+                  href="/#chapters"
+                  style={{
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    color: "#111",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  Chapters
+                </Link>
+              </li>
             </ul>
 
-            {/* Nav buttons */}
-            <div style={{ display: "flex", gap: 12 }}>
+            {/* Nav buttons — hidden on mobile */}
+            <div className="desktop-nav-buttons" style={{ display: "flex", gap: 12 }}>
               <a
                 href="https://lu.ma/Ai-salon"
                 target="_blank"
@@ -127,15 +151,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 Join an event
               </a>
-              <Link href="/insights" className="nav-button">
+              <a
+                href="https://aisalon.substack.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-button"
+              >
                 Explore our insights
-              </Link>
+              </a>
             </div>
+
+            {/* Mobile hamburger */}
+            <MobileNav />
           </div>
         </nav>
 
         <Providers>
-          <main>{children}</main>
+          <main id="main-content">{children}</main>
         </Providers>
       </body>
     </html>

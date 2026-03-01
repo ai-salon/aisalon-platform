@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -14,6 +15,13 @@ async function getChapter(id: string) {
   const r = await fetch(`${API_URL}/chapters/${id}`, { cache: "no-store" });
   if (!r.ok) return null;
   return r.json();
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const article = await getArticle(id);
+  if (!article) return { title: "Insight – Ai Salon" };
+  return { title: `${article.title} – Ai Salon` };
 }
 
 // Minimal markdown → safe HTML (no external deps needed at this scale)
@@ -49,7 +57,7 @@ export default async function InsightArticlePage({ params }: { params: Promise<{
             href="/insights"
             style={{ fontSize: 13, color: "#56a1d2", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 20 }}
           >
-            <i className="fa fa-arrow-left" /> All insights
+            <i className="fa fa-arrow-left" aria-hidden="true" /> All insights
           </Link>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             {chapter && (

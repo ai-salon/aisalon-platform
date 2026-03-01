@@ -4,19 +4,20 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       {children}
       <footer className="footer-public" id="public-footer">
         <div
+          className="footer-columns"
           style={{
             maxWidth: 1140,
             margin: "0 auto",
             padding: "0 30px",
-            display: "flex",
-            flexWrap: "wrap",
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
             gap: 40,
             paddingBottom: 40,
             borderBottom: "1px solid rgba(255,255,255,0.1)",
           }}
         >
           {/* Brand */}
-          <div style={{ flex: "1 1 220px", maxWidth: 280 }}>
+          <div style={{ maxWidth: 280 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/logo-2-300w.png"
@@ -29,7 +30,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
 
           {/* Quick Links */}
-          <div style={{ flex: "1 1 160px" }}>
+          <div>
             <h4 style={{ color: "#fff", fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 20 }}>
               Quick Links
             </h4>
@@ -52,7 +53,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
 
           {/* Newsletter */}
-          <div style={{ flex: "1 1 220px" }}>
+          <div>
             <h4 style={{ color: "#fff", fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 20 }}>
               Stay Connected
             </h4>
@@ -71,19 +72,19 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
           </div>
 
           {/* Social */}
-          <div style={{ flex: "1 1 160px" }}>
+          <div>
             <h4 style={{ color: "#fff", fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 20 }}>
               Follow Us
             </h4>
             <div style={{ display: "flex", gap: 12 }}>
               {[
-                { icon: "fa-twitter", href: "https://x.com/TheAISalonSF", title: "Twitter" },
-                { icon: "fa-linkedin", href: "https://www.linkedin.com/company/the-ai-salon", title: "LinkedIn" },
-                { icon: "fa-newspaper-o", href: "https://aisalon.substack.com", title: "Substack" },
-                { icon: "fa-envelope", href: "mailto:contact@aisalon.xyz", title: "Email" },
-              ].map(({ icon, href, title }) => (
-                <a key={title} href={href} target="_blank" rel="noopener noreferrer" title={title} className="footer-social-link">
-                  <i className={`fa ${icon}`} />
+                { icon: "fa-twitter", href: "https://x.com/TheAISalonSF", label: "Twitter" },
+                { icon: "fa-linkedin", href: "https://www.linkedin.com/company/the-ai-salon", label: "LinkedIn" },
+                { icon: "fa-newspaper-o", href: "https://aisalon.substack.com", label: "Substack" },
+                { icon: "fa-envelope", href: "mailto:contact@aisalon.xyz", label: "Email" },
+              ].map(({ icon, href, label }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="footer-social-link">
+                  <i className={`fa ${icon}`} aria-hidden="true" />
                 </a>
               ))}
             </div>
@@ -92,7 +93,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
 
         <div style={{ textAlign: "center", padding: "25px 30px" }}>
           <p style={{ margin: 0, fontSize: 13, color: "rgba(255,255,255,0.5)" }}>
-            © 2025 Ai Salon. All rights reserved.
+            © {new Date().getFullYear()} Ai Salon. All rights reserved.
           </p>
         </div>
       </footer>

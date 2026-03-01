@@ -11,7 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 function Row({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div
-      className={className}
+      className={`section-row ${className}`}
       style={{ maxWidth: 1140, margin: "0 auto", padding: "80px 30px" }}
     >
       {children}
@@ -20,11 +20,26 @@ function Row({ children, className = "" }: { children: React.ReactNode; classNam
 }
 
 /* ─────────────────────────────────────────
-   Flip Card
+   Flip Card (click-to-flip on mobile)
 ───────────────────────────────────────── */
 function FlipCard({ title, body }: { title: string; body: string }) {
+  const [flipped, setFlipped] = useState(false);
+
   return (
-    <div className="flip-card" style={{ flex: "1 1 0", minWidth: 160 }}>
+    <div
+      className={`flip-card${flipped ? " flipped" : ""}`}
+      style={{ flex: "1 1 0", minWidth: 160 }}
+      role="button"
+      tabIndex={0}
+      aria-label={`${title} — click to ${flipped ? "hide" : "reveal"} details`}
+      onClick={() => setFlipped(!flipped)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setFlipped(!flipped);
+        }
+      }}
+    >
       <div className="flip-card-inner">
         <div className="flip-card-front">
           <h3>{title}</h3>
@@ -44,7 +59,7 @@ function IconBlock({ icon, title, body }: { icon: string; title: string; body: R
   return (
     <div className="icon-block" style={{ flex: "1 1 calc(50% - 20px)", minWidth: 220, marginBottom: 40 }}>
       <div className="icon">
-        <i className={`fa ${icon}`} />
+        <i className={`fa ${icon}`} aria-hidden="true" />
       </div>
       <h4>{title}</h4>
       <p>{body}</p>
@@ -98,12 +113,14 @@ export default function HomePage() {
               >
                 JOIN AN EVENT
               </a>
-              <Link
-                href="/insights"
+              <a
+                href="https://aisalon.substack.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="btn btn-outline"
               >
                 EXPLORE OUR INSIGHTS
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -205,40 +222,41 @@ export default function HomePage() {
             <div style={{ flex: "1 1 300px" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 32 }}>
                 <a href="/host" className="chapter-button">
-                  <i className="fa fa-plus-circle" /> Start a Chapter
+                  <i className="fa fa-plus-circle" aria-hidden="true" /> Start a Chapter
                 </a>
                 <a href="/host" className="chapter-button">
-                  <i className="fa fa-plus-circle" /> Become a Host in an Existing Chapter
+                  <i className="fa fa-plus-circle" aria-hidden="true" /> Become a Host in an Existing Chapter
                 </a>
               </div>
 
-              <div>
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    letterSpacing: 1,
-                    textTransform: "uppercase",
-                    color: "#696969",
-                    marginBottom: 8,
-                  }}
-                >
-                  Existing Chapters:
-                </p>
-                <p style={{ fontSize: 15, color: "#111", lineHeight: 1.8 }}>
-                  {chapters.map((ch, i) => (
-                    <span key={ch.id}>
+              {chapters.length > 0 && (
+                <div>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: 1,
+                      textTransform: "uppercase",
+                      color: "#696969",
+                      marginBottom: 12,
+                    }}
+                  >
+                    Existing Chapters:
+                  </p>
+                  <div className="chapter-grid">
+                    {chapters.map((ch) => (
                       <Link
+                        key={ch.id}
                         href={`/chapters/${ch.code}`}
-                        style={{ fontWeight: 600, color: "#56a1d2", textDecoration: "none" }}
+                        className="chapter-card"
                       >
-                        {ch.name}
+                        <i className="fa fa-map-marker" aria-hidden="true" />
+                        <span>{ch.name}</span>
                       </Link>
-                      {i < chapters.length - 1 && <span style={{ color: "#999", margin: "0 6px" }}>|</span>}
-                    </span>
-                  ))}
-                </p>
-              </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Row>
@@ -258,7 +276,7 @@ export default function HomePage() {
                 bringing together around 100 people to explore AI&apos;s impact together.
               </p>
               <div className="social-proof-badge">
-                <i className="fa fa-calendar-check-o" />
+                <i className="fa fa-calendar-check-o" aria-hidden="true" />
                 <span>70+ events hosted</span>
               </div>
             </div>
@@ -325,7 +343,7 @@ export default function HomePage() {
         </Row>
       </section>
 
-      {/* ── INSIGHTS ── */}
+      {/* ── INSIGHTS / SUBSTACK ── */}
       <section id="insights" style={{ background: "#fff" }}>
         <Row>
           <div style={{ display: "flex", gap: 60, flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -338,7 +356,7 @@ export default function HomePage() {
                 our in-person conversations into digital insights.
               </p>
               <div className="social-proof-badge" style={{ marginBottom: 24 }}>
-                <i className="fa fa-users" />
+                <i className="fa fa-users" aria-hidden="true" />
                 <span>6,000+ subscribers</span>
               </div>
               <a
@@ -352,27 +370,38 @@ export default function HomePage() {
               </a>
             </div>
 
-            {/* Right: Substack embed */}
+            {/* Right: Clean Substack CTA card */}
             <div style={{ flex: "1 1 400px" }}>
-              <iframe
-                src="https://aisalon.substack.com/embed"
-                width="100%"
-                height="320"
+              <div
                 style={{
-                  border: "1px solid #e1e1e1",
-                  borderRadius: 8,
-                  background: "white",
+                  background: "#f8f6ec",
+                  borderRadius: 12,
+                  padding: "40px 36px",
+                  textAlign: "center",
+                  border: "1px solid rgba(0,0,0,0.06)",
                 }}
-                frameBorder={0}
-                scrolling="no"
-              />
-              <p style={{ marginTop: 16, fontSize: 14, color: "#696969" }}>
-                Or visit{" "}
-                <a href="https://aisalon.substack.com" target="_blank" rel="noopener noreferrer">
+              >
+                <i
+                  className="fa fa-newspaper-o"
+                  aria-hidden="true"
+                  style={{ fontSize: 48, color: "#d2b356", marginBottom: 20, display: "block" }}
+                />
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 10 }}>
                   The Ai Salon Archive
-                </a>{" "}
-                to read our latest insights.
-              </p>
+                </h3>
+                <p style={{ fontSize: 15, color: "#696969", lineHeight: 1.6, marginBottom: 24, maxWidth: 360, margin: "0 auto 24px" }}>
+                  Curated insights from our in-person conversations, delivered to your inbox.
+                </p>
+                <a
+                  href="https://aisalon.substack.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary"
+                  style={{ display: "inline-block" }}
+                >
+                  Read on Substack
+                </a>
+              </div>
             </div>
           </div>
         </Row>

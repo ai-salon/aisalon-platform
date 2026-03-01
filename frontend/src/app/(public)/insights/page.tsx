@@ -1,4 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Insights – Ai Salon",
+};
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -45,9 +50,23 @@ export default async function InsightsPage() {
       <section style={{ padding: "56px 30px 80px" }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
           {articles.length === 0 ? (
-            <div style={{ textAlign: "center", color: "#696969", padding: "60px 0" }}>
-              <i className="fa fa-file-text-o" style={{ fontSize: 36, color: "#d1d5db", marginBottom: 14, display: "block" }} />
-              <p style={{ fontSize: 15 }}>No articles published yet. Check back soon.</p>
+            <div style={{ textAlign: "center", padding: "60px 0" }}>
+              <i className="fa fa-newspaper-o" aria-hidden="true" style={{ fontSize: 48, color: "#d2b356", marginBottom: 20, display: "block" }} />
+              <h3 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 10 }}>
+                Read us on Substack
+              </h3>
+              <p style={{ fontSize: 15, color: "#696969", lineHeight: 1.6, maxWidth: 400, margin: "0 auto 24px" }}>
+                Our community insights are published on Substack. Subscribe to get curated perspectives from our in-person conversations.
+              </p>
+              <a
+                href="https://aisalon.substack.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-primary"
+                style={{ display: "inline-block" }}
+              >
+                Visit The Ai Salon Archive
+              </a>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>

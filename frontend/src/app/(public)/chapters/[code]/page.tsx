@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
@@ -23,11 +24,18 @@ async function getChapter(code: string): Promise<Chapter | null> {
   return r.json();
 }
 
+export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
+  const { code } = await params;
+  const chapter = await getChapter(code);
+  if (!chapter) return { title: "Chapter – Ai Salon" };
+  return { title: `${chapter.name} – Ai Salon` };
+}
+
 function IconBlock({ icon, title, body }: { icon: string; title: string; body: string }) {
   return (
     <div className="icon-block" style={{ flex: "1 1 calc(50% - 20px)", minWidth: 220, marginBottom: 40 }}>
       <div className="icon">
-        <i className={`fa ${icon}`} />
+        <i className={`fa ${icon}`} aria-hidden="true" />
       </div>
       <h4>{title}</h4>
       <p>{body}</p>
@@ -88,23 +96,35 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
         <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", gap: 60, flexWrap: "wrap" }}>
           {/* Left */}
           <div style={{ flex: "0 0 360px", minWidth: 240 }}>
-            <h2 className="section-title">
-              Creating conversation around the impact of AI
-            </h2>
-            <p className="section-subtitle">
-              The Ai Salon is a global community founded in San Francisco to create
-              conversation and community around the meaning and impact of artificial
-              intelligence. We believe that consideration and input from a vibrant
-              civil society is critical to successfully navigating this transformative
-              moment in human history.
-            </p>
-            {chapter.about && (
-              <div style={{ marginTop: 28 }}>
-                <h3 style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 12 }}>
+            {chapter.about ? (
+              <>
+                <h2 className="section-title">
                   About the {chapter.name} Chapter
-                </h3>
-                <p style={{ fontSize: 16, lineHeight: 1.75, color: "#696969" }}>{chapter.about}</p>
-              </div>
+                </h2>
+                <p className="section-subtitle">
+                  {chapter.about}
+                </p>
+                <div style={{ marginTop: 28, padding: "20px 0", borderTop: "1px solid rgba(0,0,0,0.08)" }}>
+                  <p style={{ fontSize: 15, lineHeight: 1.7, color: "#696969" }}>
+                    The Ai Salon is a global community founded in San Francisco to create
+                    conversation and community around the meaning and impact of artificial
+                    intelligence.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="section-title">
+                  Creating conversation around the impact of AI
+                </h2>
+                <p className="section-subtitle">
+                  The Ai Salon is a global community founded in San Francisco to create
+                  conversation and community around the meaning and impact of artificial
+                  intelligence. We believe that consideration and input from a vibrant
+                  civil society is critical to successfully navigating this transformative
+                  moment in human history.
+                </p>
+              </>
             )}
           </div>
 
@@ -148,7 +168,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                 </p>
               )}
               <div className="social-proof-badge">
-                <i className="fa fa-calendar-check-o" />
+                <i className="fa fa-calendar-check-o" aria-hidden="true" />
                 <span>70+ events hosted</span>
               </div>
             </div>
@@ -186,13 +206,13 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
               </h3>
               <div className="event-legend">
                 <span className="event-type-badge salon">
-                  <i className="fa fa-circle" style={{ fontSize: 8 }} /> Salon
+                  <i className="fa fa-circle" style={{ fontSize: 8 }} aria-hidden="true" /> Salon
                 </span>
                 <span className="event-type-badge symposium">
-                  <i className="fa fa-circle" style={{ fontSize: 8 }} /> Symposium
+                  <i className="fa fa-circle" style={{ fontSize: 8 }} aria-hidden="true" /> Symposium
                 </span>
                 <span className="event-type-badge expert">
-                  <i className="fa fa-circle" style={{ fontSize: 8 }} /> Expert Talk
+                  <i className="fa fa-circle" style={{ fontSize: 8 }} aria-hidden="true" /> Expert Talk
                 </span>
               </div>
               <div className="calendar-container">
@@ -250,7 +270,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
-                      <i className="fa fa-user" style={{ fontSize: 36, color: "#d2b356" }} />
+                      <i className="fa fa-user" style={{ fontSize: 36, color: "#d2b356" }} aria-hidden="true" />
                     )}
                   </div>
                   <h4 style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 4px" }}>{m.name}</h4>
@@ -264,8 +284,8 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                     <p style={{ fontSize: 13, color: "#696969", lineHeight: 1.5, margin: "0 0 8px" }}>{m.description}</p>
                   )}
                   {m.linkedin && (
-                    <a href={m.linkedin} target="_blank" rel="noreferrer" style={{ color: "#696969", fontSize: 18 }}>
-                      <i className="fa fa-linkedin-square" />
+                    <a href={m.linkedin} target="_blank" rel="noreferrer" aria-label={`${m.name} on LinkedIn`} style={{ color: "#696969", fontSize: 18 }}>
+                      <i className="fa fa-linkedin-square" aria-hidden="true" />
                     </a>
                   )}
                 </div>
@@ -277,7 +297,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
 
       {/* Back link */}
       <div style={{ background: "#fff", padding: "32px 30px", textAlign: "center" }}>
-        <Link href="/" style={{ fontSize: 14, color: "#56a1d2", textDecoration: "none", fontWeight: 600 }}>
+        <Link href="/#chapters" style={{ fontSize: 14, color: "#56a1d2", textDecoration: "none", fontWeight: 600 }}>
           ← Back to all chapters
         </Link>
       </div>
