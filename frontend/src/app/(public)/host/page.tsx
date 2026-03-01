@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -26,6 +26,8 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
+type ChapterOption = { id: string; name: string; code: string };
+
 export default function HostPage() {
   const [interestType, setInterestType] = useState<"start_chapter" | "host_existing">("start_chapter");
   const [name, setName] = useState("");
@@ -36,6 +38,14 @@ export default function HostPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [chapters, setChapters] = useState<ChapterOption[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/chapters`)
+      .then((r) => r.json())
+      .then(setChapters)
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +77,7 @@ export default function HostPage() {
       <section id="banner" style={{ minHeight: "calc(50vh - 71px)" }}>
         <div className="banner-image" />
         <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 30px", position: "relative", zIndex: 2 }}>
-          <div style={{ maxWidth: 600, paddingTop: 72, paddingBottom: 60 }}>
+          <div style={{ paddingTop: 72, paddingBottom: 60 }}>
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 24 }} />
             <h1 style={{ fontSize: 48, fontWeight: 800, color: "#111", margin: "0 0 16px", lineHeight: 1.15 }}>
               Bring the Ai Salon<br />to Your City
@@ -185,7 +195,18 @@ export default function HostPage() {
                 {interestType === "host_existing" && (
                   <div style={{ marginBottom: 20 }}>
                     <label style={labelStyle} htmlFor="existing_chapter">Which Chapter?</label>
-                    <input id="existing_chapter" type="text" value={existingChapter} onChange={e => setExistingChapter(e.target.value)} placeholder="e.g. Berlin, NYC…" style={inputStyle} />
+                    <select
+                      id="existing_chapter"
+                      value={existingChapter}
+                      onChange={e => setExistingChapter(e.target.value)}
+                      style={{ ...inputStyle, appearance: "auto" }}
+                    >
+                      <option value="">Select a chapter…</option>
+                      {chapters.map((ch) => (
+                        <option key={ch.id} value={ch.name}>{ch.name}</option>
+                      ))}
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                 )}
                 <div style={{ marginBottom: 28, gridColumn: "1 / -1" }}>

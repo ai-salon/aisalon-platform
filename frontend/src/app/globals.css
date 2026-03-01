@@ -577,10 +577,16 @@ a {
   font-size: 15px;
 }
 
+/* ── Banner text container — keep text from overlapping the image ── */
+#banner > div > div {
+  max-width: 50%;
+}
+
 /* ── Responsive ── */
 @media (max-width: 991px) {
   .banner-image { display: none; }
   #banner { text-align: center; }
+  #banner > div > div { max-width: 100%; }
   #banner h1 { font-size: 36px; }
   #banner h2 { font-size: 18px; }
   .section-title { font-size: 26px; }

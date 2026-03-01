@@ -83,8 +83,8 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                 JOIN EVENTS
               </a>
             )}
-            <Link href="/insights" className="btn btn-outline">
-              EXPLORE INSIGHTS
+            <Link href={`/host/${chapter.code}`} className="btn btn-outline">
+              BECOME A HOST
             </Link>
           </div>
         </div>
