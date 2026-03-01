@@ -107,6 +107,7 @@ class ArticleResponse(BaseModel):
     id: str
     title: str
     content_md: str
+    anonymized_transcript: str | None
     status: ArticleStatus
     chapter_id: str
     job_id: str | None

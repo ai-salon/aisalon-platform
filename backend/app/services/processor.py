@@ -19,6 +19,16 @@ SOCRATIC_PROMPT = (
     "Structure the rest with ## headings for major themes."
 )
 
+ANONYMIZE_PROMPT = (
+    "You are a privacy-focused editor. Given this conversation transcript, produce a fully anonymized version:\n"
+    "- Replace every distinct speaker or named participant with a consistent label: Person A, Person B, Person C, etc.\n"
+    "- Apply labels consistently throughout — the same person always gets the same label.\n"
+    "- Remove or redact any other personally identifying details (full employer names used to identify someone, "
+    "contact info, identifying locations beyond city-level).\n"
+    "- Preserve the full content, structure, and flow of the conversation verbatim.\n"
+    "Return only the anonymized transcript — no preamble or explanation."
+)
+
 
 class BaseProcessor(ABC):
     @abstractmethod
@@ -65,20 +75,37 @@ class SocraticProcessor(BaseProcessor):
         assemblyai_key = await self._get_key(db, user_id, APIKeyProvider.assemblyai)
         transcript_text = await transcribe(audio_bytes, assemblyai_key)
 
-        # 3. Generate article with Claude
+        # 3. Generate article + anonymized transcript with Claude (concurrent)
         anthropic_key = await self._get_key(db, user_id, APIKeyProvider.anthropic)
         client = _anthropic.AsyncAnthropic(api_key=anthropic_key)
-        message = await client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=4096,
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"{SOCRATIC_PROMPT}\n\n---\n\n{transcript_text}",
-                }
-            ],
+
+        import asyncio as _asyncio
+
+        article_msg, anon_msg = await _asyncio.gather(
+            client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=4096,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"{SOCRATIC_PROMPT}\n\n---\n\n{transcript_text}",
+                    }
+                ],
+            ),
+            client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=8192,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": f"{ANONYMIZE_PROMPT}\n\n---\n\n{transcript_text}",
+                    }
+                ],
+            ),
         )
-        content_md = message.content[0].text  # type: ignore[union-attr]
+
+        content_md = article_msg.content[0].text  # type: ignore[union-attr]
+        anonymized_transcript = anon_msg.content[0].text  # type: ignore[union-attr]
 
         # Extract title from first # heading
         lines = content_md.strip().splitlines()
@@ -88,4 +115,8 @@ class SocraticProcessor(BaseProcessor):
             title = lines[0][2:].strip()
             body_lines = lines[1:]
 
-        return {"title": title, "content_md": "\n".join(body_lines).strip()}
+        return {
+            "title": title,
+            "content_md": "\n".join(body_lines).strip(),
+            "anonymized_transcript": anonymized_transcript,
+        }

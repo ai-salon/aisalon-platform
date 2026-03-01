@@ -76,6 +76,7 @@ async def run_job(job_id: str) -> None:
                 chapter_id=job.chapter_id,
                 title=article_data["title"],
                 content_md=article_data["content_md"],
+                anonymized_transcript=article_data.get("anonymized_transcript"),
                 status=ArticleStatus.draft,
             )
             db.add(article)
@@ -261,6 +262,56 @@ async def update_article(
     await db.commit()
     await db.refresh(article)
     return article
+
+
+# ── Transcripts ───────────────────────────────────────────────────────────────
+
+@router.get("/transcripts", response_model=list[dict])
+async def list_transcripts(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return anonymized transcripts. Superadmin sees all; chapter_lead sees own chapter."""
+    stmt = select(
+        Article.id,
+        Article.title,
+        Article.chapter_id,
+        Article.job_id,
+        Article.anonymized_transcript,
+        Article.created_at,
+    ).where(Article.anonymized_transcript.is_not(None))
+
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id:
+        stmt = stmt.where(Article.chapter_id == chapter_id)
+
+    result = await db.execute(stmt.order_by(Article.created_at.desc()))
+    rows = result.mappings().all()
+    return [dict(r) for r in rows]
+
+
+@router.get("/transcripts/{article_id}", response_model=dict)
+async def get_transcript(
+    article_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Article).where(Article.id == article_id))
+    article = result.scalar_one_or_none()
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    if current_user.role == UserRole.chapter_lead and article.chapter_id != current_user.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if not article.anonymized_transcript:
+        raise HTTPException(status_code=404, detail="No transcript available for this article")
+    return {
+        "id": article.id,
+        "title": article.title,
+        "chapter_id": article.chapter_id,
+        "job_id": article.job_id,
+        "anonymized_transcript": article.anonymized_transcript,
+        "created_at": article.created_at,
+    }
 
 
 # ── Chapters (admin edit) ─────────────────────────────────────────────────────

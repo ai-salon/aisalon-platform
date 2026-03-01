@@ -19,6 +19,7 @@ class Article(Base, TimestampMixin):
     chapter_id: Mapped[str] = mapped_column(String(36), ForeignKey("chapters.id"), nullable=False)
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     content_md: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    anonymized_transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
     meta: Mapped[Any | None] = mapped_column(JSON, nullable=True)
     status: Mapped[ArticleStatus] = mapped_column(String(32), nullable=False, default=ArticleStatus.draft)
 
