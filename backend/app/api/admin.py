@@ -13,12 +13,14 @@ from app.models.job import Job, JobStatus
 from app.models.article import Article
 from app.models.chapter import Chapter
 from app.models.team_member import TeamMember
+from app.core.security import hash_password
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
     JobResponse,
     ArticleResponse, ArticleUpdate,
     ChapterUpdate, ChapterResponse,
     TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
+    UserCreate, UserUpdate, UserResponse,
 )
 from app.services.storage import save_upload
 
@@ -283,3 +285,57 @@ async def delete_team_member(
         raise HTTPException(status_code=403, detail="Forbidden")
     await db.delete(member)
     await db.commit()
+
+
+# ── Users (superadmin only) ───────────────────────────────────────────────────
+
+@router.get("/users", response_model=list[UserResponse])
+async def list_users(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_admin(current_user)
+    result = await db.execute(select(User).order_by(User.email))
+    return result.scalars().all()
+
+
+@router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user(
+    body: UserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_admin(current_user)
+    existing = await db.execute(select(User).where(User.email == body.email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Email already registered")
+    user = User(
+        email=body.email,
+        hashed_password=hash_password(body.password),
+        role=body.role,
+        chapter_id=body.chapter_id,
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.patch("/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: str,
+    body: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_admin(current_user)
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    for field, value in body.model_dump(exclude_none=True).items():
+        setattr(user, field, value)
+    await db.commit()
+    await db.refresh(user)
+    return user

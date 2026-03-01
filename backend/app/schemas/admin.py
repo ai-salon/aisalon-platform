@@ -121,3 +121,28 @@ class ArticleUpdate(BaseModel):
     title: str | None = None
     content_md: str | None = None
     status: ArticleStatus | None = None
+
+
+# ── Users ──────────────────────────────────────────────────────────────────────
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    role: str = "chapter_lead"
+    chapter_id: str | None = None
+
+
+class UserUpdate(BaseModel):
+    is_active: bool | None = None
+    role: str | None = None
+    chapter_id: str | None = None
+
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    role: str
+    chapter_id: str | None
+    is_active: bool
+
+    model_config = {"from_attributes": True}
