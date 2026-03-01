@@ -1,4 +1,4 @@
-"""Admin API endpoints: api-keys, jobs, articles."""
+"""Admin API endpoints: api-keys, jobs, articles, chapters, team."""
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -11,10 +11,14 @@ from app.models.user import User, UserRole
 from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.models.job import Job, JobStatus
 from app.models.article import Article
+from app.models.chapter import Chapter
+from app.models.team_member import TeamMember
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
     JobResponse,
     ArticleResponse, ArticleUpdate,
+    ChapterUpdate, ChapterResponse,
+    TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
 )
 from app.services.storage import save_upload
 
@@ -202,3 +206,80 @@ async def update_article(
     await db.commit()
     await db.refresh(article)
     return article
+
+
+# ── Chapters (admin edit) ─────────────────────────────────────────────────────
+
+@router.patch("/chapters/{chapter_id}", response_model=ChapterResponse)
+async def update_chapter(
+    chapter_id: str,
+    body: ChapterUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    chapter = result.scalar_one_or_none()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    if current_user.role == UserRole.chapter_lead and current_user.chapter_id != chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    for field, value in body.model_dump(exclude_none=True).items():
+        setattr(chapter, field, value)
+    await db.commit()
+    await db.refresh(chapter)
+    return chapter
+
+
+# ── Team members (admin CRUD) ─────────────────────────────────────────────────
+
+@router.post("/team", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
+async def create_team_member(
+    body: TeamMemberCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role == UserRole.chapter_lead and current_user.chapter_id != body.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    member = TeamMember(**body.model_dump())
+    db.add(member)
+    await db.commit()
+    await db.refresh(member)
+    return member
+
+
+@router.patch("/team/{member_id}", response_model=TeamMemberResponse)
+async def update_team_member(
+    member_id: str,
+    body: TeamMemberUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if current_user.role == UserRole.chapter_lead and current_user.chapter_id != member.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    for field, value in body.model_dump(exclude_none=True).items():
+        setattr(member, field, value)
+    await db.commit()
+    await db.refresh(member)
+    return member
+
+
+@router.delete("/team/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_team_member(
+    member_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if current_user.role == UserRole.chapter_lead and current_user.chapter_id != member.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    await db.delete(member)
+    await db.commit()

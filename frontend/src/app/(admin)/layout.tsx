@@ -19,6 +19,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             { href: "/jobs", label: "Jobs", icon: "fa-tasks" },
             { href: "/articles", label: "Articles", icon: "fa-file-text-o" },
             { href: "/upload", label: "Upload", icon: "fa-upload" },
+            { href: "/chapters", label: "Chapters", icon: "fa-map-marker" },
+            { href: "/team", label: "Team", icon: "fa-users" },
             { href: "/settings", label: "Settings", icon: "fa-cog" },
           ].map(({ href, label, icon }) => (
             <Link
