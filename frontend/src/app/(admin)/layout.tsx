@@ -1,0 +1,54 @@
+import Link from "next/link";
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: "flex", minHeight: "calc(100vh - 71px)" }}>
+      {/* Sidebar */}
+      <aside
+        style={{
+          width: 220,
+          flexShrink: 0,
+          background: "#fff",
+          borderRight: "1px solid rgba(0,0,0,0.07)",
+          padding: "32px 0",
+        }}
+      >
+        <nav style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 16px" }}>
+          {[
+            { href: "/dashboard", label: "Dashboard", icon: "fa-th-large" },
+            { href: "/jobs", label: "Jobs", icon: "fa-tasks" },
+            { href: "/articles", label: "Articles", icon: "fa-file-text-o" },
+            { href: "/upload", label: "Upload", icon: "fa-upload" },
+            { href: "/settings", label: "Settings", icon: "fa-cog" },
+          ].map(({ href, label, icon }) => (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 14px",
+                borderRadius: 6,
+                fontSize: 14,
+                fontWeight: 500,
+                color: "#444",
+                textDecoration: "none",
+                transition: "background 0.15s",
+              }}
+              className="admin-nav-link"
+            >
+              <i className={`fa ${icon}`} style={{ width: 16, textAlign: "center", color: "#56a1d2" }} />
+              {label}
+            </Link>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <main style={{ flex: 1, overflowY: "auto", background: "#fafaf8" }}>
+        {children}
+      </main>
+    </div>
+  );
+}

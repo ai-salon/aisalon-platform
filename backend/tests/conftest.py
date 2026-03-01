@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from app.main import app
 from app.models.base import Base
 from app.core.database import get_db
+from app.models.user import User, UserRole
+from app.models.chapter import Chapter
+from app.core.security import hash_password
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
@@ -41,3 +44,67 @@ async def client(db_engine):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+
+
+# ── Auth helpers ────────────────────────────────────────────────────────────
+
+async def _make_user(session, email: str, role: UserRole, chapter_id: str | None = None) -> User:
+    user = User(
+        email=email,
+        hashed_password=hash_password("password"),
+        role=role,
+        chapter_id=chapter_id,
+        is_active=True,
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def _get_token(client: AsyncClient, email: str) -> str:
+    r = await client.post("/auth/login", json={"email": email, "password": "password"})
+    return r.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def superadmin(db_session):
+    return await _make_user(db_session, "admin@aisalon.xyz", UserRole.superadmin)
+
+
+@pytest_asyncio.fixture
+async def admin_token(client, superadmin) -> str:
+    return await _get_token(client, superadmin.email)
+
+
+@pytest_asyncio.fixture
+async def admin_headers(admin_token) -> dict:
+    return {"Authorization": f"Bearer {admin_token}"}
+
+
+@pytest_asyncio.fixture
+async def sf_chapter(db_session) -> Chapter:
+    ch = Chapter(
+        code="sf", name="San Francisco", title="t", description="d",
+        tagline="t", about="a", event_link="e", calendar_embed="c",
+        events_description="e", status="active",
+    )
+    db_session.add(ch)
+    await db_session.commit()
+    await db_session.refresh(ch)
+    return ch
+
+
+@pytest_asyncio.fixture
+async def chapter_lead(db_session, sf_chapter) -> User:
+    return await _make_user(db_session, "lead@aisalon.xyz", UserRole.chapter_lead, sf_chapter.id)
+
+
+@pytest_asyncio.fixture
+async def lead_token(client, chapter_lead) -> str:
+    return await _get_token(client, chapter_lead.email)
+
+
+@pytest_asyncio.fixture
+async def lead_headers(lead_token) -> dict:
+    return {"Authorization": f"Bearer {lead_token}"}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Open_Sans } from "next/font/google";
 import "./globals.css";
+import Providers from "./providers";
 
 const openSans = Open_Sans({
   subsets: ["latin"],
@@ -138,7 +139,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </nav>
 
-        <main>{children}</main>
+        <Providers>
+          <main>{children}</main>
+        </Providers>
       </body>
     </html>
   );

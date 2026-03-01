@@ -5,12 +5,16 @@ from app.api.health import router as health_router
 from app.api.chapters import router as chapters_router
 from app.api.team import router as team_router
 from app.api.auth import router as auth_router
+from app.api.admin import router as admin_router
 from app.core.config import settings
 
 # Ensure models are imported so SQLAlchemy can discover them
 import app.models.chapter  # noqa: F401
 import app.models.team_member  # noqa: F401
 import app.models.user  # noqa: F401
+import app.models.api_key  # noqa: F401
+import app.models.job  # noqa: F401
+import app.models.article  # noqa: F401
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION)
 
@@ -26,3 +30,4 @@ app.include_router(health_router)
 app.include_router(chapters_router)
 app.include_router(team_router)
 app.include_router(auth_router)
+app.include_router(admin_router)

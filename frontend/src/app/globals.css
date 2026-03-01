@@ -68,6 +68,12 @@ a {
   margin-top: 20px;
 }
 
+/* ── Admin nav ── */
+.admin-nav-link:hover {
+  background: #f8f6ec;
+  color: #56a1d2;
+}
+
 /* ── Buttons ── */
 .btn {
   display: inline-block;
