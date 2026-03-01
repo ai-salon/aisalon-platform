@@ -249,6 +249,37 @@ _CHAPTERS = [
         ],
     ),
     dict(
+        code="zurich",
+        name="Zurich",
+        title="The Zurich Ai Salon",
+        tagline="Where Swiss precision meets the future of AI",
+        description=(
+            "The Zurich AI Salon brings together Switzerland's world-class research "
+            "institutions, financial sector, and tech community to explore the meaning "
+            "and impact of artificial intelligence."
+        ),
+        about="",
+        event_link="https://lu.ma/Ai-salon?tag=zurich",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=zurich",
+        events_description=(
+            "Zurich's unique confluence of leading universities, global finance, and "
+            "deep-tech innovation creates a rich setting for exploring AI's future."
+        ),
+        team=[
+            dict(
+                name="Pascale Speck",
+                role="Zurich Chapter Lead",
+                description="",
+                profile_image_url=f"{_P}/pascale_speck.jpeg",
+                linkedin="",
+                is_cofounder=False,
+                display_order=0,
+            ),
+            _IAN,
+            _CECILIA,
+        ],
+    ),
+    dict(
         code="nyc",
         name="New York City",
         title="The New York City Ai Salon",
