@@ -38,7 +38,7 @@ export default async function ChaptersPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
         {visibleChapters.map((ch: any) => (
-          <Link key={ch.id} href={`/chapters/${ch.id}`} style={{ textDecoration: "none" }}>
+          <Link key={ch.id} href={`/chapters/${ch.code}`} style={{ textDecoration: "none" }}>
             <div
               style={{
                 background: "#fff",

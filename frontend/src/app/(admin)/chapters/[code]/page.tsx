@@ -28,7 +28,7 @@ export default function ChapterEditPage() {
   const { data: session, status } = useSession();
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const code = params.code as string;
 
   const [chapter, setChapter] = useState<Chapter | null>(null);
   const [form, setForm] = useState<Partial<Chapter>>({});
@@ -43,8 +43,8 @@ export default function ChapterEditPage() {
   }, [status, router]);
 
   useEffect(() => {
-    if (!token || !id) return;
-    fetch(`${API_URL}/chapters/${id}`, {
+    if (!token || !code) return;
+    fetch(`${API_URL}/chapters/${code}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -53,13 +53,14 @@ export default function ChapterEditPage() {
         setForm(data);
       })
       .catch(console.error);
-  }, [token, id]);
+  }, [token, code]);
 
   async function handleSave() {
+    if (!chapter) return;
     setSaving(true);
     setSaved(false);
     setError("");
-    const r = await fetch(`${API_URL}/admin/chapters/${id}`, {
+    const r = await fetch(`${API_URL}/admin/chapters/${chapter.id}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify(form),
