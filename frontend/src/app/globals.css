@@ -296,21 +296,15 @@ a {
 .flip-card-front {
   opacity: 1;
   z-index: 2;
-  background: linear-gradient(135deg, #d2b356 0%, #dad1b7 50%, #e8dfc4 100%);
   overflow: hidden;
-}
-
-.flip-card-front::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: url('/images/cross-banner-600w.png');
-  background-repeat: no-repeat;
-  background-position: right bottom;
-  background-size: 70%;
-  opacity: 0.18;
-  pointer-events: none;
-  mix-blend-mode: multiply;
+  /* value_card.png: black network on white — multiply blends white→transparent,
+     black→dark over the gold gradient */
+  background-image: url('/images/value_card.png'),
+    linear-gradient(135deg, #d2b356 0%, #dad1b7 50%, #e8dfc4 100%);
+  background-repeat: no-repeat, no-repeat;
+  background-position: right bottom, center;
+  background-size: auto 105%, cover;
+  background-blend-mode: multiply, normal;
 }
 
 .flip-card:hover .flip-card-front {
