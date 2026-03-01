@@ -16,8 +16,9 @@ async function getArticle(token: string, id: string) {
 
 // Minimal markdown → HTML renderer (headings, paragraphs, bold, italic, code)
 function renderMarkdown(md: string): string {
-  return md
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  const escaped = md
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return escaped
     .replace(/^#{4}\s(.+)$/gm, "<h4>$1</h4>")
     .replace(/^#{3}\s(.+)$/gm, "<h3>$1</h3>")
     .replace(/^#{2}\s(.+)$/gm, "<h2>$1</h2>")
@@ -25,9 +26,9 @@ function renderMarkdown(md: string): string {
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/\*(.+?)\*/g, "<em>$1</em>")
     .replace(/`(.+?)`/g, "<code>$1</code>")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/^(?!<[h1-6|p|ul|ol])/m, "<p>")
-    + "</p>";
+    .split(/\n\n+/)
+    .map((block) => block.startsWith("<h") ? block : `<p>${block}</p>`)
+    .join("\n");
 }
 
 export default async function ArticleDetailPage({ params }: { params: Promise<{ id: string }> }) {

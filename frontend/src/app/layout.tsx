@@ -112,7 +112,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </a>
                 <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
                   <li><a href="#events">Events</a></li>
-                  <li><a href="#insights">Insights</a></li>
+                  <li><Link href="/insights">Insights</Link></li>
                 </ul>
               </li>
             </ul>
@@ -127,14 +127,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 Join an event
               </a>
-              <a
-                href="https://aisalon.substack.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="nav-button"
-              >
+              <Link href="/insights" className="nav-button">
                 Explore our insights
-              </a>
+              </Link>
             </div>
           </div>
         </nav>

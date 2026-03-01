@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SignOutButton from "./SignOutButton";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,9 +12,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           background: "#fff",
           borderRight: "1px solid rgba(0,0,0,0.07)",
           padding: "32px 0",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
-        <nav style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 16px" }}>
+        <nav style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 16px", flex: 1 }}>
           {[
             { href: "/dashboard", label: "Dashboard", icon: "fa-th-large" },
             { href: "/jobs", label: "Jobs", icon: "fa-tasks" },
@@ -46,6 +49,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           ))}
         </nav>
+
+        {/* Sign out at bottom */}
+        <div style={{ padding: "0 16px", borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: 12 }}>
+          <SignOutButton />
+        </div>
       </aside>
 
       {/* Main content */}

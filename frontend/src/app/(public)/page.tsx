@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { fetchHealth, type HealthResponse } from "@/lib/api";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 /* ─────────────────────────────────────────
    Helper: two-column section wrapper
@@ -56,9 +59,14 @@ function IconBlock({ icon, title, body }: { icon: string; title: string; body: R
 export default function HomePage() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [chapters, setChapters] = useState<{ id: string; name: string; code: string; tagline: string; status: string }[]>([]);
 
   useEffect(() => {
     fetchHealth().then(setHealth).catch((e) => setError(e.message));
+    fetch(`${API_URL}/chapters`)
+      .then((r) => r.json())
+      .then(setChapters)
+      .catch(() => {});
   }, []);
 
   return (
@@ -95,9 +103,7 @@ export default function HomePage() {
                 JOIN AN EVENT
               </a>
               <a
-                href="https://aisalon.substack.com"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/insights"
                 className="btn btn-outline"
               >
                 EXPLORE OUR INSIGHTS
@@ -234,18 +240,15 @@ export default function HomePage() {
                   Existing Chapters:
                 </p>
                 <p style={{ fontSize: 15, color: "#111", lineHeight: 1.8 }}>
-                  {[
-                    ["San Francisco", "sf.html"],
-                    ["London", "london.html"],
-                    ["Bangalore", "bangalore.html"],
-                    ["Lagos", "lagos.html"],
-                    ["Vancouver", "vancouver.html"],
-                    ["Berlin", "berlin.html"],
-                    ["New York City", "nyc.html"],
-                  ].map(([city, _href], i, arr) => (
-                    <span key={city}>
-                      <span style={{ fontWeight: 600 }}>{city}</span>
-                      {i < arr.length - 1 && <span style={{ color: "#999", margin: "0 6px" }}>|</span>}
+                  {chapters.map((ch, i) => (
+                    <span key={ch.id}>
+                      <Link
+                        href={`/chapters/${ch.code}`}
+                        style={{ fontWeight: 600, color: "#56a1d2", textDecoration: "none" }}
+                      >
+                        {ch.name}
+                      </Link>
+                      {i < chapters.length - 1 && <span style={{ color: "#999", margin: "0 6px" }}>|</span>}
                     </span>
                   ))}
                 </p>

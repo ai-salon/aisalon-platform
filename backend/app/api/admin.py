@@ -185,6 +185,8 @@ async def get_article(
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
+    if current_user.role == UserRole.chapter_lead and article.chapter_id != current_user.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     return article
 
 
@@ -199,6 +201,8 @@ async def update_article(
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
+    if current_user.role == UserRole.chapter_lead and article.chapter_id != current_user.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     if body.title is not None:
         article.title = body.title
     if body.content_md is not None:
