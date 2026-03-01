@@ -79,7 +79,7 @@ export default function HomePage() {
             zIndex: 2,
           }}
         >
-          <div style={{ maxWidth: 560, paddingTop: 80, paddingBottom: 60 }}>
+          <div style={{ maxWidth: 480, paddingTop: 80, paddingBottom: 60 }}>
             {/* Gold rule */}
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
 
