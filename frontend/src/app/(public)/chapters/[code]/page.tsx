@@ -47,56 +47,39 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
   return (
     <div>
       {/* ── HERO ── */}
-      <section style={{ background: "#56a1d2", color: "#fff", padding: "80px 30px" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color: "rgba(255,255,255,0.7)", marginBottom: 12 }}>
-            Ai Salon · {chapter.name}
-          </div>
-          <h1 style={{ fontSize: 48, fontWeight: 800, margin: "0 0 16px", lineHeight: 1.15 }}>
-            {chapter.title}
-          </h1>
-          <p style={{ fontSize: 20, lineHeight: 1.6, margin: "0 0 36px", maxWidth: 680, opacity: 0.92 }}>
-            {chapter.tagline}
-          </p>
+      <section id="banner" style={{ minHeight: "calc(60vh - 71px)" }}>
+        <div className="banner-image" />
+        <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 30px", position: "relative", zIndex: 2 }}>
+          <div style={{ maxWidth: 560, paddingTop: 72, paddingBottom: 60 }}>
+            {/* Gold rule */}
+            <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 24 }} />
+            <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color: "#56a1d2", marginBottom: 12 }}>
+              Ai Salon · {chapter.name}
+            </div>
+            <h1 style={{ fontSize: 48, fontWeight: 800, margin: "0 0 16px", lineHeight: 1.15, color: "#111" }}>
+              {chapter.title}
+            </h1>
+            <p style={{ fontSize: 20, lineHeight: 1.6, margin: "0 0 32px", color: "#696969" }}>
+              {chapter.tagline}
+            </p>
+            {/* Gold rule */}
+            <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 32 }} />
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
             {chapter.event_link && (
               <a
                 href={chapter.event_link}
                 target="_blank"
                 rel="noreferrer"
-                style={{
-                  display: "inline-block",
-                  padding: "12px 28px",
-                  background: "#fff",
-                  color: "#56a1d2",
-                  fontWeight: 700,
-                  fontSize: 14,
-                  borderRadius: 4,
-                  textDecoration: "none",
-                  textTransform: "uppercase",
-                }}
+                className="btn btn-outline"
               >
-                Join Events
+                JOIN EVENTS
               </a>
             )}
-            <Link
-              href="/insights"
-              style={{
-                display: "inline-block",
-                padding: "12px 28px",
-                background: "rgba(255,255,255,0.15)",
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: 14,
-                borderRadius: 4,
-                textDecoration: "none",
-                textTransform: "uppercase",
-                border: "2px solid rgba(255,255,255,0.4)",
-              }}
-            >
-              Explore Insights
+            <Link href="/insights" className="btn btn-outline">
+              EXPLORE INSIGHTS
             </Link>
           </div>
+        </div>
         </div>
       </section>
 
