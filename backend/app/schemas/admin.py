@@ -96,6 +96,7 @@ class JobResponse(BaseModel):
     status: JobStatus
     chapter_id: str
     input_filename: str | None
+    error_message: str | None
     created_at: datetime
 
     model_config = {"from_attributes": True}
