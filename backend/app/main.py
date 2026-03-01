@@ -6,6 +6,7 @@ from app.api.chapters import router as chapters_router
 from app.api.team import router as team_router
 from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
+from app.api.articles import router as articles_router
 from app.core.config import settings
 
 # Ensure models are imported so SQLAlchemy can discover them
@@ -31,3 +32,4 @@ app.include_router(chapters_router)
 app.include_router(team_router)
 app.include_router(auth_router)
 app.include_router(admin_router)
+app.include_router(articles_router)
