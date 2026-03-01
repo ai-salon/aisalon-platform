@@ -81,16 +81,6 @@ export default function HostPage() {
         </div>
       </section>
 
-      {/* ── CROSS-BANNER NETWORK IMAGE ── */}
-      <div style={{ background: "#f0ede3", overflow: "hidden", lineHeight: 0 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/cross-banner-600w.png"
-          alt=""
-          style={{ width: "100%", height: "auto", opacity: 0.55, display: "block" }}
-        />
-      </div>
-
       {/* ── TWO INFO CARDS ── */}
       <section style={{ background: "#f8f6ec", padding: "72px 30px" }}>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>
