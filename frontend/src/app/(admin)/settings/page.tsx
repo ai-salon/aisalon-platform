@@ -7,6 +7,23 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const PROVIDERS = ["assemblyai", "google"] as const;
 type Provider = (typeof PROVIDERS)[number];
 
+const PROVIDER_HELP: Record<Provider, { label: string; description: string; steps: string; url: string; urlLabel: string }> = {
+  assemblyai: {
+    label: "AssemblyAI",
+    description: "Used to transcribe your audio recordings into text.",
+    steps: "Sign up → go to the API Keys tab in the left sidebar → copy your key.",
+    url: "https://app.assemblyai.com",
+    urlLabel: "app.assemblyai.com",
+  },
+  google: {
+    label: "Google AI",
+    description: "Used to generate the article and anonymize the transcript.",
+    steps: "Sign in with Google → click Create API key → copy it.",
+    url: "https://aistudio.google.com/apikey",
+    urlLabel: "aistudio.google.com/apikey",
+  },
+};
+
 function StatusBadge({ active }: { active: boolean }) {
   return (
     <span
@@ -28,6 +45,7 @@ export default function SettingsPage() {
   const { data: session, status } = useSession();
   const [keys, setKeys] = useState<{ provider: string; has_key: boolean }[]>([]);
   const [editing, setEditing] = useState<Provider | null>(null);
+  const [helpOpen, setHelpOpen] = useState<Provider | null>(null);
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -94,115 +112,171 @@ export default function SettingsPage() {
       </p>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {PROVIDERS.map((provider) => (
-          <div
-            key={provider}
-            style={{
-              background: "#fff",
-              borderRadius: 8,
-              padding: "20px 24px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, textTransform: "capitalize", color: "#111" }}>
-                  {provider}
-                </span>
-                <StatusBadge active={hasKey(provider)} />
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button
-                  onClick={() => { setEditing(provider); setValue(""); setError(""); }}
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    padding: "6px 14px",
-                    borderRadius: 6,
-                    border: "1.5px solid #56a1d2",
-                    color: "#56a1d2",
-                    background: "transparent",
-                    cursor: "pointer",
-                  }}
-                >
-                  {hasKey(provider) ? "Update" : "Set key"}
-                </button>
-                {hasKey(provider) && (
+        {PROVIDERS.map((provider) => {
+          const help = PROVIDER_HELP[provider];
+          const isHelpOpen = helpOpen === provider;
+          return (
+            <div
+              key={provider}
+              style={{
+                background: "#fff",
+                borderRadius: 8,
+                padding: "20px 24px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+              }}
+            >
+              {/* Header row */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: "#111" }}>
+                    {help.label}
+                  </span>
+                  <StatusBadge active={hasKey(provider)} />
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
                   <button
-                    onClick={() => handleDelete(provider)}
+                    onClick={() => { setEditing(provider); setValue(""); setError(""); }}
                     style={{
                       fontSize: 13,
                       fontWeight: 600,
                       padding: "6px 14px",
                       borderRadius: 6,
-                      border: "1.5px solid #fca5a5",
-                      color: "#ef4444",
+                      border: "1.5px solid #56a1d2",
+                      color: "#56a1d2",
                       background: "transparent",
                       cursor: "pointer",
                     }}
                   >
-                    Remove
+                    {hasKey(provider) ? "Update" : "Set key"}
                   </button>
+                  {hasKey(provider) && (
+                    <button
+                      onClick={() => handleDelete(provider)}
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        padding: "6px 14px",
+                        borderRadius: 6,
+                        border: "1.5px solid #fca5a5",
+                        color: "#ef4444",
+                        background: "transparent",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Key input */}
+              {editing === provider && (
+                <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
+                  <input
+                    type="password"
+                    placeholder={`Enter ${help.label} API key`}
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSave(provider)}
+                    style={{
+                      flex: 1,
+                      padding: "9px 13px",
+                      fontSize: 14,
+                      border: "1.5px solid #d1d5db",
+                      borderRadius: 6,
+                      outline: "none",
+                      fontFamily: "monospace",
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => handleSave(provider)}
+                    disabled={saving}
+                    style={{
+                      padding: "9px 18px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      background: "#56a1d2",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {saving ? "Saving…" : "Save"}
+                  </button>
+                  <button
+                    onClick={() => { setEditing(null); setValue(""); }}
+                    style={{
+                      padding: "9px 14px",
+                      fontSize: 13,
+                      background: "transparent",
+                      border: "1.5px solid #d1d5db",
+                      borderRadius: 6,
+                      cursor: "pointer",
+                      color: "#696969",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              {error && editing === provider && (
+                <p style={{ fontSize: 13, color: "#ef4444", marginTop: 8 }}>{error}</p>
+              )}
+
+              {/* Help toggle */}
+              <div style={{ marginTop: 12 }}>
+                <button
+                  onClick={() => setHelpOpen(isHelpOpen ? null : provider)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "#56a1d2",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  <i className={`fa fa-chevron-${isHelpOpen ? "up" : "down"}`} style={{ fontSize: 10 }} />
+                  Where do I get this key?
+                </button>
+                {isHelpOpen && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      background: "#f8f6ec",
+                      border: "1px solid #e8e4d8",
+                      borderRadius: 6,
+                      padding: "12px 16px",
+                      fontSize: 13,
+                      color: "#444",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <p style={{ margin: "0 0 6px", color: "#696969" }}>{help.description}</p>
+                    <p style={{ margin: "0 0 6px" }}>
+                      Go to{" "}
+                      <a
+                        href={help.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: "#56a1d2", fontWeight: 600 }}
+                      >
+                        {help.urlLabel}
+                      </a>
+                      {" "}→ {help.steps}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
-
-            {editing === provider && (
-              <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
-                <input
-                  type="password"
-                  placeholder={`Enter ${provider} API key`}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSave(provider)}
-                  style={{
-                    flex: 1,
-                    padding: "9px 13px",
-                    fontSize: 14,
-                    border: "1.5px solid #d1d5db",
-                    borderRadius: 6,
-                    outline: "none",
-                    fontFamily: "monospace",
-                  }}
-                  autoFocus
-                />
-                <button
-                  onClick={() => handleSave(provider)}
-                  disabled={saving}
-                  style={{
-                    padding: "9px 18px",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    background: "#56a1d2",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                  }}
-                >
-                  {saving ? "Saving…" : "Save"}
-                </button>
-                <button
-                  onClick={() => { setEditing(null); setValue(""); }}
-                  style={{
-                    padding: "9px 14px",
-                    fontSize: 13,
-                    background: "transparent",
-                    border: "1.5px solid #d1d5db",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                    color: "#696969",
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-            {error && editing === provider && (
-              <p style={{ fontSize: 13, color: "#ef4444", marginTop: 8 }}>{error}</p>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
