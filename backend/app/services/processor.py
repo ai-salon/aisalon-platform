@@ -1,5 +1,6 @@
 """Audio processing pipeline: transcribe → generate article."""
 from abc import ABC, abstractmethod
+from typing import Awaitable, Callable
 
 import asyncio
 from google import genai
@@ -13,6 +14,7 @@ from app.core.encryption import decrypt_key
 from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.services.assemblyai import transcribe
 
+StepCallback = Callable[[str], Awaitable[None]]
 
 GEMINI_MODEL = "gemini-3-flash-preview"
 
@@ -42,6 +44,7 @@ class BaseProcessor(ABC):
         chapter_id: str,
         user_id: str,
         db: AsyncSession,
+        on_step: StepCallback | None = None,
     ) -> dict:
         """Process an uploaded audio file; return article data dict."""
         ...
@@ -70,16 +73,23 @@ class SocraticProcessor(BaseProcessor):
         chapter_id: str,
         user_id: str,
         db: AsyncSession,
+        on_step: StepCallback | None = None,
     ) -> dict:
+        async def _step(label: str) -> None:
+            if on_step:
+                await on_step(label)
+
         # 1. Read file
         audio_path = Path(settings.UPLOAD_DIR) / storage_key
         audio_bytes = audio_path.read_bytes()
 
         # 2. Transcribe
+        await _step("Transcribing audio…")
         assemblyai_key = await self._get_key(db, user_id, APIKeyProvider.assemblyai)
         transcript_text = await transcribe(audio_bytes, assemblyai_key)
 
         # 3. Generate article + anonymized transcript with Gemini (concurrent)
+        await _step("Generating article…")
         google_key = await self._get_key(db, user_id, APIKeyProvider.google)
         client = genai.Client(api_key=google_key)
 

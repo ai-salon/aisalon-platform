@@ -94,6 +94,7 @@ class APIKeyResponse(BaseModel):
 class JobResponse(BaseModel):
     id: str
     status: JobStatus
+    step: str | None
     chapter_id: str
     input_filename: str | None
     error_message: str | None

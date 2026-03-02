@@ -140,7 +140,7 @@ export default function UploadPage() {
     ? chapters.filter((c) => c.id === userChapterId)
     : chapters;
 
-  const missingKeys = keysLoaded && (!apiKeys.includes("assemblyai") || !apiKeys.includes("anthropic"));
+  const missingKeys = keysLoaded && (!apiKeys.includes("assemblyai") || !apiKeys.includes("google"));
 
   if (status === "loading") return null;
 
@@ -208,7 +208,7 @@ export default function UploadPage() {
               color: "#0369a1",
             }}
           >
-            💳 Each upload uses ~$1 in API credits (AssemblyAI transcription + Claude generation)
+            💳 Each upload uses ~$1 in API credits (AssemblyAI transcription + Gemini generation)
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -343,21 +343,14 @@ export default function UploadPage() {
                 </p>
 
                 <p style={{ fontWeight: 700, color: "#111", margin: "14px 0 8px" }}>
-                  Anthropic <span style={{ fontSize: 11, color: "#ef4444", fontWeight: 600 }}>(required)</span>
+                  Google AI <span style={{ fontSize: 11, color: "#ef4444", fontWeight: 600 }}>(required)</span>
                 </p>
-                <p style={{ margin: "0 0 4px" }}>
+                <p style={{ margin: 0 }}>
                   Go to{" "}
-                  <a href="https://console.anthropic.com" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>
-                    console.anthropic.com
+                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>
+                    aistudio.google.com/apikey
                   </a>
-                  {" "}→ <strong>API Keys</strong> → Create key → copy it.
-                </p>
-
-                <p style={{ fontWeight: 700, color: "#111", margin: "14px 0 8px" }}>
-                  Google <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 600 }}>(optional)</span>
-                </p>
-                <p style={{ margin: 0, color: "#696969" }}>
-                  Not currently used in the pipeline.
+                  {" "}→ <strong>Create API key</strong> → copy it.
                 </p>
               </div>
             )}
@@ -440,7 +433,7 @@ export default function UploadPage() {
                           borderRadius: 12,
                           background: s.bg,
                           color: s.color,
-                          textTransform: "capitalize",
+                          textTransform: isActive && job.step ? "none" : "capitalize",
                           flexShrink: 0,
                         }}
                       >
@@ -456,7 +449,7 @@ export default function UploadPage() {
                             }}
                           />
                         )}
-                        {job.status}
+                        {isActive && job.step ? job.step : job.status}
                       </span>
                     </div>
                     {articleId && (

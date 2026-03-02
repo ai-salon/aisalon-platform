@@ -1,10 +1,9 @@
 import logging
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
-
-logger = logging.getLogger(__name__)
 
 from app.api.health import router as health_router
 from app.api.chapters import router as chapters_router
@@ -26,6 +25,8 @@ import app.models.article  # noqa: F401
 import app.models.hosting_interest  # noqa: F401
 import app.models.invite  # noqa: F401
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,6 +45,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> PlainTextResponse:

@@ -8,7 +8,7 @@ from sqlalchemy import select
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
 from app.core.config import settings
-from app.core.encryption import encrypt_key, decrypt_key
+from app.core.encryption import encrypt_key
 from app.models.user import User, UserRole
 from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.models.job import Job, JobStatus
@@ -71,6 +71,10 @@ async def run_job(job_id: str) -> None:
         job.started_at = datetime.now(timezone.utc)
         await db.commit()
 
+        async def set_step(label: str) -> None:
+            job.step = label
+            await db.commit()
+
         try:
             processor = SocraticProcessor()
             article_data = await processor.process(
@@ -78,6 +82,7 @@ async def run_job(job_id: str) -> None:
                 chapter_id=job.chapter_id,
                 user_id=job.user_id,
                 db=db,
+                on_step=set_step,
             )
             article = Article(
                 job_id=job.id,

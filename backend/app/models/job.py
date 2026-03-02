@@ -24,6 +24,7 @@ class Job(Base, TimestampMixin):
     input_filename: Mapped[str | None] = mapped_column(String(512), nullable=True)
     input_storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
     output_data: Mapped[Any | None] = mapped_column(JSON, nullable=True)
+    step: Mapped[str | None] = mapped_column(String(128), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
