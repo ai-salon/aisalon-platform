@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -761,11 +761,31 @@ function ChapterLeadGuide() {
 function InviteCard() {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken;
-  const chapterId = (session?.user as any)?.chapterId;
+  const userRole = (session?.user as any)?.role;
+  const userChapterId = (session?.user as any)?.chapterId;
+  const isSuperadmin = userRole === "superadmin";
+
+  const [chapters, setChapters] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [selectedChapterId, setSelectedChapterId] = useState(userChapterId ?? "");
+  const [selectedRole, setSelectedRole] = useState("host");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+
+  // Superadmins need the chapter list
+  useEffect(() => {
+    if (!isSuperadmin || !token) return;
+    fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((c) => {
+        setChapters(c);
+        if (!selectedChapterId && c.length > 0) setSelectedChapterId(c[0].id);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuperadmin, token]);
+
+  const chapterId = isSuperadmin ? selectedChapterId : userChapterId;
 
   async function createInvite() {
     if (!token || !chapterId) return;
@@ -775,7 +795,7 @@ function InviteCard() {
       const r = await fetch(`${API_URL}/admin/invites`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ chapter_id: chapterId, role: "host", max_uses: 1 }),
+        body: JSON.stringify({ chapter_id: chapterId, role: selectedRole, max_uses: 1 }),
       });
       if (!r.ok) {
         const body = await r.json().catch(() => ({}));
@@ -799,8 +819,6 @@ function InviteCard() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  if (!chapterId) return null;
-
   return (
     <div
       style={{
@@ -812,17 +830,38 @@ function InviteCard() {
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
         <span style={{ fontSize: 20 }}>✉️</span>
-        <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>Invite a Host</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>Invite a Member</span>
       </div>
       <p style={{ fontSize: 12, color: "#696969", margin: "0 0 12px", lineHeight: 1.5 }}>
-        Generate a one-time invite link for someone to join your chapter as a host.
+        Generate a one-time invite link for someone to register.
       </p>
 
       {!inviteUrl ? (
         <>
+          {isSuperadmin && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+              <select
+                value={selectedChapterId}
+                onChange={(e) => setSelectedChapterId(e.target.value)}
+                style={{ flex: 1, minWidth: 100, padding: "6px 8px", fontSize: 12, border: "1.5px solid #d1d5db", borderRadius: 6, background: "#fff" }}
+              >
+                {chapters.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                style={{ padding: "6px 8px", fontSize: 12, border: "1.5px solid #d1d5db", borderRadius: 6, background: "#fff" }}
+              >
+                <option value="host">Host</option>
+                <option value="chapter_lead">Chapter Lead</option>
+              </select>
+            </div>
+          )}
           <button
             onClick={createInvite}
-            disabled={creating}
+            disabled={creating || !chapterId}
             style={{
               fontSize: 12,
               fontWeight: 700,
