@@ -21,6 +21,69 @@ interface Article {
   created_at: string;
 }
 
+// ── Speaker-coloured transcript viewer ────────────────────────────────────────
+
+const SPEAKER_PALETTE = [
+  { bg: "#eef6fd", border: "#56a1d2", label: "#2d7ab0" }, // blue
+  { bg: "#fdf8ee", border: "#d2b356", label: "#a07a20" }, // gold
+];
+
+function TranscriptViewer({ text }: { text: string }) {
+  type Block = { speaker: string; body: string };
+  const SPEAKER_RE = /^(Speaker [A-Z]|SPEAKER_\d+):\s*/;
+
+  const blocks: Block[] = [];
+  for (const line of text.split("\n")) {
+    const m = line.match(SPEAKER_RE);
+    if (m) {
+      blocks.push({ speaker: m[1], body: line.slice(m[0].length) });
+    } else if (blocks.length > 0 && line.trim()) {
+      blocks[blocks.length - 1].body += " " + line.trim();
+    }
+  }
+
+  // Fallback: no recognised speaker labels → plain pre
+  if (blocks.length === 0) {
+    return (
+      <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontSize: 13, lineHeight: 1.8, color: "#333" }}>
+        {text}
+      </pre>
+    );
+  }
+
+  const speakerOrder: string[] = [];
+  for (const b of blocks) {
+    if (!speakerOrder.includes(b.speaker)) speakerOrder.push(b.speaker);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      {blocks.map((block, i) => {
+        const { bg, border, label } =
+          SPEAKER_PALETTE[speakerOrder.indexOf(block.speaker) % SPEAKER_PALETTE.length];
+        return (
+          <div
+            key={i}
+            style={{
+              background: bg,
+              borderLeft: `3px solid ${border}`,
+              borderRadius: "0 8px 8px 0",
+              padding: "9px 16px",
+            }}
+          >
+            <span style={{ fontWeight: 700, color: label, fontSize: 11, textTransform: "uppercase", letterSpacing: "0.05em", marginRight: 10 }}>
+              {block.speaker}
+            </span>
+            <span style={{ fontSize: 13, lineHeight: 1.75, color: "#333" }}>
+              {block.body}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Prose styles applied to the markdown preview ──────────────────────────────
 const proseStyles = `
   .prose { color: #222; line-height: 1.75; font-size: 15px; }
@@ -440,24 +503,18 @@ export default function ArticleEditor({
                 Copy transcript
               </button>
             </div>
-            <pre
+            <div
               style={{
                 background: "#fafaf8",
                 border: "1.5px solid #e8e4d8",
                 borderRadius: 10,
-                padding: "22px 26px",
-                fontSize: 13,
-                fontFamily: "'SF Mono', 'Fira Code', monospace",
-                lineHeight: 1.8,
-                color: "#333",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
+                padding: "18px 22px",
                 overflowY: "auto",
                 maxHeight: 640,
               }}
             >
-              {initial.anonymized_transcript}
-            </pre>
+              <TranscriptViewer text={initial.anonymized_transcript} />
+            </div>
           </div>
         )}
       </div>
