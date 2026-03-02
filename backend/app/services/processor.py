@@ -81,6 +81,9 @@ class SocraticProcessor(BaseProcessor):
             import assemblyai as aai
             from socraticai.content.article.article_generator import ArticleGenerator
             from socraticai.core.llm import LLMChain
+            from socraticai.core.utils import ensure_data_directories
+
+            ensure_data_directories()
 
             # Inject API keys; use gemini-2.5-flash (Gemini model in the GitHub version)
             aai.settings.api_key = assemblyai_key
