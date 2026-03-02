@@ -40,7 +40,7 @@ class TestListUsers:
     async def test_user_shape(self, client: AsyncClient, admin_headers):
         r = await client.get("/admin/users", headers=admin_headers)
         u = r.json()[0]
-        for key in ("id", "email", "role", "is_active"):
+        for key in ("id", "email", "username", "role", "is_active"):
             assert key in u
         assert "hashed_password" not in u
 

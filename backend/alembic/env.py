@@ -12,6 +12,8 @@ import app.models.user  # noqa: F401
 import app.models.api_key  # noqa: F401
 import app.models.job  # noqa: F401
 import app.models.article  # noqa: F401
+import app.models.hosting_interest  # noqa: F401
+import app.models.invite  # noqa: F401
 
 from app.models.base import Base
 from app.core.config import settings

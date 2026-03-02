@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,13 +17,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     const res = await signIn("credentials", {
-      email,
+      identifier,
       password,
       redirect: false,
     });
     setLoading(false);
     if (res?.error) {
-      setError("Invalid email or password.");
+      setError("Invalid credentials.");
     } else {
       router.push("/dashboard");
     }
@@ -65,14 +65,14 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#111", marginBottom: 6 }}>
-              Email
+              Email or Username
             </label>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
-              autoComplete="email"
+              autoComplete="username"
               style={{
                 width: "100%",
                 padding: "10px 12px",

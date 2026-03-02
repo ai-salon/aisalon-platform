@@ -8,17 +8,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        identifier: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
+        if (!credentials?.identifier || !credentials?.password) return null;
         try {
           const res = await fetch(`${API_URL}/auth/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              email: credentials.email,
+              identifier: credentials.identifier,
               password: credentials.password,
             }),
           });
@@ -45,6 +45,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.accessToken = (user as any).accessToken;
         token.role = (user as any).role;
         token.chapterId = (user as any).chapter_id;
+        token.username = (user as any).username;
       }
       return token;
     },
@@ -52,6 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       (session as any).accessToken = token.accessToken;
       (session.user as any).role = token.role;
       (session.user as any).chapterId = token.chapterId;
+      (session.user as any).username = token.username;
       return session;
     },
   },

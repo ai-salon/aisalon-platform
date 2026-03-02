@@ -1,11 +1,10 @@
 """Startup seed: superadmin + all chapters + team members."""
 import logging
-import os
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
+from app.core.config import settings
 from app.core.security import hash_password
 from app.models.user import User, UserRole
 from app.models.chapter import Chapter
@@ -313,20 +312,19 @@ _CHAPTERS = [
 
 
 async def seed_superadmin() -> None:
-    email = os.getenv("SEED_EMAIL", "admin@aisalon.xyz")
-    password = os.getenv("SEED_PASSWORD", "changeme123")
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.email == email))
+        result = await db.execute(select(User).where(User.username == "admin"))
         if result.scalar_one_or_none():
             return
         db.add(User(
-            email=email,
-            hashed_password=hash_password(password),
+            username="admin",
+            email="admin@aisalon.xyz",
+            hashed_password=hash_password(settings.ADMIN_PASSWORD),
             role=UserRole.superadmin,
             is_active=True,
         ))
         await db.commit()
-        logger.info("Seeded superadmin: %s", email)
+        logger.info("Seeded superadmin: admin")
 
 
 async def seed_chapters() -> None:
@@ -359,28 +357,28 @@ async def seed_chapters() -> None:
 
 async def seed_chapter_leads() -> None:
     """Create one chapter_lead user per chapter (idempotent)."""
+    base_pw = settings.BASE_PASSWORD
     async with AsyncSessionLocal() as db:
         for ch_data in _CHAPTERS:
             code = ch_data["code"]
-            email = f"{code}@aisalon.xyz"
-            password = f"impact{code}"
 
             ch_result = await db.execute(select(Chapter).where(Chapter.code == code))
             chapter = ch_result.scalar_one_or_none()
             if not chapter:
                 continue
 
-            user_result = await db.execute(select(User).where(User.email == email))
+            user_result = await db.execute(select(User).where(User.username == code))
             if user_result.scalar_one_or_none():
                 continue
 
             db.add(User(
-                email=email,
-                hashed_password=hash_password(password),
+                username=code,
+                email=f"{code}@aisalon.xyz",
+                hashed_password=hash_password(f"{base_pw}{code}"),
                 role=UserRole.chapter_lead,
                 chapter_id=chapter.id,
                 is_active=True,
             ))
-            logger.info("Seeded chapter lead: %s", email)
+            logger.info("Seeded chapter lead: %s", code)
 
         await db.commit()

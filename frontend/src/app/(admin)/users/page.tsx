@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type UserData = {
-  id: string; email: string; role: string;
+  id: string; email: string; username: string | null; role: string;
   chapter_id: string | null; is_active: boolean;
 };
 type Chapter = { id: string; name: string; code: string };
 
-const EMPTY_FORM = { email: "", password: "", role: "chapter_lead", chapter_id: "" };
+const EMPTY_FORM = { email: "", username: "", password: "", role: "chapter_lead", chapter_id: "" };
 
 export default function UsersPage() {
   const { data: session, status } = useSession();
@@ -54,7 +54,7 @@ export default function UsersPage() {
     const r = await fetch(`${API_URL}/admin/users`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, chapter_id: form.chapter_id || null }),
+      body: JSON.stringify({ ...form, username: form.username || null, chapter_id: form.chapter_id || null }),
     });
     setSaving(false);
     if (!r.ok) {
@@ -105,7 +105,11 @@ export default function UsersPage() {
         <div style={{ background: "#fff", borderRadius: 8, padding: "24px", boxShadow: "0 2px 16px rgba(0,0,0,0.10)", marginBottom: 24, border: "1.5px solid #56a1d2" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 18px" }}>New User</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {[{ key: "email", label: "Email", type: "email" }, { key: "password", label: "Password", type: "password" }].map(({ key, label, type }) => (
+            {[
+              { key: "email", label: "Email", type: "email" },
+              { key: "username", label: "Username (optional)", type: "text" },
+              { key: "password", label: "Password", type: "password" },
+            ].map(({ key, label, type }) => (
               <div key={key}>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>{label}</label>
                 <input
@@ -123,6 +127,7 @@ export default function UsersPage() {
                 onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
                 style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, background: "#fff" }}
               >
+                <option value="host">Host</option>
                 <option value="chapter_lead">Chapter Lead</option>
                 <option value="superadmin">Superadmin</option>
               </select>
@@ -156,7 +161,7 @@ export default function UsersPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
-              {["Email", "Role", "Chapter", "Status", ""].map((h) => (
+              {["Email", "Username", "Role", "Chapter", "Status", ""].map((h) => (
                 <th key={h} style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}>{h}</th>
               ))}
             </tr>
@@ -165,11 +170,12 @@ export default function UsersPage() {
             {users.map((u, i) => (
               <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
                 <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 500, color: "#111" }}>{u.email}</td>
+                <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.username ?? "—"}</td>
                 <td style={{ padding: "14px 20px" }}>
                   <span style={{
                     fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12, textTransform: "capitalize",
-                    background: u.role === "superadmin" ? "#fef9c3" : "#eff6ff",
-                    color: u.role === "superadmin" ? "#a16207" : "#56a1d2",
+                    background: u.role === "superadmin" ? "#fef9c3" : u.role === "host" ? "#f0fdf4" : "#eff6ff",
+                    color: u.role === "superadmin" ? "#a16207" : u.role === "host" ? "#16a34a" : "#56a1d2",
                   }}>
                     {u.role.replace("_", " ")}
                   </span>

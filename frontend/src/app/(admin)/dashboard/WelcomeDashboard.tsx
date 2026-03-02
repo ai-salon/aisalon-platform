@@ -768,6 +768,7 @@ export default function WelcomeDashboard({
 }) {
   const [activeTab, setActiveTab] = useState<"hosting" | "chapter">("hosting");
   const showBothGuides = userRole === "chapter_lead" || userRole === "superadmin";
+  // host role only sees the hosting guide (showBothGuides = false for hosts)
 
   return (
     <div style={{ maxWidth: 1140, margin: "0 auto", padding: "32px 28px" }}>
@@ -828,7 +829,7 @@ export default function WelcomeDashboard({
                 letterSpacing: 0.5,
               }}
             >
-              {userRole === "chapter_lead" ? "Chapter Lead" : "Super Admin"}
+              {userRole === "chapter_lead" ? "Chapter Lead" : userRole === "host" ? "Host" : "Super Admin"}
             </span>
             {userChapter && (
               <span

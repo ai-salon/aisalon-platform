@@ -16,6 +16,7 @@ from app.models.article import Article, ArticleStatus
 from app.models.chapter import Chapter
 from app.models.team_member import TeamMember
 from app.models.hosting_interest import HostingInterest, InterestType
+from app.models.invite import Invite
 from app.core.security import hash_password
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
@@ -24,6 +25,7 @@ from app.schemas.admin import (
     ChapterUpdate, ChapterResponse,
     TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
     UserCreate, UserUpdate, UserResponse,
+    InviteCreate, InviteResponse,
 )
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor
@@ -41,9 +43,15 @@ def _require_admin(user: User) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
 
 
+def _require_lead_or_above(user: User) -> None:
+    """Chapter-lead-or-superadmin guard."""
+    if user.role not in (UserRole.superadmin, UserRole.chapter_lead):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
 def _chapter_filter(user: User):
     """Return chapter_id to filter by, or None if superadmin (no filter)."""
-    if user.role == UserRole.chapter_lead:
+    if user.role in (UserRole.chapter_lead, UserRole.host):
         return user.chapter_id
     return None
 
@@ -161,8 +169,8 @@ async def create_job(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Chapter leads can only create jobs for their own chapter
-    if current_user.role == UserRole.chapter_lead:
+    # Non-superadmins can only create jobs for their own chapter
+    if current_user.role != UserRole.superadmin:
         if current_user.chapter_id != chapter_id:
             raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -206,7 +214,7 @@ async def get_job(
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if current_user.role == UserRole.chapter_lead and job.chapter_id != current_user.chapter_id:
+    if current_user.role != UserRole.superadmin and job.chapter_id != current_user.chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     return job
 
@@ -236,7 +244,7 @@ async def get_article(
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
-    if current_user.role == UserRole.chapter_lead and article.chapter_id != current_user.chapter_id:
+    if current_user.role != UserRole.superadmin and article.chapter_id != current_user.chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     return article
 
@@ -252,7 +260,7 @@ async def update_article(
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
-    if current_user.role == UserRole.chapter_lead and article.chapter_id != current_user.chapter_id:
+    if current_user.role != UserRole.superadmin and article.chapter_id != current_user.chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     if body.title is not None:
         article.title = body.title
@@ -301,7 +309,7 @@ async def get_transcript(
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
-    if current_user.role == UserRole.chapter_lead and article.chapter_id != current_user.chapter_id:
+    if current_user.role != UserRole.superadmin and article.chapter_id != current_user.chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     if not article.anonymized_transcript:
         raise HTTPException(status_code=404, detail="No transcript available for this article")
@@ -324,11 +332,12 @@ async def update_chapter(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_lead_or_above(current_user)
     result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
     chapter = result.scalar_one_or_none()
     if not chapter:
         raise HTTPException(status_code=404, detail="Chapter not found")
-    if current_user.role == UserRole.chapter_lead and current_user.chapter_id != chapter_id:
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     for field, value in body.model_dump(exclude_none=True).items():
@@ -346,7 +355,8 @@ async def create_team_member(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == UserRole.chapter_lead and current_user.chapter_id != body.chapter_id:
+    _require_lead_or_above(current_user)
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != body.chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     member = TeamMember(**body.model_dump())
     db.add(member)
@@ -362,11 +372,12 @@ async def update_team_member(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_lead_or_above(current_user)
     result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
     member = result.scalar_one_or_none()
     if not member:
         raise HTTPException(status_code=404, detail="Team member not found")
-    if current_user.role == UserRole.chapter_lead and current_user.chapter_id != member.chapter_id:
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     for field, value in body.model_dump(exclude_none=True).items():
@@ -382,11 +393,12 @@ async def delete_team_member(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_lead_or_above(current_user)
     result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
     member = result.scalar_one_or_none()
     if not member:
         raise HTTPException(status_code=404, detail="Team member not found")
-    if current_user.role == UserRole.chapter_lead and current_user.chapter_id != member.chapter_id:
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     await db.delete(member)
     await db.commit()
@@ -414,8 +426,13 @@ async def create_user(
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered")
+    if body.username:
+        existing_un = await db.execute(select(User).where(User.username == body.username))
+        if existing_un.scalar_one_or_none():
+            raise HTTPException(status_code=409, detail="Username already taken")
     user = User(
         email=body.email,
+        username=body.username,
         hashed_password=hash_password(body.password),
         role=body.role,
         chapter_id=body.chapter_id,
@@ -444,6 +461,64 @@ async def update_user(
     await db.commit()
     await db.refresh(user)
     return user
+
+
+# ── Invites ───────────────────────────────────────────────────────────────────
+
+@router.post("/invites", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
+async def create_invite(
+    body: InviteCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    # Chapter leads can only create host invites for their own chapter
+    if current_user.role == UserRole.chapter_lead:
+        if body.chapter_id != current_user.chapter_id:
+            raise HTTPException(status_code=403, detail="Forbidden")
+        if body.role != "host":
+            raise HTTPException(status_code=403, detail="Chapter leads can only create host invites")
+    invite = Invite(
+        chapter_id=body.chapter_id,
+        role=body.role,
+        max_uses=body.max_uses,
+        created_by=current_user.id,
+    )
+    db.add(invite)
+    await db.commit()
+    await db.refresh(invite)
+    return invite
+
+
+@router.get("/invites", response_model=list[InviteResponse])
+async def list_invites(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    stmt = select(Invite).where(Invite.is_active.is_(True))
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id:
+        stmt = stmt.where(Invite.chapter_id == chapter_id)
+    result = await db.execute(stmt.order_by(Invite.created_at.desc()))
+    return result.scalars().all()
+
+
+@router.delete("/invites/{invite_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def deactivate_invite(
+    invite_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    result = await db.execute(select(Invite).where(Invite.id == invite_id))
+    invite = result.scalar_one_or_none()
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found")
+    if current_user.role != UserRole.superadmin and invite.chapter_id != current_user.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    invite.is_active = False
+    await db.commit()
 
 
 # ── Hosting Interest (superadmin only) ────────────────────────────────────────

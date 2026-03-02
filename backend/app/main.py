@@ -1,6 +1,10 @@
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
+
+logger = logging.getLogger(__name__)
 
 from app.api.health import router as health_router
 from app.api.chapters import router as chapters_router
@@ -20,6 +24,7 @@ import app.models.api_key  # noqa: F401
 import app.models.job  # noqa: F401
 import app.models.article  # noqa: F401
 import app.models.hosting_interest  # noqa: F401
+import app.models.invite  # noqa: F401
 
 
 @asynccontextmanager
@@ -39,6 +44,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> PlainTextResponse:
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return PlainTextResponse("Internal Server Error", status_code=500)
+
 
 app.include_router(health_router)
 app.include_router(chapters_router)

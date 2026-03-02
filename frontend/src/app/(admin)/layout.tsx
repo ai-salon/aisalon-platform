@@ -6,15 +6,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const session = await auth();
   const userRole = (session?.user as any)?.role;
   const isSuperadmin = userRole === "superadmin";
+  const isHost = userRole === "host";
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: "fa-th-large" },
     { href: "/upload", label: "Upload Conversations", icon: "fa-upload" },
     { href: "/articles", label: "Articles", icon: "fa-file-text-o" },
-    { href: "/chapters", label: "Chapters", icon: "fa-map-marker" },
-    { href: "/team", label: "Team", icon: "fa-users" },
+    ...(!isHost ? [{ href: "/chapters", label: "Chapters", icon: "fa-map-marker" }] : []),
+    ...(!isHost ? [{ href: "/team", label: "Team", icon: "fa-users" }] : []),
     ...(isSuperadmin ? [{ href: "/users", label: "Users", icon: "fa-user-circle-o" }] : []),
-    { href: "/hosting-interest", label: "Host Interest", icon: "fa-star" },
+    ...(!isHost ? [{ href: "/hosting-interest", label: "Host Interest", icon: "fa-star" }] : []),
     { href: "/settings", label: "Settings", icon: "fa-cog" },
   ];
 

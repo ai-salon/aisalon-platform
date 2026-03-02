@@ -48,9 +48,13 @@ async def client(db_engine):
 
 # ── Auth helpers ────────────────────────────────────────────────────────────
 
-async def _make_user(session, email: str, role: UserRole, chapter_id: str | None = None) -> User:
+async def _make_user(
+    session, email: str, role: UserRole,
+    chapter_id: str | None = None, username: str | None = None,
+) -> User:
     user = User(
         email=email,
+        username=username,
         hashed_password=hash_password("password"),
         role=role,
         chapter_id=chapter_id,
@@ -63,13 +67,13 @@ async def _make_user(session, email: str, role: UserRole, chapter_id: str | None
 
 
 async def _get_token(client: AsyncClient, email: str) -> str:
-    r = await client.post("/auth/login", json={"email": email, "password": "password"})
+    r = await client.post("/auth/login", json={"identifier": email, "password": "password"})
     return r.json()["access_token"]
 
 
 @pytest_asyncio.fixture
 async def superadmin(db_session):
-    return await _make_user(db_session, "admin@aisalon.xyz", UserRole.superadmin)
+    return await _make_user(db_session, "admin@aisalon.xyz", UserRole.superadmin, username="admin")
 
 
 @pytest_asyncio.fixture
@@ -97,7 +101,7 @@ async def sf_chapter(db_session) -> Chapter:
 
 @pytest_asyncio.fixture
 async def chapter_lead(db_session, sf_chapter) -> User:
-    return await _make_user(db_session, "lead@aisalon.xyz", UserRole.chapter_lead, sf_chapter.id)
+    return await _make_user(db_session, "lead@aisalon.xyz", UserRole.chapter_lead, sf_chapter.id, username="sf")
 
 
 @pytest_asyncio.fixture
@@ -108,3 +112,21 @@ async def lead_token(client, chapter_lead) -> str:
 @pytest_asyncio.fixture
 async def lead_headers(lead_token) -> dict:
     return {"Authorization": f"Bearer {lead_token}"}
+
+
+@pytest_asyncio.fixture
+async def host_user(db_session, sf_chapter) -> User:
+    return await _make_user(
+        db_session, "host@aisalon.xyz", UserRole.host,
+        sf_chapter.id, username="hostuser",
+    )
+
+
+@pytest_asyncio.fixture
+async def host_token(client, host_user) -> str:
+    return await _get_token(client, host_user.email)
+
+
+@pytest_asyncio.fixture
+async def host_headers(host_token) -> dict:
+    return {"Authorization": f"Bearer {host_token}"}

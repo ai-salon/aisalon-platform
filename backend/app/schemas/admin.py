@@ -129,6 +129,7 @@ class ArticleUpdate(BaseModel):
 
 class UserCreate(BaseModel):
     email: str
+    username: str | None = None
     password: str
     role: str = "chapter_lead"
     chapter_id: str | None = None
@@ -143,8 +144,29 @@ class UserUpdate(BaseModel):
 class UserResponse(BaseModel):
     id: str
     email: str
+    username: str | None
     role: str
     chapter_id: str | None
+    is_active: bool
+
+    model_config = {"from_attributes": True}
+
+
+# ── Invites ────────────────────────────────────────────────────────────────────
+
+class InviteCreate(BaseModel):
+    chapter_id: str
+    role: str = "host"
+    max_uses: int = 1
+
+
+class InviteResponse(BaseModel):
+    id: str
+    token: str
+    chapter_id: str
+    role: str
+    max_uses: int
+    use_count: int
     is_active: bool
 
     model_config = {"from_attributes": True}
