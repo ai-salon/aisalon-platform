@@ -104,3 +104,27 @@ class TestUpdateUser:
     async def test_not_found(self, client: AsyncClient, admin_headers):
         r = await client.patch("/admin/users/nonexistent", json={"is_active": False}, headers=admin_headers)
         assert r.status_code == 404
+
+
+class TestDeleteUser:
+    async def test_delete_user(self, client: AsyncClient, admin_headers,
+                               sf_chapter, db_session: AsyncSession):
+        lead = await _make_chapter_lead(db_session, "todelete@aisalon.xyz", sf_chapter.id)
+        r = await client.delete(f"/admin/users/{lead.id}", headers=admin_headers)
+        assert r.status_code == 204
+        # Verify gone
+        r2 = await client.get("/admin/users", headers=admin_headers)
+        ids = [u["id"] for u in r2.json()]
+        assert lead.id not in ids
+
+    async def test_cannot_delete_self(self, client: AsyncClient, admin_headers, superadmin):
+        r = await client.delete(f"/admin/users/{superadmin.id}", headers=admin_headers)
+        assert r.status_code == 400
+
+    async def test_not_found(self, client: AsyncClient, admin_headers):
+        r = await client.delete("/admin/users/nonexistent", headers=admin_headers)
+        assert r.status_code == 404
+
+    async def test_requires_superadmin(self, client: AsyncClient, lead_headers):
+        r = await client.delete("/admin/users/some-id", headers=lead_headers)
+        assert r.status_code == 403

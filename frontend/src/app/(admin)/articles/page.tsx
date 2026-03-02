@@ -28,6 +28,7 @@ export default function ArticlesPage() {
   const router = useRouter();
   const [articles, setArticles] = useState<Article[]>([]);
   const [tab, setTab] = useState<Tab>("articles");
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const token = (session as any)?.accessToken;
 
@@ -37,6 +38,10 @@ export default function ArticlesPage() {
 
   useEffect(() => {
     if (!token) return;
+    fetchArticles();
+  }, [token]);
+
+  function fetchArticles() {
     fetch(`${API_URL}/admin/articles`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
@@ -44,7 +49,25 @@ export default function ArticlesPage() {
       .then((r) => r.json())
       .then(setArticles)
       .catch(() => {});
-  }, [token]);
+  }
+
+  async function handleDelete(e: React.MouseEvent, article: Article) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`Delete "${article.title}"? This cannot be undone.`)) return;
+    setDeleting(article.id);
+    try {
+      const r = await fetch(`${API_URL}/admin/articles/${article.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        setArticles((prev) => prev.filter((a) => a.id !== article.id));
+      }
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   if (status === "loading") return null;
 
@@ -191,6 +214,34 @@ export default function ArticlesPage() {
                     >
                       {article.status}
                     </span>
+                    <button
+                      onClick={(e) => handleDelete(e, article)}
+                      disabled={deleting === article.id}
+                      title="Delete"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: deleting === article.id ? "default" : "pointer",
+                        padding: "4px 8px",
+                        borderRadius: 6,
+                        color: "#9ca3af",
+                        fontSize: 15,
+                        transition: "color 0.15s, background 0.15s",
+                        opacity: deleting === article.id ? 0.4 : 1,
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "#ef4444";
+                        e.currentTarget.style.background = "#fef2f2";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "#9ca3af";
+                        e.currentTarget.style.background = "none";
+                      }}
+                    >
+                      <i className="fa fa-trash-o" />
+                    </button>
                   </div>
                 </div>
               </Link>

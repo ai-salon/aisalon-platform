@@ -68,6 +68,17 @@ export default function UsersPage() {
     setForm({ ...EMPTY_FORM, chapter_id: chapters[0]?.id ?? "" });
   }
 
+  async function handleDelete(user: UserData) {
+    if (!confirm(`Permanently delete user "${user.email}"? This cannot be undone.`)) return;
+    const r = await fetch(`${API_URL}/admin/users/${user.id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (r.ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== user.id));
+    }
+  }
+
   async function toggleActive(user: UserData) {
     const r = await fetch(`${API_URL}/admin/users/${user.id}`, {
       method: "PATCH",
@@ -192,16 +203,28 @@ export default function UsersPage() {
                     {u.is_active ? "Active" : "Inactive"}
                   </span>
                 </td>
-                <td style={{ padding: "14px 20px", textAlign: "right" }}>
+                <td style={{ padding: "14px 20px", textAlign: "right", whiteSpace: "nowrap" }}>
                   <button
                     onClick={() => toggleActive(u)}
                     style={{
                       fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
                       border: `1.5px solid ${u.is_active ? "#fca5a5" : "#86efac"}`,
                       color: u.is_active ? "#ef4444" : "#16a34a",
+                      marginRight: 6,
                     }}
                   >
                     {u.is_active ? "Deactivate" : "Activate"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(u)}
+                    title="Delete user"
+                    style={{
+                      fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
+                      border: "1.5px solid #fca5a5",
+                      color: "#ef4444",
+                    }}
+                  >
+                    <i className="fa fa-trash-o" />
                   </button>
                 </td>
               </tr>

@@ -60,6 +60,33 @@ class TestGetArticle:
         assert r.status_code == 404
 
 
+class TestDeleteArticle:
+    async def test_delete_article(self, client: AsyncClient, admin_headers,
+                                  db_session: AsyncSession, sf_chapter):
+        article = await _seed_article(db_session, sf_chapter.id)
+        r = await client.delete(f"/admin/articles/{article.id}", headers=admin_headers)
+        assert r.status_code == 204
+        # Verify it's gone
+        r2 = await client.get(f"/admin/articles/{article.id}", headers=admin_headers)
+        assert r2.status_code == 404
+
+    async def test_delete_not_found(self, client: AsyncClient, admin_headers):
+        r = await client.delete("/admin/articles/nonexistent-id", headers=admin_headers)
+        assert r.status_code == 404
+
+    async def test_chapter_lead_cannot_delete_other_chapter(
+        self, client: AsyncClient, lead_headers, db_session: AsyncSession, sf_chapter
+    ):
+        other_chapter = await _make_other_chapter(db_session)
+        article = await _seed_article(db_session, other_chapter.id, "Berlin Article")
+        r = await client.delete(f"/admin/articles/{article.id}", headers=lead_headers)
+        assert r.status_code == 403
+
+    async def test_requires_auth(self, client: AsyncClient):
+        r = await client.delete("/admin/articles/some-id")
+        assert r.status_code == 401
+
+
 class TestUpdateArticle:
     async def test_update_title_and_content(self, client: AsyncClient, admin_headers,
                                             db_session: AsyncSession, sf_chapter):
