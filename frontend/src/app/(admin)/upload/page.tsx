@@ -394,6 +394,20 @@ export default function UploadPage() {
                         {isActive && job.step ? job.step : job.status}
                       </span>
                     </div>
+                    {job.status === "failed" && job.error_message && (
+                      <p
+                        style={{
+                          fontSize: 11,
+                          color: "#dc2626",
+                          margin: "8px 0 0",
+                          fontFamily: "monospace",
+                          wordBreak: "break-word",
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        {job.error_message}
+                      </p>
+                    )}
                     {articleId && (
                       <Link
                         href={`/articles/${articleId}`}
