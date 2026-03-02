@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const PROVIDERS = ["assemblyai", "anthropic"] as const;
+const PROVIDERS = ["assemblyai", "google"] as const;
 type Provider = (typeof PROVIDERS)[number];
 
 function StatusBadge({ active }: { active: boolean }) {

@@ -7,7 +7,7 @@ from app.models.base import Base, TimestampMixin
 
 class APIKeyProvider(str, enum.Enum):
     assemblyai = "assemblyai"
-    anthropic = "anthropic"
+    google = "google"
 
 
 class UserAPIKey(Base, TimestampMixin):

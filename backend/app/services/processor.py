@@ -1,7 +1,9 @@
 """Audio processing pipeline: transcribe → generate article."""
 from abc import ABC, abstractmethod
 
-import anthropic as _anthropic
+import asyncio
+from google import genai
+from google.genai import types as genai_types
 from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +13,8 @@ from app.core.encryption import decrypt_key
 from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.services.assemblyai import transcribe
 
+
+GEMINI_MODEL = "gemini-3-flash-preview"
 
 SOCRATIC_PROMPT = (
     "You are a writer for the Ai Salon. Given this transcript of a salon discussion, "
@@ -44,7 +48,7 @@ class BaseProcessor(ABC):
 
 
 class SocraticProcessor(BaseProcessor):
-    """Full pipeline: AssemblyAI transcription → Claude article generation."""
+    """Full pipeline: AssemblyAI transcription → Gemini article generation."""
 
     async def _get_key(self, db: AsyncSession, user_id: str, provider: APIKeyProvider) -> str:
         result = await db.execute(
@@ -75,40 +79,26 @@ class SocraticProcessor(BaseProcessor):
         assemblyai_key = await self._get_key(db, user_id, APIKeyProvider.assemblyai)
         transcript_text = await transcribe(audio_bytes, assemblyai_key)
 
-        # 3. Generate article + anonymized transcript with Claude (concurrent)
-        anthropic_key = await self._get_key(db, user_id, APIKeyProvider.anthropic)
-        client = _anthropic.AsyncAnthropic(api_key=anthropic_key)
+        # 3. Generate article + anonymized transcript with Gemini (concurrent)
+        google_key = await self._get_key(db, user_id, APIKeyProvider.google)
+        client = genai.Client(api_key=google_key)
 
-        import asyncio as _asyncio
+        async def _generate(prompt: str, max_tokens: int) -> str:
+            config = genai_types.GenerateContentConfig(max_output_tokens=max_tokens)
+            response = await client.aio.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=config,
+            )
+            return response.text
 
-        article_msg, anon_msg = await _asyncio.gather(
-            client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=4096,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"{SOCRATIC_PROMPT}\n\n---\n\n{transcript_text}",
-                    }
-                ],
-            ),
-            client.messages.create(
-                model="claude-haiku-4-5-20251001",
-                max_tokens=8192,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"{ANONYMIZE_PROMPT}\n\n---\n\n{transcript_text}",
-                    }
-                ],
-            ),
+        article_text, anonymized_transcript = await asyncio.gather(
+            _generate(f"{SOCRATIC_PROMPT}\n\n---\n\n{transcript_text}", 4096),
+            _generate(f"{ANONYMIZE_PROMPT}\n\n---\n\n{transcript_text}", 8192),
         )
 
-        content_md = article_msg.content[0].text  # type: ignore[union-attr]
-        anonymized_transcript = anon_msg.content[0].text  # type: ignore[union-attr]
-
         # Extract title from first # heading
-        lines = content_md.strip().splitlines()
+        lines = article_text.strip().splitlines()
         title = "Untitled"
         body_lines = lines
         if lines and lines[0].startswith("# "):
