@@ -25,7 +25,6 @@ export default function UploadPage() {
   const [error, setError] = useState("");
   const [apiKeys, setApiKeys] = useState<string[]>([]);
   const [keysLoaded, setKeysLoaded] = useState(false);
-  const [showKeyHelp, setShowKeyHelp] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
   const [articleByJob, setArticleByJob] = useState<Record<string, string>>({});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -298,63 +297,6 @@ export default function UploadPage() {
             </div>
           </form>
 
-          {/* Collapsible API key help */}
-          <div style={{ marginTop: 32 }}>
-            <button
-              onClick={() => setShowKeyHelp(!showKeyHelp)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#56a1d2",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              <i className={`fa fa-chevron-${showKeyHelp ? "up" : "down"}`} style={{ fontSize: 11 }} />
-              Where do I get API keys?
-            </button>
-            {showKeyHelp && (
-              <div
-                style={{
-                  marginTop: 12,
-                  background: "#fff",
-                  border: "1px solid #e8e4d8",
-                  borderRadius: 8,
-                  padding: "16px 20px",
-                  fontSize: 13,
-                  lineHeight: 1.7,
-                  color: "#444",
-                }}
-              >
-                <p style={{ fontWeight: 700, color: "#111", margin: "0 0 8px" }}>
-                  AssemblyAI <span style={{ fontSize: 11, color: "#ef4444", fontWeight: 600 }}>(required)</span>
-                </p>
-                <p style={{ margin: "0 0 4px" }}>
-                  Go to{" "}
-                  <a href="https://app.assemblyai.com" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>
-                    app.assemblyai.com
-                  </a>
-                  {" "}→ Sign up → <strong>API Keys</strong> tab → copy your key.
-                </p>
-
-                <p style={{ fontWeight: 700, color: "#111", margin: "14px 0 8px" }}>
-                  Google AI <span style={{ fontSize: 11, color: "#ef4444", fontWeight: 600 }}>(required)</span>
-                </p>
-                <p style={{ margin: 0 }}>
-                  Go to{" "}
-                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>
-                    aistudio.google.com/apikey
-                  </a>
-                  {" "}→ <strong>Create API key</strong> → copy it.
-                </p>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* RIGHT: Jobs panel */}
