@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
+import { Suspense } from "react";
 import ArticleEditor from "./ArticleEditor";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -27,5 +28,9 @@ export default async function ArticleDetailPage({
   const article = await getArticle(token, id);
   if (!article) notFound();
 
-  return <ArticleEditor article={article} token={token} />;
+  return (
+    <Suspense>
+      <ArticleEditor article={article} token={token} />
+    </Suspense>
+  );
 }

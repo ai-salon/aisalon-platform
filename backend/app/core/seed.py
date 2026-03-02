@@ -355,3 +355,32 @@ async def seed_chapters() -> None:
             ch_data["team"] = team
 
         await db.commit()
+
+
+async def seed_chapter_leads() -> None:
+    """Create one chapter_lead user per chapter (idempotent)."""
+    async with AsyncSessionLocal() as db:
+        for ch_data in _CHAPTERS:
+            code = ch_data["code"]
+            email = f"{code}@aisalon.xyz"
+            password = f"impact{code}"
+
+            ch_result = await db.execute(select(Chapter).where(Chapter.code == code))
+            chapter = ch_result.scalar_one_or_none()
+            if not chapter:
+                continue
+
+            user_result = await db.execute(select(User).where(User.email == email))
+            if user_result.scalar_one_or_none():
+                continue
+
+            db.add(User(
+                email=email,
+                hashed_password=hash_password(password),
+                role=UserRole.chapter_lead,
+                chapter_id=chapter.id,
+                is_active=True,
+            ))
+            logger.info("Seeded chapter lead: %s", email)
+
+        await db.commit()

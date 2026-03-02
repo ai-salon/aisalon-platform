@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
@@ -53,7 +54,12 @@ export default function ArticleEditor({
   article: Article;
   token: string;
 }) {
-  const [tab, setTab] = useState<Tab>("preview");
+  const searchParams = useSearchParams();
+  const initialTab: Tab =
+    searchParams.get("tab") === "transcript" && !!initial.anonymized_transcript
+      ? "transcript"
+      : "preview";
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [title, setTitle] = useState(initial.title);
   const [content, setContent] = useState(initial.content_md ?? "");
   const [articleStatus, setArticleStatus] = useState<"draft" | "published">(initial.status);

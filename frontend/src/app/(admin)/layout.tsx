@@ -1,7 +1,23 @@
 import Link from "next/link";
+import { auth } from "@/lib/auth";
 import SignOutButton from "./SignOutButton";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth();
+  const userRole = (session?.user as any)?.role;
+  const isSuperadmin = userRole === "superadmin";
+
+  const navItems = [
+    { href: "/dashboard", label: "Dashboard", icon: "fa-th-large" },
+    { href: "/upload", label: "Upload Conversations", icon: "fa-upload" },
+    { href: "/articles", label: "Articles", icon: "fa-file-text-o" },
+    { href: "/chapters", label: "Chapters", icon: "fa-map-marker" },
+    { href: "/team", label: "Team", icon: "fa-users" },
+    ...(isSuperadmin ? [{ href: "/users", label: "Users", icon: "fa-user-circle-o" }] : []),
+    { href: "/hosting-interest", label: "Host Interest", icon: "fa-star" },
+    { href: "/settings", label: "Settings", icon: "fa-cog" },
+  ];
+
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 71px)" }}>
       {/* Sidebar */}
@@ -17,17 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         }}
       >
         <nav style={{ display: "flex", flexDirection: "column", gap: 4, padding: "0 16px", flex: 1 }}>
-          {[
-            { href: "/dashboard", label: "Dashboard", icon: "fa-th-large" },
-            { href: "/jobs", label: "Jobs", icon: "fa-tasks" },
-            { href: "/articles", label: "Articles", icon: "fa-file-text-o" },
-            { href: "/upload", label: "Upload", icon: "fa-upload" },
-            { href: "/chapters", label: "Chapters", icon: "fa-map-marker" },
-            { href: "/team", label: "Team", icon: "fa-users" },
-            { href: "/users", label: "Users", icon: "fa-user-circle-o" },
-            { href: "/hosting-interest", label: "Host Interest", icon: "fa-star" },
-            { href: "/settings", label: "Settings", icon: "fa-cog" },
-          ].map(({ href, label, icon }) => (
+          {navItems.map(({ href, label, icon }) => (
             <Link
               key={href}
               href={href}

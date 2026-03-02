@@ -10,7 +10,7 @@ from app.api.admin import router as admin_router
 from app.api.articles import router as articles_router
 from app.api.hosting_interest import router as hosting_interest_router
 from app.core.config import settings
-from app.core.seed import seed_superadmin, seed_chapters
+from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads
 
 # Ensure models are imported so SQLAlchemy can discover them
 import app.models.chapter  # noqa: F401
@@ -26,6 +26,7 @@ import app.models.hosting_interest  # noqa: F401
 async def lifespan(app: FastAPI):
     await seed_superadmin()
     await seed_chapters()
+    await seed_chapter_leads()
     yield
 
 

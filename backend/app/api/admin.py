@@ -73,6 +73,7 @@ async def run_job(job_id: str) -> None:
             )
             article = Article(
                 job_id=job.id,
+                user_id=job.user_id,
                 chapter_id=job.chapter_id,
                 title=article_data["title"],
                 content_md=article_data["content_md"],
@@ -469,8 +470,15 @@ async def list_hosting_interest(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    _require_admin(current_user)
-    result = await db.execute(
-        select(HostingInterest).order_by(HostingInterest.created_at.desc())
-    )
+    stmt = select(HostingInterest).order_by(HostingInterest.created_at.desc())
+    if current_user.role != UserRole.superadmin:
+        ch_result = await db.execute(select(Chapter).where(Chapter.id == current_user.chapter_id))
+        chapter = ch_result.scalar_one_or_none()
+        if not chapter:
+            return []
+        stmt = stmt.where(
+            HostingInterest.interest_type == InterestType.host_existing,
+            HostingInterest.existing_chapter == chapter.name,
+        )
+    result = await db.execute(stmt)
     return result.scalars().all()

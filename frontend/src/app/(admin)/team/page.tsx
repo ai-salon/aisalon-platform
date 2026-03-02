@@ -27,6 +27,9 @@ export default function TeamPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [filterChapterId, setFilterChapterId] = useState<string>("all");
+  const [filterRole, setFilterRole] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "chapter" | "order">("order");
 
   const token = (session as any)?.accessToken;
   const userRole = (session?.user as any)?.role;
@@ -47,6 +50,7 @@ export default function TeamPage() {
       // Pre-fill chapter for leads
       if (userRole === "chapter_lead" && userChapterId) {
         setForm((f) => ({ ...f, chapter_id: userChapterId }));
+        setFilterChapterId(userChapterId);
       } else if (c.length > 0) {
         setForm((f) => ({ ...f, chapter_id: c[0].id }));
       }
@@ -115,24 +119,30 @@ export default function TeamPage() {
 
   if (status === "loading") return null;
 
-  const visibleMembers =
-    userRole === "chapter_lead"
-      ? members.filter((m) => m.chapter_id === userChapterId)
-      : members;
-
   const availableChapters =
     userRole === "chapter_lead"
       ? chapters.filter((c) => c.id === userChapterId)
       : chapters;
+
+  let visibleMembers = members;
+  if (filterChapterId !== "all") {
+    visibleMembers = visibleMembers.filter((m) => m.chapter_id === filterChapterId);
+  }
+  if (filterRole.trim()) {
+    const q = filterRole.toLowerCase();
+    visibleMembers = visibleMembers.filter((m) => m.role.toLowerCase().includes(q));
+  }
+  visibleMembers = [...visibleMembers].sort((a, b) => {
+    if (sortBy === "name") return a.name.localeCompare(b.name);
+    if (sortBy === "chapter") return chapterName(a.chapter_id).localeCompare(chapterName(b.chapter_id));
+    return a.display_order - b.display_order;
+  });
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 30px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Team</h1>
-          <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
-            {visibleMembers.length} member{visibleMembers.length !== 1 ? "s" : ""}
-          </p>
         </div>
         <button
           onClick={openCreate}
@@ -242,6 +252,67 @@ export default function TeamPage() {
           </div>
         </div>
       )}
+
+      {/* Filter bar */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+        {/* Chapter filter */}
+        <select
+          value={filterChapterId}
+          onChange={(e) => setFilterChapterId(e.target.value)}
+          disabled={userRole === "chapter_lead"}
+          style={{
+            padding: "8px 12px",
+            fontSize: 13,
+            border: "1.5px solid #d1d5db",
+            borderRadius: 6,
+            background: "#fff",
+            color: "#444",
+          }}
+        >
+          {userRole !== "chapter_lead" && <option value="all">All Chapters</option>}
+          {availableChapters.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+
+        {/* Role filter */}
+        <input
+          value={filterRole}
+          onChange={(e) => setFilterRole(e.target.value)}
+          placeholder="Filter by role…"
+          style={{
+            padding: "8px 12px",
+            fontSize: 13,
+            border: "1.5px solid #d1d5db",
+            borderRadius: 6,
+            background: "#fff",
+            color: "#444",
+            minWidth: 160,
+          }}
+        />
+
+        {/* Sort */}
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as any)}
+          style={{
+            padding: "8px 12px",
+            fontSize: 13,
+            border: "1.5px solid #d1d5db",
+            borderRadius: 6,
+            background: "#fff",
+            color: "#444",
+          }}
+        >
+          <option value="order">Sort: Display Order</option>
+          <option value="name">Sort: Name A–Z</option>
+          <option value="chapter">Sort: Chapter</option>
+        </select>
+
+        <span style={{ fontSize: 13, color: "#9ca3af", marginLeft: "auto" }}>
+          {visibleMembers.length} member{visibleMembers.length !== 1 ? "s" : ""}
+        </span>
+      </div>
 
       {/* Member list */}
       {visibleMembers.length === 0 ? (

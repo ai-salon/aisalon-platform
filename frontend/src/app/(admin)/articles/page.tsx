@@ -1,5 +1,8 @@
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -9,32 +12,103 @@ const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
   published: { bg: "#dcfce7", color: "#16a34a" },
 };
 
-async function getArticles(token: string) {
-  const r = await fetch(`${API_URL}/admin/articles`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!r.ok) return [];
-  return r.json();
-}
+type Article = {
+  id: string;
+  title: string;
+  status: string;
+  chapter_id: string;
+  created_at: string;
+  anonymized_transcript?: string | null;
+};
 
-export default async function ArticlesPage() {
-  const session = await auth();
-  if (!session) redirect("/login");
+type Tab = "articles" | "transcripts";
 
-  const token = (session as any).accessToken as string;
-  const articles = await getArticles(token);
+export default function ArticlesPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [tab, setTab] = useState<Tab>("articles");
+
+  const token = (session as any)?.accessToken;
+
+  useEffect(() => {
+    if (status === "unauthenticated") router.replace("/login");
+  }, [status, router]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/admin/articles`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    } as RequestInit)
+      .then((r) => r.json())
+      .then(setArticles)
+      .catch(() => {});
+  }, [token]);
+
+  if (status === "loading") return null;
+
+  const transcripts = articles.filter((a) => !!a.anonymized_transcript);
+  const visibleArticles = tab === "transcripts" ? transcripts : articles;
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 30px" }}>
-      <div style={{ marginBottom: 32 }}>
+      <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Articles</h1>
-        <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
-          {articles.length} article{articles.length !== 1 ? "s" : ""}
-        </p>
       </div>
 
-      {articles.length === 0 ? (
+      {/* Tab switcher */}
+      <div
+        style={{
+          display: "flex",
+          gap: 0,
+          borderBottom: "2px solid #f0ebe0",
+          marginBottom: 24,
+        }}
+      >
+        {(
+          [
+            { id: "articles" as Tab, label: "Articles", count: articles.length },
+            { id: "transcripts" as Tab, label: "Transcripts", count: transcripts.length },
+          ]
+        ).map(({ id, label, count }) => (
+          <button
+            key={id}
+            onClick={() => setTab(id)}
+            style={{
+              padding: "9px 20px",
+              fontSize: 13,
+              fontWeight: 700,
+              border: "none",
+              borderBottom: tab === id ? "2px solid #56a1d2" : "2px solid transparent",
+              marginBottom: -2,
+              background: "transparent",
+              color: tab === id ? "#56a1d2" : "#696969",
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              transition: "color 0.15s",
+            }}
+          >
+            {label}
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                padding: "1px 7px",
+                borderRadius: 10,
+                background: tab === id ? "#eff6ff" : "#f3f4f6",
+                color: tab === id ? "#56a1d2" : "#6b7280",
+              }}
+            >
+              {count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {visibleArticles.length === 0 ? (
         <div
           style={{
             background: "#fff",
@@ -46,18 +120,22 @@ export default async function ArticlesPage() {
           }}
         >
           <i className="fa fa-file-text-o" style={{ fontSize: 32, color: "#d1d5db", marginBottom: 12 }} />
-          <p style={{ fontSize: 14, margin: 0 }}>No articles yet. They&#39;ll appear here once jobs complete.</p>
+          <p style={{ fontSize: 14, margin: 0 }}>
+            {tab === "transcripts"
+              ? "No transcripts yet. They appear after processing completes."
+              : "No articles yet. They'll appear here once jobs complete."}
+          </p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {articles.map((article: any) => {
+          {visibleArticles.map((article) => {
             const style = STATUS_STYLES[article.status] ?? STATUS_STYLES.draft;
+            const href =
+              tab === "transcripts"
+                ? `/articles/${article.id}?tab=transcript`
+                : `/articles/${article.id}`;
             return (
-              <Link
-                key={article.id}
-                href={`/articles/${article.id}`}
-                style={{ textDecoration: "none" }}
-              >
+              <Link key={article.id} href={href} style={{ textDecoration: "none" }}>
                 <div
                   style={{
                     background: "#fff",
@@ -83,20 +161,37 @@ export default async function ArticlesPage() {
                       })}
                     </p>
                   </div>
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      padding: "3px 10px",
-                      borderRadius: 12,
-                      background: style.bg,
-                      color: style.color,
-                      textTransform: "capitalize",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {article.status}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {tab === "transcripts" && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: "3px 10px",
+                          borderRadius: 12,
+                          background: "#f0f9ff",
+                          color: "#0369a1",
+                          flexShrink: 0,
+                        }}
+                      >
+                        transcript
+                      </span>
+                    )}
+                    <span
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: "3px 10px",
+                        borderRadius: 12,
+                        background: style.bg,
+                        color: style.color,
+                        textTransform: "capitalize",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {article.status}
+                    </span>
+                  </div>
                 </div>
               </Link>
             );
