@@ -1,39 +1,28 @@
-"""Audio processing pipeline: transcribe → generate article."""
+"""Audio processing pipeline — delegates to SocraticAI's ArticleGenerator.
+
+Mirrors the CLI's article command:
+  generator.generate(input_paths=file_path, anonymize=True)
+
+Single file: pass storage_key → resolved to an absolute path.
+Multi-file support is straightforward when needed: pass a list of paths to
+ArticleGenerator.generate(input_paths=[...]).
+"""
+import asyncio
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Awaitable, Callable
 
-import asyncio
-from google import genai
-from google.genai import types as genai_types
-from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.encryption import decrypt_key
 from app.models.api_key import UserAPIKey, APIKeyProvider
-from app.services.assemblyai import transcribe
 
 StepCallback = Callable[[str], Awaitable[None]]
 
-GEMINI_MODEL = "gemini-3-flash-preview"
-
-SOCRATIC_PROMPT = (
-    "You are a writer for the Ai Salon. Given this transcript of a salon discussion, "
-    "write a rich Markdown article capturing the key questions raised, range of perspectives, "
-    "and insights that emerged. The first line should be a # Heading with the article title. "
-    "Structure the rest with ## headings for major themes."
-)
-
-ANONYMIZE_PROMPT = (
-    "You are a privacy-focused editor. Given this conversation transcript, produce a fully anonymized version:\n"
-    "- Replace every distinct speaker or named participant with a consistent label: Person A, Person B, Person C, etc.\n"
-    "- Apply labels consistently throughout — the same person always gets the same label.\n"
-    "- Remove or redact any other personally identifying details (full employer names used to identify someone, "
-    "contact info, identifying locations beyond city-level).\n"
-    "- Preserve the full content, structure, and flow of the conversation verbatim.\n"
-    "Return only the anonymized transcript — no preamble or explanation."
-)
+_executor = ThreadPoolExecutor(max_workers=2)
 
 
 class BaseProcessor(ABC):
@@ -51,7 +40,7 @@ class BaseProcessor(ABC):
 
 
 class SocraticProcessor(BaseProcessor):
-    """Full pipeline: AssemblyAI transcription → Gemini article generation."""
+    """Wraps ArticleGenerator.generate() exactly as the CLI does."""
 
     async def _get_key(self, db: AsyncSession, user_id: str, provider: APIKeyProvider) -> str:
         result = await db.execute(
@@ -79,44 +68,43 @@ class SocraticProcessor(BaseProcessor):
             if on_step:
                 await on_step(label)
 
-        # 1. Read file
-        audio_path = Path(settings.UPLOAD_DIR) / storage_key
-        audio_bytes = audio_path.read_bytes()
-
-        # 2. Transcribe
-        await _step("Transcribing audio…")
         assemblyai_key = await self._get_key(db, user_id, APIKeyProvider.assemblyai)
-        transcript_text = await transcribe(audio_bytes, assemblyai_key)
-
-        # 3. Generate article + anonymized transcript with Gemini (concurrent)
-        await _step("Generating article…")
         google_key = await self._get_key(db, user_id, APIKeyProvider.google)
-        client = genai.Client(api_key=google_key)
 
-        async def _generate(prompt: str, max_tokens: int) -> str:
-            config = genai_types.GenerateContentConfig(max_output_tokens=max_tokens)
-            response = await client.aio.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config=config,
-            )
-            return response.text
+        audio_path = str(Path(settings.UPLOAD_DIR) / storage_key)
 
-        article_text, anonymized_transcript = await asyncio.gather(
-            _generate(f"{SOCRATIC_PROMPT}\n\n---\n\n{transcript_text}", 4096),
-            _generate(f"{ANONYMIZE_PROMPT}\n\n---\n\n{transcript_text}", 8192),
-        )
+        await _step("Generating article…")
 
-        # Extract title from first # heading
-        lines = article_text.strip().splitlines()
+        loop = asyncio.get_event_loop()
+
+        def run_generator() -> str:
+            import assemblyai as aai
+            from socraticai.content.article.article_generator import ArticleGenerator
+            from socraticai.core.llm import LLMChain
+
+            # Inject API keys; use gemini-2.5-flash (Gemini model in the GitHub version)
+            aai.settings.api_key = assemblyai_key
+            generator = ArticleGenerator()
+            generator.llm_chain = LLMChain(model="gemini-2.5-flash", api_key=google_key)
+
+            # Identical to the CLI's _process_single_file
+            article_path, _ = generator.generate(input_paths=audio_path, anonymize=True)
+            return Path(article_path).read_text()
+
+        article_md = await loop.run_in_executor(_executor, run_generator)
+
+        # Find the first # heading (article title) — the file may start with
+        # the editor's note block before the title heading
         title = "Untitled"
-        body_lines = lines
-        if lines and lines[0].startswith("# "):
-            title = lines[0][2:].strip()
-            body_lines = lines[1:]
+        body_lines = article_md.strip().splitlines()
+        for i, line in enumerate(body_lines):
+            if line.startswith("# "):
+                title = line[2:].strip()
+                body_lines = body_lines[i + 1:]
+                break
 
         return {
             "title": title,
             "content_md": "\n".join(body_lines).strip(),
-            "anonymized_transcript": anonymized_transcript,
+            "anonymized_transcript": "",
         }
