@@ -22,7 +22,7 @@ from app.models.api_key import UserAPIKey, APIKeyProvider
 
 StepCallback = Callable[[str], Awaitable[None]]
 
-_executor = ThreadPoolExecutor(max_workers=2)
+_executor = ThreadPoolExecutor(max_workers=1)
 
 
 class BaseProcessor(ABC):
@@ -78,21 +78,32 @@ class SocraticProcessor(BaseProcessor):
         loop = asyncio.get_event_loop()
 
         def run_generator() -> str:
+            import shutil
+            import tempfile
+
             import assemblyai as aai
+            import socraticai.config as sc_config
+            import socraticai.core.utils as sc_utils
             from socraticai.content.article.article_generator import ArticleGenerator
             from socraticai.core.llm import LLMChain
-            from socraticai.core.utils import ensure_data_directories
 
-            ensure_data_directories()
+            # Redirect SocraticAI to a writable scratch dir, not site-packages
+            work_dir = tempfile.mkdtemp(prefix="socratic_")
+            sc_config.DATA_DIRECTORY = work_dir
+            sc_utils.DATA_DIRECTORY = work_dir
 
-            # Inject API keys; use gemini-2.5-flash (Gemini model in the GitHub version)
-            aai.settings.api_key = assemblyai_key
-            generator = ArticleGenerator()
-            generator.llm_chain = LLMChain(model="gemini-2.5-flash", api_key=google_key)
+            # Create the subdirectories SocraticAI expects under DATA_DIRECTORY
+            for subdir in ("inputs", "transcripts", "processed", "outputs/articles"):
+                Path(work_dir, subdir).mkdir(parents=True, exist_ok=True)
 
-            # Identical to the CLI's _process_single_file
-            article_path, _ = generator.generate(input_paths=audio_path, anonymize=True)
-            return Path(article_path).read_text()
+            try:
+                aai.settings.api_key = assemblyai_key
+                generator = ArticleGenerator()
+                generator.llm_chain = LLMChain(model="gemini-2.5-flash", api_key=google_key)
+                article_path, _ = generator.generate(input_paths=audio_path, anonymize=True)
+                return Path(article_path).read_text()
+            finally:
+                shutil.rmtree(work_dir, ignore_errors=True)
 
         article_md = await loop.run_in_executor(_executor, run_generator)
 
