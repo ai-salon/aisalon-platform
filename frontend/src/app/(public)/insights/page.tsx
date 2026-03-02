@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Insights – Ai Salon",
@@ -9,6 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type ArticleSummary = {
   id: string; title: string; status: string;
+  substack_url: string | null;
   chapter_id: string; created_at: string;
 };
 
@@ -71,7 +71,13 @@ export default async function InsightsPage() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
               {articles.map((a) => (
-                <Link key={a.id} href={`/insights/${a.id}`} style={{ textDecoration: "none" }}>
+                <a
+                  key={a.id}
+                  href={a.substack_url ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "none" }}
+                >
                   <article
                     style={{
                       background: "#fff",
@@ -97,10 +103,10 @@ export default async function InsightsPage() {
                       {a.title}
                     </h2>
                     <span style={{ fontSize: 13, color: "#56a1d2", fontWeight: 600 }}>
-                      Read article →
+                      Read on Substack →
                     </span>
                   </article>
-                </Link>
+                </a>
               ))}
             </div>
           )}

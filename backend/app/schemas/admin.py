@@ -110,6 +110,7 @@ class ArticleResponse(BaseModel):
     title: str
     content_md: str
     anonymized_transcript: str | None
+    substack_url: str | None
     status: ArticleStatus
     chapter_id: str
     job_id: str | None
@@ -123,7 +124,7 @@ class ArticleResponse(BaseModel):
 class ArticleUpdate(BaseModel):
     title: str | None = None
     content_md: str | None = None
-    status: ArticleStatus | None = None
+    substack_url: str | None = None
 
 
 # ── Users ──────────────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ class ArticleSummary(BaseModel):
     id: str
     title: str
     status: str
+    substack_url: str | None
     chapter_id: str
     created_at: datetime
 

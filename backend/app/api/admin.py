@@ -271,8 +271,9 @@ async def update_article(
         article.title = body.title
     if body.content_md is not None:
         article.content_md = body.content_md
-    if body.status is not None:
-        article.status = body.status
+    if body.substack_url is not None:
+        article.substack_url = body.substack_url or None  # empty string → NULL
+        article.status = ArticleStatus.published if article.substack_url else ArticleStatus.draft
     await db.commit()
     await db.refresh(article)
     return article

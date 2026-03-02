@@ -15,6 +15,7 @@ interface Article {
   title: string;
   content_md: string;
   anonymized_transcript?: string | null;
+  substack_url?: string | null;
   status: "draft" | "published";
   chapter_id: string;
   job_id?: string | null;
@@ -125,6 +126,7 @@ export default function ArticleEditor({
   const [tab, setTab] = useState<Tab>(initialTab);
   const [title, setTitle] = useState(initial.title);
   const [content, setContent] = useState(initial.content_md ?? "");
+  const [substackUrl, setSubstackUrl] = useState(initial.substack_url ?? "");
   const [articleStatus, setArticleStatus] = useState<"draft" | "published">(initial.status);
   const [saving, setSaving] = useState(false);
   const [saveLabel, setSaveLabel] = useState<"Save" | "Saved ✓" | "Error">("Save");
@@ -132,9 +134,8 @@ export default function ArticleEditor({
   const previewRef = useRef<HTMLDivElement>(null);
 
   const save = useCallback(
-    async (overrideStatus?: "draft" | "published") => {
+    async () => {
       setSaving(true);
-      const statusToSave = overrideStatus ?? articleStatus;
       try {
         const r = await fetch(`${API_URL}/admin/articles/${initial.id}`, {
           method: "PATCH",
@@ -142,10 +143,11 @@ export default function ArticleEditor({
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ title, content_md: content, status: statusToSave }),
+          body: JSON.stringify({ title, content_md: content, substack_url: substackUrl }),
         });
         if (r.ok) {
-          if (overrideStatus) setArticleStatus(overrideStatus);
+          const updated = await r.json();
+          setArticleStatus(updated.status);
           setSaveLabel("Saved ✓");
         } else {
           setSaveLabel("Error");
@@ -156,7 +158,7 @@ export default function ArticleEditor({
       setSaving(false);
       setTimeout(() => setSaveLabel("Save"), 2200);
     },
-    [initial.id, token, title, content, articleStatus]
+    [initial.id, token, title, content, substackUrl]
   );
 
   const copyForSubstack = useCallback(async () => {
@@ -182,12 +184,6 @@ export default function ArticleEditor({
     setTimeout(() => setCopyLabel("Copy for Substack"), 2500);
   }, [title, content]);
 
-  const toggleStatus = () => {
-    const next = articleStatus === "draft" ? "published" : "draft";
-    save(next);
-  };
-
-  const hasDraft = articleStatus === "draft";
   const hasTranscript = !!initial.anonymized_transcript;
 
   return (
@@ -249,7 +245,7 @@ export default function ArticleEditor({
 
             {/* Save */}
             <button
-              onClick={() => save()}
+              onClick={save}
               disabled={saving}
               style={{
                 padding: "7px 16px",
@@ -274,25 +270,6 @@ export default function ArticleEditor({
               }}
             >
               {saving ? "Saving…" : saveLabel}
-            </button>
-
-            {/* Publish / Draft toggle */}
-            <button
-              onClick={toggleStatus}
-              disabled={saving}
-              style={{
-                padding: "7px 16px",
-                fontSize: 13,
-                fontWeight: 700,
-                background: hasDraft ? "#111" : "#f3f4f6",
-                color: hasDraft ? "#fff" : "#6b7280",
-                border: "none",
-                borderRadius: 6,
-                cursor: saving ? "default" : "pointer",
-                transition: "all 0.15s",
-              }}
-            >
-              {hasDraft ? "Publish" : "Move to Draft"}
             </button>
           </div>
         </div>
@@ -346,6 +323,46 @@ export default function ArticleEditor({
               day: "numeric",
             })}
           </span>
+        </div>
+
+        {/* ── Substack URL ── */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 20,
+            padding: "12px 16px",
+            background: substackUrl ? "#f0f9f4" : "#fafaf8",
+            border: `1.5px solid ${substackUrl ? "#86efac" : "#e8e4d8"}`,
+            borderRadius: 8,
+          }}
+        >
+          <i className="fa fa-external-link" style={{ color: substackUrl ? "#16a34a" : "#9ca3af", fontSize: 13, flexShrink: 0 }} />
+          <input
+            value={substackUrl}
+            onChange={(e) => setSubstackUrl(e.target.value)}
+            placeholder="Paste Substack URL once published there…"
+            style={{
+              flex: 1,
+              fontSize: 13,
+              color: "#222",
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              fontFamily: "inherit",
+            }}
+          />
+          {substackUrl && (
+            <a
+              href={substackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600, whiteSpace: "nowrap", textDecoration: "none" }}
+            >
+              View ↗
+            </a>
+          )}
         </div>
 
         {/* ── Tab bar ── */}
