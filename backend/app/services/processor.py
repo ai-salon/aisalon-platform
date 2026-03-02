@@ -78,6 +78,7 @@ class SocraticProcessor(BaseProcessor):
         loop = asyncio.get_event_loop()
 
         def run_generator() -> str:
+            import os
             import shutil
             import tempfile
 
@@ -85,7 +86,6 @@ class SocraticProcessor(BaseProcessor):
             import socraticai.config as sc_config
             import socraticai.core.utils as sc_utils
             from socraticai.content.article.article_generator import ArticleGenerator
-            from socraticai.core.llm import LLMChain
 
             # Redirect SocraticAI to a writable scratch dir, not site-packages
             work_dir = tempfile.mkdtemp(prefix="socratic_")
@@ -96,13 +96,23 @@ class SocraticProcessor(BaseProcessor):
             for subdir in ("inputs", "transcripts", "processed", "outputs/articles"):
                 Path(work_dir, subdir).mkdir(parents=True, exist_ok=True)
 
+            # ArticleGenerator.__init__ calls LLMChain(model=...) immediately, so the
+            # Google API key must be in the env before construction — not just before .generate()
+            prev_google = os.environ.get("GOOGLE_API_KEY")
+            os.environ["GOOGLE_API_KEY"] = google_key
+
             try:
                 aai.settings.api_key = assemblyai_key
-                generator = ArticleGenerator()
-                generator.llm_chain = LLMChain(model="gemini-2.5-flash", api_key=google_key)
+                # Pass model explicitly so the constructor doesn't try to init
+                # a default Anthropic chain (which would fail with AuthenticationError)
+                generator = ArticleGenerator(model="gemini-2.5-flash")
                 article_path, _ = generator.generate(input_paths=audio_path, anonymize=True)
                 return Path(article_path).read_text()
             finally:
+                if prev_google is None:
+                    os.environ.pop("GOOGLE_API_KEY", None)
+                else:
+                    os.environ["GOOGLE_API_KEY"] = prev_google
                 shutil.rmtree(work_dir, ignore_errors=True)
 
         article_md = await loop.run_in_executor(_executor, run_generator)
