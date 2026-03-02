@@ -48,9 +48,11 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
   const chapter = await getChapter(code);
   if (!chapter) notFound();
 
-  const cofounders = chapter.team_members.filter((m) => m.is_cofounder);
-  const others = chapter.team_members.filter((m) => !m.is_cofounder);
-  const sortedMembers = [...cofounders, ...others];
+  const rolePriority = (r: string) => r === "Co-Founder" ? 0 : r === "Chapter Lead" ? 1 : 2;
+  const sortedMembers = [...chapter.team_members].sort((a, b) => {
+    const rCmp = rolePriority(a.role) - rolePriority(b.role);
+    return rCmp !== 0 ? rCmp : a.name.localeCompare(b.name);
+  });
 
   return (
     <div>
@@ -275,11 +277,6 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                   </div>
                   <h4 style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 4px" }}>{m.name}</h4>
                   <p style={{ fontSize: 13, color: "#56a1d2", fontWeight: 600, margin: "0 0 8px" }}>{m.role}</p>
-                  {m.is_cofounder && (
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 12, background: "#eff6ff", color: "#56a1d2", display: "inline-block", marginBottom: 8 }}>
-                      Co-founder
-                    </span>
-                  )}
                   {m.description && (
                     <p style={{ fontSize: 13, color: "#696969", lineHeight: 1.5, margin: "0 0 8px" }}>{m.description}</p>
                   )}

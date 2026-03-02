@@ -12,10 +12,19 @@ type Member = {
 };
 type Chapter = { id: string; name: string; code: string };
 
+const ROLE_OPTIONS = ["Co-Founder", "Chapter Lead", "Host"];
+
 const EMPTY_FORM = {
-  name: "", role: "", chapter_id: "", description: "",
+  name: "", role: "Host", chapter_id: "", description: "",
   profile_image_url: "", linkedin: "", is_cofounder: false, display_order: 0,
 };
+
+// Sort priority: Co-Founder=0, Chapter Lead=1, Host=2
+function rolePriority(role: string): number {
+  if (role === "Co-Founder") return 0;
+  if (role === "Chapter Lead") return 1;
+  return 2;
+}
 
 export default function TeamPage() {
   const { data: session, status } = useSession();
@@ -28,8 +37,6 @@ export default function TeamPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [filterChapterId, setFilterChapterId] = useState<string>("all");
-  const [filterRole, setFilterRole] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "chapter" | "order">("order");
 
   const token = (session as any)?.accessToken;
   const userRole = (session?.user as any)?.role;
@@ -47,7 +54,6 @@ export default function TeamPage() {
     ]).then(([m, c]) => {
       setMembers(m);
       setChapters(c);
-      // Pre-fill chapter for leads
       if (userRole === "chapter_lead" && userChapterId) {
         setForm((f) => ({ ...f, chapter_id: userChapterId }));
         setFilterChapterId(userChapterId);
@@ -88,10 +94,11 @@ export default function TeamPage() {
     setError("");
     const url = editingId ? `${API_URL}/admin/team/${editingId}` : `${API_URL}/admin/team`;
     const method = editingId ? "PATCH" : "POST";
+    const payload = { ...form, is_cofounder: form.role === "Co-Founder" };
     const r = await fetch(url, {
       method,
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
     setSaving(false);
     if (!r.ok) {
@@ -128,14 +135,20 @@ export default function TeamPage() {
   if (filterChapterId !== "all") {
     visibleMembers = visibleMembers.filter((m) => m.chapter_id === filterChapterId);
   }
-  if (filterRole.trim()) {
-    const q = filterRole.toLowerCase();
-    visibleMembers = visibleMembers.filter((m) => m.role.toLowerCase().includes(q));
-  }
+
+  // Sort: Co-Founders first, then by chapter name, within chapter: Chapter Lead > Host, then alphabetically
   visibleMembers = [...visibleMembers].sort((a, b) => {
-    if (sortBy === "name") return a.name.localeCompare(b.name);
-    if (sortBy === "chapter") return chapterName(a.chapter_id).localeCompare(chapterName(b.chapter_id));
-    return a.display_order - b.display_order;
+    const aCofounder = a.role === "Co-Founder" ? 0 : 1;
+    const bCofounder = b.role === "Co-Founder" ? 0 : 1;
+    if (aCofounder !== bCofounder) return aCofounder - bCofounder;
+    // Both cofounders or both non-cofounders
+    if (aCofounder === 0) return a.name.localeCompare(b.name); // cofounders: alphabetical
+    // Non-cofounders: sort by chapter, then role priority, then name
+    const chapterCmp = chapterName(a.chapter_id).localeCompare(chapterName(b.chapter_id));
+    if (chapterCmp !== 0) return chapterCmp;
+    const roleCmp = rolePriority(a.role) - rolePriority(b.role);
+    if (roleCmp !== 0) return roleCmp;
+    return a.name.localeCompare(b.name);
   });
 
   return (
@@ -178,21 +191,40 @@ export default function TeamPage() {
             {editingId ? "Edit Member" : "Add Member"}
           </h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            {[
-              { key: "name", label: "Name" },
-              { key: "role", label: "Role" },
-              { key: "profile_image_url", label: "Image URL" },
-              { key: "linkedin", label: "LinkedIn URL" },
-            ].map(({ key, label }) => (
-              <div key={key}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>{label}</label>
-                <input
-                  value={(form as any)[key]}
-                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, boxSizing: "border-box" }}
-                />
-              </div>
-            ))}
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Name</label>
+              <input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, boxSizing: "border-box" }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Role</label>
+              <select
+                value={form.role}
+                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
+                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, background: "#fff" }}
+              >
+                {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Image URL</label>
+              <input
+                value={form.profile_image_url}
+                onChange={(e) => setForm((f) => ({ ...f, profile_image_url: e.target.value }))}
+                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, boxSizing: "border-box" }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>LinkedIn URL</label>
+              <input
+                value={form.linkedin}
+                onChange={(e) => setForm((f) => ({ ...f, linkedin: e.target.value }))}
+                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, boxSizing: "border-box" }}
+              />
+            </div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Chapter</label>
               <select
@@ -225,15 +257,6 @@ export default function TeamPage() {
               style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }}
             />
           </div>
-          <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 8 }}>
-            <input
-              type="checkbox"
-              id="cofounder"
-              checked={form.is_cofounder}
-              onChange={(e) => setForm((f) => ({ ...f, is_cofounder: e.target.checked }))}
-            />
-            <label htmlFor="cofounder" style={{ fontSize: 14, color: "#444" }}>Co-founder</label>
-          </div>
           {error && <p style={{ fontSize: 13, color: "#ef4444", marginTop: 10 }}>{error}</p>}
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
             <button
@@ -255,7 +278,6 @@ export default function TeamPage() {
 
       {/* Filter bar */}
       <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
-        {/* Chapter filter */}
         <select
           value={filterChapterId}
           onChange={(e) => setFilterChapterId(e.target.value)}
@@ -275,40 +297,6 @@ export default function TeamPage() {
           ))}
         </select>
 
-        {/* Role filter */}
-        <input
-          value={filterRole}
-          onChange={(e) => setFilterRole(e.target.value)}
-          placeholder="Filter by role…"
-          style={{
-            padding: "8px 12px",
-            fontSize: 13,
-            border: "1.5px solid #d1d5db",
-            borderRadius: 6,
-            background: "#fff",
-            color: "#444",
-            minWidth: 160,
-          }}
-        />
-
-        {/* Sort */}
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-          style={{
-            padding: "8px 12px",
-            fontSize: 13,
-            border: "1.5px solid #d1d5db",
-            borderRadius: 6,
-            background: "#fff",
-            color: "#444",
-          }}
-        >
-          <option value="order">Sort: Display Order</option>
-          <option value="name">Sort: Name A–Z</option>
-          <option value="chapter">Sort: Chapter</option>
-        </select>
-
         <span style={{ fontSize: 13, color: "#9ca3af", marginLeft: "auto" }}>
           {visibleMembers.length} member{visibleMembers.length !== 1 ? "s" : ""}
         </span>
@@ -325,7 +313,7 @@ export default function TeamPage() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
-                {["Name", "Role", "Chapter", "Co-founder", ""].map((h) => (
+                {["Name", "Role", "Chapter", ""].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}>{h}</th>
                 ))}
               </tr>
@@ -334,18 +322,19 @@ export default function TeamPage() {
               {visibleMembers.map((m, i) => (
                 <tr key={m.id} style={{ borderBottom: i < visibleMembers.length - 1 ? "1px solid #f8f6ec" : "none" }}>
                   <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 600, color: "#111" }}>{m.name}</td>
-                  <td style={{ padding: "14px 20px", fontSize: 14, color: "#696969" }}>{m.role}</td>
+                  <td style={{ padding: "14px 20px" }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12,
+                      background: m.role === "Co-Founder" ? "#fef9c3" : m.role === "Chapter Lead" ? "#eff6ff" : "#f0fdf4",
+                      color: m.role === "Co-Founder" ? "#a16207" : m.role === "Chapter Lead" ? "#56a1d2" : "#16a34a",
+                    }}>
+                      {m.role}
+                    </span>
+                  </td>
                   <td style={{ padding: "14px 20px" }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: "#d2b356", textTransform: "uppercase", letterSpacing: 1 }}>
                       {chapterName(m.chapter_id)}
                     </span>
-                  </td>
-                  <td style={{ padding: "14px 20px" }}>
-                    {m.is_cofounder && (
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 12, background: "#eff6ff", color: "#56a1d2" }}>
-                        Co-founder
-                      </span>
-                    )}
                   </td>
                   <td style={{ padding: "14px 20px", textAlign: "right" }}>
                     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>

@@ -11,6 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Backend: http://localhost:8000
 - Frontend: http://localhost:3000
 
+## Testing and TDD
+Using red-green testing pattern when developing
+
 ## Backend (FastAPI, Python 3.11, Poetry)
 
 ```bash

@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // ─── Reusable primitives ──────────────────────────────────────────────────────
 
@@ -753,6 +756,145 @@ function ChapterLeadGuide() {
   );
 }
 
+// ─── Invite Card ──────────────────────────────────────────────────────────────
+
+function InviteCard() {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken;
+  const chapterId = (session?.user as any)?.chapterId;
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
+
+  async function createInvite() {
+    if (!token || !chapterId) return;
+    setCreating(true);
+    setError("");
+    try {
+      const r = await fetch(`${API_URL}/admin/invites`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ chapter_id: chapterId, role: "host", max_uses: 1 }),
+      });
+      if (!r.ok) {
+        const body = await r.json().catch(() => ({}));
+        setError(body.detail ?? "Failed to create invite.");
+        setCreating(false);
+        return;
+      }
+      const invite = await r.json();
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      setInviteUrl(`${origin}/register?invite=${invite.token}`);
+    } catch {
+      setError("Something went wrong.");
+    }
+    setCreating(false);
+  }
+
+  function copyLink() {
+    if (!inviteUrl) return;
+    navigator.clipboard.writeText(inviteUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  if (!chapterId) return null;
+
+  return (
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 12,
+        border: "2px solid #d2b356",
+        padding: "18px 16px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <span style={{ fontSize: 20 }}>✉️</span>
+        <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>Invite a Host</span>
+      </div>
+      <p style={{ fontSize: 12, color: "#696969", margin: "0 0 12px", lineHeight: 1.5 }}>
+        Generate a one-time invite link for someone to join your chapter as a host.
+      </p>
+
+      {!inviteUrl ? (
+        <>
+          <button
+            onClick={createInvite}
+            disabled={creating}
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: "#fff",
+              background: "#d2b356",
+              padding: "6px 14px",
+              borderRadius: 6,
+              border: "none",
+              cursor: "pointer",
+              opacity: creating ? 0.7 : 1,
+            }}
+          >
+            {creating ? "Creating…" : "Create Invite Link"}
+          </button>
+          {error && <p style={{ fontSize: 12, color: "#dc2626", marginTop: 6 }}>{error}</p>}
+        </>
+      ) : (
+        <div>
+          <div
+            style={{
+              background: "#f8f6ec",
+              border: "1px solid #ede9d8",
+              borderRadius: 6,
+              padding: "8px 10px",
+              fontSize: 11,
+              wordBreak: "break-all",
+              color: "#333",
+              lineHeight: 1.5,
+              marginBottom: 8,
+            }}
+          >
+            {inviteUrl}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={copyLink}
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "5px 12px",
+                borderRadius: 6,
+                border: "1px solid #d2b356",
+                background: copied ? "#d2b356" : "#fff",
+                color: copied ? "#fff" : "#d2b356",
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+            >
+              {copied ? "Copied!" : "Copy Link"}
+            </button>
+            <button
+              onClick={() => { setInviteUrl(null); setCopied(false); }}
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                padding: "5px 12px",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
+                background: "#fff",
+                color: "#696969",
+                cursor: "pointer",
+              }}
+            >
+              New Invite
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export default function WelcomeDashboard({
@@ -973,6 +1115,9 @@ export default function WelcomeDashboard({
               Upload Now →
             </span>
           </a>
+
+          {/* Invite CTA — for chapter leads and superadmins */}
+          {(userRole === "chapter_lead" || userRole === "superadmin") && <InviteCard />}
 
           {/* Quick Links */}
           <div
