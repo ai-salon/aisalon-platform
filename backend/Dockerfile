@@ -6,6 +6,7 @@ RUN pip install poetry && poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock* ./
 RUN poetry install --only main --no-interaction
+RUN pip install git+https://github.com/ai-salon/SocraticAI.git
 
 COPY . .
 
