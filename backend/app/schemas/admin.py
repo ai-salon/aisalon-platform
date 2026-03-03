@@ -115,6 +115,8 @@ class ArticleResponse(BaseModel):
     chapter_id: str
     job_id: str | None
     meta: Any | None
+    scheduled_publish_date: str | None = None
+    substack_draft_id: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -170,5 +172,83 @@ class InviteResponse(BaseModel):
     max_uses: int
     use_count: int
     is_active: bool
+
+    model_config = {"from_attributes": True}
+
+
+# ── Community Stats ──────────────────────────────────────────────────────────
+
+class ChapterStats(BaseModel):
+    chapter_id: str | None = None
+    chapter_name: str
+    chapter_code: str
+    articles_count: int = 0
+    published_count: int = 0
+    draft_count: int = 0
+    jobs_count: int = 0
+    completed_jobs: int = 0
+    failed_jobs: int = 0
+    team_size: int = 0
+
+
+class CommunityStatsResponse(BaseModel):
+    chapters: list[ChapterStats]
+    totals: ChapterStats
+
+
+# ── System Settings ──────────────────────────────────────────────────────────
+
+class SystemSettingRequest(BaseModel):
+    key: str
+    value: str
+
+
+class SystemSettingResponse(BaseModel):
+    key: str
+    has_value: bool
+
+
+# ── Publishing ───────────────────────────────────────────────────────────────
+
+class ScheduleSubstackRequest(BaseModel):
+    scheduled_date: str  # ISO date string e.g. "2026-03-15"
+
+
+class PublishingArticle(BaseModel):
+    id: str
+    title: str
+    chapter_name: str
+    status: ArticleStatus
+    scheduled_publish_date: str | None = None
+    substack_url: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PublishingResponse(BaseModel):
+    drafts: list[PublishingArticle]
+    scheduled: list[PublishingArticle]
+    published: list[PublishingArticle]
+
+
+# ── Social ───────────────────────────────────────────────────────────────────
+
+class SocialCopyResponse(BaseModel):
+    model_config = {"populate_by_name": True}
+    generated_copy: str
+
+
+class ShareSocialRequest(BaseModel):
+    content: str
+    platform: str = "linkedin"
+
+
+class SocialPostResponse(BaseModel):
+    id: str
+    platform: str
+    content: str
+    status: str
+    created_at: datetime
 
     model_config = {"from_attributes": True}

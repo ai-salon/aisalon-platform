@@ -16,7 +16,7 @@ interface Article {
   content_md: string;
   anonymized_transcript?: string | null;
   substack_url?: string | null;
-  status: "draft" | "published";
+  status: "draft" | "scheduled" | "published";
   chapter_id: string;
   job_id?: string | null;
   created_at: string;
@@ -114,9 +114,11 @@ const proseStyles = `
 export default function ArticleEditor({
   article: initial,
   token,
+  substackPublicationUrl,
 }: {
   article: Article;
   token: string;
+  substackPublicationUrl?: string | null;
 }) {
   const searchParams = useSearchParams();
   const initialTab: Tab =
@@ -127,10 +129,15 @@ export default function ArticleEditor({
   const [title, setTitle] = useState(initial.title);
   const [content, setContent] = useState(initial.content_md ?? "");
   const [substackUrl, setSubstackUrl] = useState(initial.substack_url ?? "");
-  const [articleStatus, setArticleStatus] = useState<"draft" | "published">(initial.status);
+  const [articleStatus, setArticleStatus] = useState<"draft" | "scheduled" | "published">(initial.status);
   const [saving, setSaving] = useState(false);
   const [saveLabel, setSaveLabel] = useState<"Save" | "Saved ✓" | "Error">("Save");
   const [copyLabel, setCopyLabel] = useState("Copy for Substack");
+  const [publishLabel, setPublishLabel] = useState("Open in Substack");
+  const [socialOpen, setSocialOpen] = useState(false);
+  const [socialCopy, setSocialCopy] = useState("");
+  const [socialBusy, setSocialBusy] = useState(false);
+  const [socialMsg, setSocialMsg] = useState("");
   const previewRef = useRef<HTMLDivElement>(null);
 
   const save = useCallback(
@@ -184,6 +191,72 @@ export default function ArticleEditor({
     setTimeout(() => setCopyLabel("Copy for Substack"), 2500);
   }, [title, content]);
 
+  const openInSubstack = useCallback(async () => {
+    // Copy rich HTML to clipboard
+    const previewDiv = previewRef.current;
+    if (previewDiv) {
+      const fullHtml = `<h1>${title}</h1>\n${previewDiv.innerHTML}`;
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([fullHtml], { type: "text/html" }),
+            "text/plain": new Blob([`# ${title}\n\n${content}`], { type: "text/plain" }),
+          }),
+        ]);
+      } catch {
+        await navigator.clipboard.writeText(`# ${title}\n\n${content}`);
+      }
+    }
+    // Open Substack new post editor
+    const base = substackPublicationUrl?.replace(/\/$/, "") ?? "https://substack.com";
+    window.open(`${base}/publish/post?type=newsletter`, "_blank");
+    setPublishLabel("Copied & opened ✓");
+    setTimeout(() => setPublishLabel("Open in Substack"), 3000);
+  }, [title, content, substackPublicationUrl]);
+
+  const openSocialShare = useCallback(async () => {
+    setSocialOpen(true);
+    setSocialBusy(true);
+    setSocialMsg("");
+    try {
+      const r = await fetch(`${API_URL}/admin/articles/${initial.id}/generate-social-copy`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setSocialCopy(data.generated_copy);
+      } else {
+        setSocialCopy(`${title}\n\nRead our latest article on AI Salon.${substackUrl ? `\n\n${substackUrl}` : ""}`);
+      }
+    } catch {
+      setSocialCopy(`${title}\n\nRead our latest article on AI Salon.${substackUrl ? `\n\n${substackUrl}` : ""}`);
+    }
+    setSocialBusy(false);
+  }, [initial.id, token, title, substackUrl]);
+
+  const postSocial = useCallback(async () => {
+    setSocialBusy(true);
+    setSocialMsg("");
+    try {
+      const r = await fetch(`${API_URL}/admin/articles/${initial.id}/share-social`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ content: socialCopy, platform: "linkedin" }),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        setSocialMsg(data.status === "posted" ? "Posted successfully!" : `Failed: ${data.error_message || "unknown error"}`);
+      } else {
+        const d = await r.json().catch(() => ({}));
+        setSocialMsg(d.detail || "Failed to post");
+      }
+    } catch {
+      setSocialMsg("Network error");
+    }
+    setSocialBusy(false);
+  }, [initial.id, token, socialCopy]);
+
   const hasTranscript = !!initial.anonymized_transcript;
 
   return (
@@ -219,7 +292,7 @@ export default function ArticleEditor({
           </Link>
 
           {/* Action buttons */}
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             {/* Copy for Substack */}
             <button
               onClick={copyForSubstack}
@@ -242,6 +315,57 @@ export default function ArticleEditor({
               <i className="fa fa-clipboard" />
               {copyLabel}
             </button>
+
+            {/* Open in Substack */}
+            {substackPublicationUrl && articleStatus !== "published" && (
+              <button
+                onClick={openInSubstack}
+                style={{
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  background: publishLabel.includes("✓") ? "#dcfce7" : "#eef6fd",
+                  color: publishLabel.includes("✓") ? "#16a34a" : "#56a1d2",
+                  border: "1.5px solid",
+                  borderColor: publishLabel.includes("✓") ? "#86efac" : "#56a1d2",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <i className="fa fa-external-link" />
+                {publishLabel}
+              </button>
+            )}
+
+            {/* Share on Social */}
+            {articleStatus === "published" && (
+              <button
+                onClick={openSocialShare}
+                style={{
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  background: "#f3e8ff",
+                  color: "#7c3aed",
+                  border: "1.5px solid #c4b5fd",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <i className="fa fa-share-alt" />
+                Share on Social
+              </button>
+            )}
 
             {/* Save */}
             <button
@@ -478,6 +602,84 @@ export default function ArticleEditor({
               onFocus={(e) => (e.currentTarget.style.borderColor = "#56a1d2")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e8e4d8")}
             />
+          </div>
+        )}
+
+        {/* ── Social share panel ── */}
+        {socialOpen && (
+          <div
+            style={{
+              background: "#faf5ff",
+              border: "1.5px solid #c4b5fd",
+              borderRadius: 10,
+              padding: "20px 24px",
+              marginBottom: 20,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <i className="fa fa-share-alt" style={{ color: "#7c3aed" }} />
+                <span style={{ fontSize: 15, fontWeight: 700, color: "#111" }}>Share on Social</span>
+              </div>
+              <button
+                onClick={() => { setSocialOpen(false); setSocialMsg(""); }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#696969", fontSize: 16 }}
+              >
+                ✕
+              </button>
+            </div>
+            {socialBusy && !socialCopy ? (
+              <p style={{ fontSize: 13, color: "#696969" }}>Generating social copy…</p>
+            ) : (
+              <>
+                <textarea
+                  value={socialCopy}
+                  onChange={(e) => setSocialCopy(e.target.value)}
+                  rows={6}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    fontSize: 14,
+                    lineHeight: 1.6,
+                    border: "1.5px solid #d1d5db",
+                    borderRadius: 8,
+                    outline: "none",
+                    resize: "vertical",
+                    fontFamily: "inherit",
+                    boxSizing: "border-box",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
+                  <button
+                    onClick={postSocial}
+                    disabled={socialBusy || !socialCopy.trim()}
+                    style={{
+                      padding: "8px 20px",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      background: "#7c3aed",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 6,
+                      cursor: socialBusy ? "default" : "pointer",
+                    }}
+                  >
+                    {socialBusy ? "Posting…" : "Post to LinkedIn"}
+                  </button>
+                  {socialMsg && (
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: socialMsg.includes("success") ? "#16a34a" : "#ef4444",
+                      }}
+                    >
+                      {socialMsg}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 

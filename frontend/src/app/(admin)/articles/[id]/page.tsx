@@ -15,6 +15,20 @@ async function getArticle(token: string, id: string) {
   return r.json();
 }
 
+async function getSubstackPublicationUrl(token: string): Promise<string | null> {
+  try {
+    const r = await fetch(`${API_URL}/admin/substack-publication-url`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return data.publication_url ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function ArticleDetailPage({
   params,
 }: {
@@ -25,12 +39,15 @@ export default async function ArticleDetailPage({
   if (!session) redirect("/login");
 
   const token = (session as any).accessToken as string;
-  const article = await getArticle(token, id);
+  const [article, substackPublicationUrl] = await Promise.all([
+    getArticle(token, id),
+    getSubstackPublicationUrl(token),
+  ]);
   if (!article) notFound();
 
   return (
     <Suspense>
-      <ArticleEditor article={article} token={token} />
+      <ArticleEditor article={article} token={token} substackPublicationUrl={substackPublicationUrl} />
     </Suspense>
   );
 }

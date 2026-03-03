@@ -22,6 +22,8 @@ python-multipart = "^0.0.20"
 aiofiles = "^24.1.0"
 httpx = "^0.28.0"
 google-genai = "^1.0.0"
+python-substack = "^0.1.17"
+markdown = "^3.5"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.0"
