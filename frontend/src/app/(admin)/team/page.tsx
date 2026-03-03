@@ -37,6 +37,8 @@ export default function TeamPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [filterChapterId, setFilterChapterId] = useState<string>("all");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>("");
 
   const token = (session as any)?.accessToken;
   const userRole = (session?.user as any)?.role;
@@ -73,6 +75,8 @@ export default function TeamPage() {
       ...EMPTY_FORM,
       chapter_id: userRole === "chapter_lead" && userChapterId ? userChapterId : chapters[0]?.id ?? "",
     });
+    setPhotoFile(null);
+    setPhotoPreview("");
     setError("");
     setShowForm(true);
   }
@@ -85,16 +89,45 @@ export default function TeamPage() {
       linkedin: m.linkedin ?? "", is_cofounder: m.is_cofounder,
       display_order: m.display_order,
     });
+    setPhotoFile(null);
+    setPhotoPreview("");
     setError("");
     setShowForm(true);
+  }
+
+  function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   }
 
   async function handleSave() {
     setSaving(true);
     setError("");
+    let photoUrl = form.profile_image_url;
+
+    // If a new photo was selected and we're editing an existing member, upload it first
+    if (photoFile && editingId) {
+      const fd = new FormData();
+      fd.append("file", photoFile);
+      const pr = await fetch(`${API_URL}/admin/team/${editingId}/photo`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!pr.ok) {
+        setSaving(false);
+        setError("Failed to upload photo.");
+        return;
+      }
+      const pd = await pr.json();
+      photoUrl = pd.profile_image_url;
+    }
+
     const url = editingId ? `${API_URL}/admin/team/${editingId}` : `${API_URL}/admin/team`;
     const method = editingId ? "PATCH" : "POST";
-    const payload = { ...form, is_cofounder: form.role === "Co-Founder" };
+    const payload = { ...form, profile_image_url: photoUrl, is_cofounder: form.role === "Co-Founder" };
     const r = await fetch(url, {
       method,
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -112,6 +145,8 @@ export default function TeamPage() {
     } else {
       setMembers((prev) => [...prev, saved]);
     }
+    setPhotoFile(null);
+    setPhotoPreview("");
     setShowForm(false);
   }
 
@@ -134,6 +169,15 @@ export default function TeamPage() {
   let visibleMembers = members;
   if (filterChapterId !== "all") {
     visibleMembers = visibleMembers.filter((m) => m.chapter_id === filterChapterId);
+  } else {
+    // De-duplicate co-founders by name across chapters — keep only one entry per name
+    const seenCofounderNames = new Set<string>();
+    visibleMembers = visibleMembers.filter((m) => {
+      if (!m.is_cofounder) return true;
+      if (seenCofounderNames.has(m.name)) return false;
+      seenCofounderNames.add(m.name);
+      return true;
+    });
   }
 
   // Sort: Co-Founders first, then by chapter name, within chapter: Chapter Lead > Host, then alphabetically
@@ -190,6 +234,46 @@ export default function TeamPage() {
           <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 18px" }}>
             {editingId ? "Edit Member" : "Add Member"}
           </h3>
+          {/* Photo preview row */}
+          {editingId && (
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: "50%", overflow: "hidden",
+                border: "3px solid #d2b356", background: "#f8f6ec", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {(photoPreview || form.profile_image_url) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={photoPreview || (form.profile_image_url.startsWith("/uploads/") ? `${API_URL}${form.profile_image_url}` : form.profile_image_url)}
+                    alt="Profile"
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  <i className="fa fa-user" style={{ fontSize: 28, color: "#d2b356" }} aria-hidden="true" />
+                )}
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>Profile Photo</label>
+                <label style={{
+                  display: "inline-block", padding: "6px 14px", fontSize: 12, fontWeight: 600,
+                  border: "1.5px solid #56a1d2", borderRadius: 6, color: "#56a1d2", cursor: "pointer",
+                }}>
+                  <i className="fa fa-upload" style={{ marginRight: 6 }} aria-hidden="true" />
+                  {photoFile ? photoFile.name : "Upload new photo"}
+                  <input type="file" accept="image/*" onChange={handlePhotoSelect} style={{ display: "none" }} />
+                </label>
+                {photoFile && (
+                  <button
+                    onClick={() => { setPhotoFile(null); setPhotoPreview(""); }}
+                    style={{ marginLeft: 8, fontSize: 12, color: "#9ca3af", background: "none", border: "none", cursor: "pointer" }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Name</label>

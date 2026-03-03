@@ -519,6 +519,28 @@ async def delete_team_member(
     await db.commit()
 
 
+@router.post("/team/{member_id}/photo")
+async def upload_team_photo(
+    member_id: str,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    data = await file.read()
+    key = await save_upload(file.filename or "photo", data)
+    url = f"/uploads/{key}"
+    member.profile_image_url = url
+    await db.commit()
+    return {"profile_image_url": url}
+
+
 # ── Users (superadmin only) ───────────────────────────────────────────────────
 
 @router.get("/users", response_model=list[UserResponse])
