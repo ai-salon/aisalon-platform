@@ -127,6 +127,7 @@ class ArticleUpdate(BaseModel):
     title: str | None = None
     content_md: str | None = None
     substack_url: str | None = None
+    status: ArticleStatus | None = None
 
 
 # ── Users ──────────────────────────────────────────────────────────────────────
@@ -208,44 +209,6 @@ class SystemSettingResponse(BaseModel):
     has_value: bool
 
 
-# ── Publishing ───────────────────────────────────────────────────────────────
-
-class ScheduleSubstackRequest(BaseModel):
-    scheduled_date: str  # ISO date string e.g. "2026-03-15"
-
-
-class PublishingArticle(BaseModel):
-    id: str
-    title: str
-    chapter_name: str
-    status: ArticleStatus
-    scheduled_publish_date: str | None = None
-    substack_url: str | None = None
-    created_at: datetime
-
-    model_config = {"from_attributes": True}
-
-
-class PublishingResponse(BaseModel):
-    drafts: list[PublishingArticle]
-    scheduled: list[PublishingArticle]
-    published: list[PublishingArticle]
-
-
-# ── Social ───────────────────────────────────────────────────────────────────
-
-class SocialCopyResponse(BaseModel):
-    model_config = {"populate_by_name": True}
-    generated_copy: str
-
-
-class ShareSocialRequest(BaseModel):
-    content: str
-    platform: str = "linkedin"
-
-
-class SocialPostResponse(BaseModel):
-    id: str
     platform: str
     content: str
     status: str

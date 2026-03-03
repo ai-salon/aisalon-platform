@@ -45,9 +45,11 @@ export default async function ArticleDetailPage({
   ]);
   if (!article) notFound();
 
+  const role = (session.user as any)?.role as string | undefined;
+
   return (
     <Suspense>
-      <ArticleEditor article={article} token={token} substackPublicationUrl={substackPublicationUrl} />
+      <ArticleEditor article={article} token={token} substackPublicationUrl={substackPublicationUrl} role={role} />
     </Suspense>
   );
 }

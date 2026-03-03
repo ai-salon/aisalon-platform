@@ -115,10 +115,12 @@ export default function ArticleEditor({
   article: initial,
   token,
   substackPublicationUrl,
+  role,
 }: {
   article: Article;
   token: string;
   substackPublicationUrl?: string | null;
+  role?: string;
 }) {
   const searchParams = useSearchParams();
   const initialTab: Tab =
@@ -133,11 +135,8 @@ export default function ArticleEditor({
   const [saving, setSaving] = useState(false);
   const [saveLabel, setSaveLabel] = useState<"Save" | "Saved ✓" | "Error">("Save");
   const [copyLabel, setCopyLabel] = useState("Copy for Substack");
-  const [publishLabel, setPublishLabel] = useState("Open in Substack");
-  const [socialOpen, setSocialOpen] = useState(false);
-  const [socialCopy, setSocialCopy] = useState("");
-  const [socialBusy, setSocialBusy] = useState(false);
-  const [socialMsg, setSocialMsg] = useState("");
+  const [publishLabel, setPublishLabel] = useState("Publish to Substack");
+  const [publishingArticle, setPublishingArticle] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
   const save = useCallback(
@@ -146,15 +145,10 @@ export default function ArticleEditor({
       try {
         const r = await fetch(`${API_URL}/admin/articles/${initial.id}`, {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ title, content_md: content, substack_url: substackUrl }),
         });
         if (r.ok) {
-          const updated = await r.json();
-          setArticleStatus(updated.status);
           setSaveLabel("Saved ✓");
         } else {
           setSaveLabel("Error");
@@ -167,6 +161,19 @@ export default function ArticleEditor({
     },
     [initial.id, token, title, content, substackUrl]
   );
+
+  const publishArticle = useCallback(async () => {
+    setPublishingArticle(true);
+    try {
+      await fetch(`${API_URL}/admin/articles/${initial.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: "published" }),
+      });
+      setArticleStatus("published");
+    } catch { /* ignore */ }
+    setPublishingArticle(false);
+  }, [initial.id, token]);
 
   const copyForSubstack = useCallback(async () => {
     const previewDiv = previewRef.current;
@@ -191,8 +198,8 @@ export default function ArticleEditor({
     setTimeout(() => setCopyLabel("Copy for Substack"), 2500);
   }, [title, content]);
 
-  const openInSubstack = useCallback(async () => {
-    // Copy rich HTML to clipboard
+  const publishToSubstack = useCallback(async () => {
+    // Copy rich HTML to clipboard then open Substack editor
     const previewDiv = previewRef.current;
     if (previewDiv) {
       const fullHtml = `<h1>${title}</h1>\n${previewDiv.innerHTML}`;
@@ -207,55 +214,11 @@ export default function ArticleEditor({
         await navigator.clipboard.writeText(`# ${title}\n\n${content}`);
       }
     }
-    // Open Substack new post editor
     const base = substackPublicationUrl?.replace(/\/$/, "") ?? "https://substack.com";
     window.open(`${base}/publish/post?type=newsletter`, "_blank");
     setPublishLabel("Copied & opened ✓");
-    setTimeout(() => setPublishLabel("Open in Substack"), 3000);
+    setTimeout(() => setPublishLabel("Publish to Substack"), 3000);
   }, [title, content, substackPublicationUrl]);
-
-  const openSocialShare = useCallback(async () => {
-    setSocialOpen(true);
-    setSocialBusy(true);
-    setSocialMsg("");
-    try {
-      const r = await fetch(`${API_URL}/admin/articles/${initial.id}/generate-social-copy`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (r.ok) {
-        const data = await r.json();
-        setSocialCopy(data.generated_copy);
-      } else {
-        setSocialCopy(`${title}\n\nRead our latest article on AI Salon.${substackUrl ? `\n\n${substackUrl}` : ""}`);
-      }
-    } catch {
-      setSocialCopy(`${title}\n\nRead our latest article on AI Salon.${substackUrl ? `\n\n${substackUrl}` : ""}`);
-    }
-    setSocialBusy(false);
-  }, [initial.id, token, title, substackUrl]);
-
-  const postSocial = useCallback(async () => {
-    setSocialBusy(true);
-    setSocialMsg("");
-    try {
-      const r = await fetch(`${API_URL}/admin/articles/${initial.id}/share-social`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ content: socialCopy, platform: "linkedin" }),
-      });
-      if (r.ok) {
-        const data = await r.json();
-        setSocialMsg(data.status === "posted" ? "Posted successfully!" : `Failed: ${data.error_message || "unknown error"}`);
-      } else {
-        const d = await r.json().catch(() => ({}));
-        setSocialMsg(d.detail || "Failed to post");
-      }
-    } catch {
-      setSocialMsg("Network error");
-    }
-    setSocialBusy(false);
-  }, [initial.id, token, socialCopy]);
 
   const hasTranscript = !!initial.anonymized_transcript;
 
@@ -293,33 +256,36 @@ export default function ArticleEditor({
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            {/* Copy for Substack */}
-            <button
-              onClick={copyForSubstack}
-              style={{
-                padding: "7px 16px",
-                fontSize: 13,
-                fontWeight: 700,
-                background: copyLabel.startsWith("Copied") ? "#d2b356" : "#fdf9f0",
-                color: copyLabel.startsWith("Copied") ? "#fff" : "#d2b356",
-                border: "1.5px solid #d2b356",
-                borderRadius: 6,
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                transition: "all 0.15s",
-                whiteSpace: "nowrap",
-              }}
-            >
-              <i className="fa fa-clipboard" />
-              {copyLabel}
-            </button>
-
-            {/* Open in Substack */}
-            {substackPublicationUrl && articleStatus !== "published" && (
+            {/* Publish (mark as done) — only for drafts */}
+            {articleStatus === "draft" && (
               <button
-                onClick={openInSubstack}
+                onClick={publishArticle}
+                disabled={publishingArticle}
+                style={{
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  background: "#d2b356",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 6,
+                  cursor: publishingArticle ? "default" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  transition: "all 0.15s",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <i className="fa fa-check" />
+                {publishingArticle ? "Publishing…" : "Publish"}
+              </button>
+            )}
+
+            {/* Publish to Substack — superadmin only */}
+            {role === "superadmin" && substackPublicationUrl && (
+              <button
+                onClick={publishToSubstack}
                 style={{
                   padding: "7px 16px",
                   fontSize: 13,
@@ -342,31 +308,6 @@ export default function ArticleEditor({
               </button>
             )}
 
-            {/* Share on Social */}
-            {articleStatus === "published" && (
-              <button
-                onClick={openSocialShare}
-                style={{
-                  padding: "7px 16px",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  background: "#f3e8ff",
-                  color: "#7c3aed",
-                  border: "1.5px solid #c4b5fd",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  transition: "all 0.15s",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <i className="fa fa-share-alt" />
-                Share on Social
-              </button>
-            )}
-
             {/* Save */}
             <button
               onClick={save}
@@ -376,17 +317,13 @@ export default function ArticleEditor({
                 fontSize: 13,
                 fontWeight: 700,
                 background:
-                  saveLabel === "Saved ✓"
-                    ? "#dcfce7"
-                    : saveLabel === "Error"
-                    ? "#fee2e2"
-                    : "#56a1d2",
+                  saveLabel === "Saved ✓" ? "#dcfce7"
+                  : saveLabel === "Error" ? "#fee2e2"
+                  : "#56a1d2",
                 color:
-                  saveLabel === "Saved ✓"
-                    ? "#16a34a"
-                    : saveLabel === "Error"
-                    ? "#dc2626"
-                    : "#fff",
+                  saveLabel === "Saved ✓" ? "#16a34a"
+                  : saveLabel === "Error" ? "#dc2626"
+                  : "#fff",
                 border: "none",
                 borderRadius: 6,
                 cursor: saving ? "default" : "pointer",
@@ -602,84 +539,6 @@ export default function ArticleEditor({
               onFocus={(e) => (e.currentTarget.style.borderColor = "#56a1d2")}
               onBlur={(e) => (e.currentTarget.style.borderColor = "#e8e4d8")}
             />
-          </div>
-        )}
-
-        {/* ── Social share panel ── */}
-        {socialOpen && (
-          <div
-            style={{
-              background: "#faf5ff",
-              border: "1.5px solid #c4b5fd",
-              borderRadius: 10,
-              padding: "20px 24px",
-              marginBottom: 20,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <i className="fa fa-share-alt" style={{ color: "#7c3aed" }} />
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#111" }}>Share on Social</span>
-              </div>
-              <button
-                onClick={() => { setSocialOpen(false); setSocialMsg(""); }}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#696969", fontSize: 16 }}
-              >
-                ✕
-              </button>
-            </div>
-            {socialBusy && !socialCopy ? (
-              <p style={{ fontSize: 13, color: "#696969" }}>Generating social copy…</p>
-            ) : (
-              <>
-                <textarea
-                  value={socialCopy}
-                  onChange={(e) => setSocialCopy(e.target.value)}
-                  rows={6}
-                  style={{
-                    width: "100%",
-                    padding: "12px 14px",
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    border: "1.5px solid #d1d5db",
-                    borderRadius: 8,
-                    outline: "none",
-                    resize: "vertical",
-                    fontFamily: "inherit",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
-                  <button
-                    onClick={postSocial}
-                    disabled={socialBusy || !socialCopy.trim()}
-                    style={{
-                      padding: "8px 20px",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      background: "#7c3aed",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 6,
-                      cursor: socialBusy ? "default" : "pointer",
-                    }}
-                  >
-                    {socialBusy ? "Posting…" : "Post to LinkedIn"}
-                  </button>
-                  {socialMsg && (
-                    <span
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: socialMsg.includes("success") ? "#16a34a" : "#ef4444",
-                      }}
-                    >
-                      {socialMsg}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
           </div>
         )}
 

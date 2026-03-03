@@ -18,7 +18,6 @@ from app.models.team_member import TeamMember
 from app.models.hosting_interest import HostingInterest, InterestType
 from app.models.invite import Invite
 from app.models.system_setting import SystemSetting
-from app.models.social_post import SocialPost, SocialPostStatus
 from app.core.security import hash_password
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
@@ -30,8 +29,6 @@ from app.schemas.admin import (
     InviteCreate, InviteResponse,
     ChapterStats, CommunityStatsResponse,
     SystemSettingRequest, SystemSettingResponse,
-    ScheduleSubstackRequest, PublishingArticle, PublishingResponse,
-    SocialCopyResponse, ShareSocialRequest, SocialPostResponse,
 )
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor
@@ -368,7 +365,8 @@ async def update_article(
         article.content_md = body.content_md
     if body.substack_url is not None:
         article.substack_url = body.substack_url or None  # empty string → NULL
-        article.status = ArticleStatus.published if article.substack_url else ArticleStatus.draft
+    if body.status is not None:
+        article.status = body.status
     await db.commit()
     await db.refresh(article)
     return article
@@ -767,192 +765,3 @@ async def _get_setting(db: AsyncSession, key: str) -> str | None:
     return decrypt_key(s.encrypted_value, settings.SECRET_KEY)
 
 
-@router.get("/publishing", response_model=PublishingResponse)
-async def list_publishing(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    stmt = select(Article)
-    chapter_id = _chapter_filter(current_user)
-    if chapter_id:
-        stmt = stmt.where(Article.chapter_id == chapter_id)
-    result = await db.execute(stmt.order_by(Article.created_at.desc()))
-    articles = result.scalars().all()
-
-    # Need chapter names
-    ch_result = await db.execute(select(Chapter))
-    ch_map = {c.id: c.name for c in ch_result.scalars().all()}
-
-    drafts, scheduled, published = [], [], []
-    for a in articles:
-        pa = PublishingArticle(
-            id=a.id,
-            title=a.title,
-            chapter_name=ch_map.get(a.chapter_id, "Unknown"),
-            status=a.status,
-            scheduled_publish_date=str(a.scheduled_publish_date) if a.scheduled_publish_date else None,
-            substack_url=a.substack_url,
-            created_at=a.created_at,
-        )
-        if a.status == ArticleStatus.published:
-            published.append(pa)
-        elif a.status == ArticleStatus.scheduled:
-            scheduled.append(pa)
-        else:
-            drafts.append(pa)
-
-    return PublishingResponse(drafts=drafts, scheduled=scheduled, published=published)
-
-
-@router.post("/articles/{article_id}/schedule-substack")
-async def schedule_substack(
-    article_id: str,
-    body: ScheduleSubstackRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_admin(current_user)
-    result = await db.execute(select(Article).where(Article.id == article_id))
-    article = result.scalar_one_or_none()
-    if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
-
-    email = await _get_setting(db, "substack_email")
-    password = await _get_setting(db, "substack_password")
-    pub_url = await _get_setting(db, "substack_publication_url")
-    if not all([email, password, pub_url]):
-        raise HTTPException(status_code=400, detail="Substack credentials not configured")
-
-    from app.services.substack import SubstackPublisher
-    publisher = SubstackPublisher(email=email, password=password, publication_url=pub_url)
-
-    import datetime as dt_mod
-    publish_date = dt_mod.date.fromisoformat(body.scheduled_date)
-
-    try:
-        draft_id, post_url = publisher.create_scheduled_draft(
-            title=article.title,
-            content_md=article.content_md,
-            publish_date=publish_date,
-        )
-    except Exception as exc:
-        logger.exception("Substack schedule failed for article %s", article_id)
-        raise HTTPException(status_code=502, detail=f"Substack error: {exc}")
-
-    article.scheduled_publish_date = publish_date
-    article.substack_draft_id = draft_id
-    article.status = ArticleStatus.scheduled
-    if post_url:
-        article.substack_url = post_url
-    await db.commit()
-    await db.refresh(article)
-    return {"status": "scheduled", "draft_id": draft_id, "scheduled_date": str(publish_date)}
-
-
-@router.post("/articles/{article_id}/publish-substack")
-async def publish_substack(
-    article_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_admin(current_user)
-    result = await db.execute(select(Article).where(Article.id == article_id))
-    article = result.scalar_one_or_none()
-    if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
-
-    email = await _get_setting(db, "substack_email")
-    password = await _get_setting(db, "substack_password")
-    pub_url = await _get_setting(db, "substack_publication_url")
-    if not all([email, password, pub_url]):
-        raise HTTPException(status_code=400, detail="Substack credentials not configured")
-
-    from app.services.substack import SubstackPublisher
-    publisher = SubstackPublisher(email=email, password=password, publication_url=pub_url)
-
-    try:
-        post_url = publisher.publish_now(
-            title=article.title, content_md=article.content_md
-        )
-    except Exception as exc:
-        logger.exception("Substack publish failed for article %s", article_id)
-        raise HTTPException(status_code=502, detail=f"Substack error: {exc}")
-
-    article.status = ArticleStatus.published
-    article.substack_url = post_url or article.substack_url
-    await db.commit()
-    await db.refresh(article)
-    return {"status": "published", "substack_url": article.substack_url}
-
-
-# ── Social Media Sharing ─────────────────────────────────────────────────────
-
-@router.post("/articles/{article_id}/generate-social-copy", response_model=SocialCopyResponse)
-async def generate_social_copy(
-    article_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    result = await db.execute(select(Article).where(Article.id == article_id))
-    article = result.scalar_one_or_none()
-    if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
-    if current_user.role != UserRole.superadmin and article.chapter_id != current_user.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    from app.services.social import generate_social_copy as gen_copy
-    copy = await gen_copy(
-        title=article.title,
-        content=article.content_md,
-        url=article.substack_url or "",
-        db=db,
-    )
-    return SocialCopyResponse(generated_copy=copy)
-
-
-@router.post("/articles/{article_id}/share-social", response_model=SocialPostResponse)
-async def share_social(
-    article_id: str,
-    body: ShareSocialRequest,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    result = await db.execute(select(Article).where(Article.id == article_id))
-    article = result.scalar_one_or_none()
-    if not article:
-        raise HTTPException(status_code=404, detail="Article not found")
-    if current_user.role != UserRole.superadmin and article.chapter_id != current_user.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    api_key = await _get_setting(db, "late_api_key")
-    account_id = await _get_setting(db, "late_account_id")
-    if not api_key or not account_id:
-        raise HTTPException(status_code=400, detail="Late.dev credentials not configured")
-
-    post = SocialPost(
-        article_id=article.id,
-        platform=body.platform,
-        content=body.content,
-        status=SocialPostStatus.pending,
-    )
-    db.add(post)
-    await db.commit()
-    await db.refresh(post)
-
-    from app.services.social import LatePublisher
-    publisher = LatePublisher(api_key=api_key)
-    try:
-        external_id = await publisher.post(
-            content=body.content,
-            account_id=account_id,
-        )
-        post.external_post_id = external_id
-        post.status = SocialPostStatus.posted
-    except Exception as exc:
-        logger.exception("Social post failed for article %s", article_id)
-        post.status = SocialPostStatus.failed
-        post.error_message = str(exc)
-
-    await db.commit()
-    await db.refresh(post)
-    return post
