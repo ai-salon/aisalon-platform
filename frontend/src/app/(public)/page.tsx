@@ -221,12 +221,12 @@ export default function HomePage() {
             {/* Right */}
             <div style={{ flex: "1 1 300px" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 32 }}>
-                <a href="/host" className="chapter-button">
+                <Link href="/host" className="chapter-button">
                   <i className="fa fa-plus-circle" aria-hidden="true" /> Start a Chapter
-                </a>
-                <a href="/host" className="chapter-button">
+                </Link>
+                <Link href="/host" className="chapter-button">
                   <i className="fa fa-plus-circle" aria-hidden="true" /> Become a Host in an Existing Chapter
-                </a>
+                </Link>
               </div>
 
               {chapters.length > 0 && (
