@@ -48,7 +48,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
   const chapter = await getChapter(code);
   if (!chapter) notFound();
 
-  const rolePriority = (r: string) => r === "Co-Founder" ? 0 : r === "Chapter Lead" ? 1 : 2;
+  const rolePriority = (r: string) => r === "Chapter Lead" ? 0 : r === "Co-Founder" ? 2 : 1;
   const sortedMembers = [...chapter.team_members].sort((a, b) => {
     const rCmp = rolePriority(a.role) - rolePriority(b.role);
     return rCmp !== 0 ? rCmp : a.name.localeCompare(b.name);
