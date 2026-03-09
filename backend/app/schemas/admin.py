@@ -20,6 +20,7 @@ class ChapterUpdate(BaseModel):
     about_blocks: Any | None = None
     events_blocks: Any | None = None
     status: str | None = None
+    chapter_guide: str | None = None
 
 
 class ChapterResponse(BaseModel):
@@ -36,6 +37,7 @@ class ChapterResponse(BaseModel):
     about_blocks: Any
     events_blocks: Any
     status: str
+    chapter_guide: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -153,6 +155,8 @@ class UserResponse(BaseModel):
     role: str
     chapter_id: str | None
     is_active: bool
+    last_login_at: datetime | None = None
+    login_count_30d: int = 0
 
     model_config = {"from_attributes": True}
 

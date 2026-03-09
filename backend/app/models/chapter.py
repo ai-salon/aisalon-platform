@@ -21,6 +21,7 @@ class Chapter(Base, TimestampMixin):
     about_blocks: Mapped[Any] = mapped_column(JSON, nullable=False, default=list)
     events_blocks: Mapped[Any] = mapped_column(JSON, nullable=False, default=list)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="active")
+    chapter_guide: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     team_members: Mapped[list["TeamMember"]] = relationship(  # noqa: F821
         "TeamMember", back_populates="chapter", lazy="select"

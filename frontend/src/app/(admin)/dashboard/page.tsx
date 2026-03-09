@@ -23,12 +23,18 @@ export default async function DashboardPage() {
   const userEmail: string = session.user?.email ?? "";
   const userChapterId: string | undefined = (session.user as any)?.chapterId;
 
-  let userChapter: { code: string; name: string } | undefined;
+  const chapters = await getChapters(token);
+
+  let userChapter: { id: string; code: string; name: string } | undefined;
   if (userChapterId) {
-    const chapters = await getChapters(token);
     const ch = chapters.find((c: any) => c.id === userChapterId);
-    if (ch) userChapter = { code: ch.code, name: ch.name };
+    if (ch) userChapter = { id: ch.id, code: ch.code, name: ch.name };
   }
+
+  const allChapters: { id: string; code: string; name: string }[] =
+    userRole === "superadmin"
+      ? chapters.map((c: any) => ({ id: c.id, code: c.code, name: c.name }))
+      : [];
 
   return (
     <WelcomeDashboard
@@ -36,6 +42,7 @@ export default async function DashboardPage() {
       userEmail={userEmail}
       userRole={userRole}
       userChapter={userChapter}
+      allChapters={allChapters}
     />
   );
 }

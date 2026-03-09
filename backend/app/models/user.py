@@ -1,6 +1,7 @@
 import uuid
 import enum
-from sqlalchemy import String, Boolean, ForeignKey, Enum as SAEnum
+from datetime import datetime
+from sqlalchemy import String, Boolean, ForeignKey, Enum as SAEnum, DateTime
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from app.models.base import Base, TimestampMixin
 
@@ -21,5 +22,6 @@ class User(Base, TimestampMixin):
     role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), nullable=False, default=UserRole.chapter_lead)
     chapter_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("chapters.id"), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     chapter: Mapped["Chapter | None"] = relationship("Chapter", back_populates="users")  # noqa: F821

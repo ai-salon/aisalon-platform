@@ -26,7 +26,22 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 6,
 };
 
+const hintStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: "#9ca3af",
+  marginBottom: 8,
+  marginTop: -2,
+};
+
 type ChapterOption = { id: string; name: string; code: string };
+
+const SPACE_OPTIONS = [
+  "Yes, for small groups of 10–20",
+  "Yes, for medium groups of 30–50",
+  "Yes, for large groups of 50–150",
+  "I'd need help brainstorming about where I could host.",
+  "Other",
+];
 
 export default function HostPage() {
   const [interestType, setInterestType] = useState<"start_chapter" | "host_existing">("start_chapter");
@@ -34,7 +49,12 @@ export default function HostPage() {
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [existingChapter, setExistingChapter] = useState("");
-  const [message, setMessage] = useState("");
+  const [salonsAttended, setSalonsAttended] = useState("");
+  const [facilitatedBefore, setFacilitatedBefore] = useState("");
+  const [themesInterested, setThemesInterested] = useState("");
+  const [whyHosting, setWhyHosting] = useState("");
+  const [hostingFrequency, setHostingFrequency] = useState("");
+  const [spaceOptions, setSpaceOptions] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +67,18 @@ export default function HostPage() {
       .catch(() => {});
   }, []);
 
+  const toggleSpaceOption = (opt: string) => {
+    setSpaceOptions((prev) =>
+      prev.includes(opt) ? prev.filter((o) => o !== opt) : [...prev, opt]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (spaceOptions.length === 0) {
+      setError("Please select at least one space option.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -56,10 +86,17 @@ export default function HostPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name, email, city,
+          name,
+          email,
+          city,
           interest_type: interestType,
           existing_chapter: interestType === "host_existing" ? existingChapter : null,
-          message: message || null,
+          salons_attended: salonsAttended || null,
+          facilitated_before: facilitatedBefore || null,
+          themes_interested: themesInterested || null,
+          why_hosting: whyHosting || null,
+          hosting_frequency: hostingFrequency || null,
+          space_options: spaceOptions.length > 0 ? spaceOptions.join(", ") : null,
         }),
       });
       if (!res.ok) throw new Error("Something went wrong. Please try again.");
@@ -181,15 +218,15 @@ export default function HostPage() {
               {/* Fields — two columns on desktop */}
               <div className="host-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 24px" }}>
                 <div style={{ marginBottom: 20 }}>
-                  <label style={labelStyle} htmlFor="name">Full Name</label>
+                  <label style={labelStyle} htmlFor="name">Full Name <span style={{ color: "#dc2626" }}>*</span></label>
                   <input id="name" type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Your name" style={inputStyle} />
                 </div>
                 <div style={{ marginBottom: 20 }}>
-                  <label style={labelStyle} htmlFor="email">Email</label>
+                  <label style={labelStyle} htmlFor="email">Email <span style={{ color: "#dc2626" }}>*</span></label>
                   <input id="email" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
                 </div>
                 <div style={{ marginBottom: 20, gridColumn: interestType === "host_existing" ? "1" : "1 / -1" }}>
-                  <label style={labelStyle} htmlFor="city">City</label>
+                  <label style={labelStyle} htmlFor="city">City <span style={{ color: "#dc2626" }}>*</span></label>
                   <input id="city" type="text" required value={city} onChange={e => setCity(e.target.value)} placeholder="San Francisco, London…" style={inputStyle} />
                 </div>
                 {interestType === "host_existing" && (
@@ -209,9 +246,118 @@ export default function HostPage() {
                     </select>
                   </div>
                 )}
-                <div style={{ marginBottom: 28, gridColumn: "1 / -1" }}>
-                  <label style={labelStyle} htmlFor="message">Anything else? <span style={{ fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
-                  <textarea id="message" value={message} onChange={e => setMessage(e.target.value)} rows={4} placeholder="Tell us about yourself or your interest…" style={{ ...inputStyle, resize: "vertical" }} />
+              </div>
+
+              {/* Additional questions */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle} htmlFor="salons_attended">
+                  Which Ai Salons have you been to? <span style={{ fontWeight: 400, textTransform: "none", fontSize: 12 }}>(If none, that&apos;s ok!)</span>
+                </label>
+                <input
+                  id="salons_attended"
+                  type="text"
+                  value={salonsAttended}
+                  onChange={e => setSalonsAttended(e.target.value)}
+                  placeholder="e.g. San Francisco, London, none yet…"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle} htmlFor="facilitated_before">
+                  Have you ever facilitated anything like a salon before? <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <p style={hintStyle}>Could be anything from dinner parties to book clubs to professional networking events.</p>
+                <input
+                  id="facilitated_before"
+                  type="text"
+                  required
+                  value={facilitatedBefore}
+                  onChange={e => setFacilitatedBefore(e.target.value)}
+                  placeholder="Tell us about your experience…"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle} htmlFor="themes_interested">
+                  What themes are you interested in exploring in your Ai Salons? <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <input
+                  id="themes_interested"
+                  type="text"
+                  required
+                  value={themesInterested}
+                  onChange={e => setThemesInterested(e.target.value)}
+                  placeholder="e.g. AI and democracy, future of work…"
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle} htmlFor="why_hosting">
+                  Why are you interested in hosting? <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <p style={hintStyle}>Let us know what you want to get out of this!</p>
+                <textarea
+                  id="why_hosting"
+                  required
+                  value={whyHosting}
+                  onChange={e => setWhyHosting(e.target.value)}
+                  rows={4}
+                  placeholder="Tell us your motivation…"
+                  style={{ ...inputStyle, resize: "vertical" }}
+                />
+              </div>
+
+              {/* Hosting frequency — radio */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={labelStyle}>
+                  How often are you interested in hosting? <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <p style={hintStyle}>A commitment of once a quarter is minimum, but we hope you&apos;ll host more!</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+                  {[
+                    { value: "more_than_monthly", label: "More than monthly" },
+                    { value: "monthly", label: "Monthly" },
+                    { value: "quarterly", label: "Quarterly" },
+                  ].map(({ value, label }) => (
+                    <label key={value} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontWeight: 400, fontSize: 15, color: "#111" }}>
+                      <input
+                        type="radio"
+                        name="hosting_frequency"
+                        value={value}
+                        required
+                        checked={hostingFrequency === value}
+                        onChange={() => setHostingFrequency(value)}
+                        style={{ accentColor: "#56a1d2", width: 18, height: 18 }}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Space to host — checkboxes */}
+              <div style={{ marginBottom: 28 }}>
+                <label style={labelStyle}>
+                  Do you have a space to host? <span style={{ fontWeight: 400, textTransform: "none", fontSize: 12 }}>(Check all that apply)</span> <span style={{ color: "#dc2626" }}>*</span>
+                </label>
+                <p style={hintStyle}>
+                  Having a space is the most important thing to make this easy. Hosts have used their own apartments, public spaces like libraries, co-working or social areas.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+                  {SPACE_OPTIONS.map((opt) => (
+                    <label key={opt} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", fontWeight: 400, fontSize: 15, color: "#111" }}>
+                      <input
+                        type="checkbox"
+                        checked={spaceOptions.includes(opt)}
+                        onChange={() => toggleSpaceOption(opt)}
+                        style={{ accentColor: "#56a1d2", width: 18, height: 18 }}
+                      />
+                      {opt}
+                    </label>
+                  ))}
                 </div>
               </div>
 

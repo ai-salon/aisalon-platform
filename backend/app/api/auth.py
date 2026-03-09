@@ -10,6 +10,7 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.models.invite import Invite
 from app.models.chapter import Chapter
+from app.models.login_event import UserLoginEvent
 from app.schemas.auth import (
     LoginRequest, RegisterRequest, TokenResponse, UserOut, InviteInfoResponse,
 )
@@ -32,6 +33,11 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    now = datetime.now(timezone.utc)
+    user.last_login_at = now
+    db.add(UserLoginEvent(user_id=user.id, logged_in_at=now))
+    await db.commit()
 
     token = create_access_token({"sub": user.id, "email": user.email, "role": user.role.value})
     return TokenResponse(access_token=token)

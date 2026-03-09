@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -756,6 +759,603 @@ function ChapterLeadGuide() {
   );
 }
 
+// ─── Resources Tab ────────────────────────────────────────────────────────────
+
+function ResourcesTab({ isChapterLead }: { isChapterLead: boolean }) {
+  const [subTab, setSubTab] = useState<"hosting" | "chapter">("hosting");
+
+  const tabs = [
+    { id: "hosting" as const, label: "🏡 Hosting Guide" },
+    ...(isChapterLead ? [{ id: "chapter" as const, label: "🗺️ Chapter Lead Guide" }] : []),
+  ];
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
+          📚 Resources
+        </h2>
+        <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+          Guides and references for running great Ai Salon events.
+        </p>
+      </div>
+
+      {isChapterLead && (
+        <div
+          style={{
+            display: "flex",
+            gap: 4,
+            background: "#f0ebe0",
+            padding: 4,
+            borderRadius: 10,
+            marginBottom: 20,
+            width: "fit-content",
+          }}
+        >
+          {tabs.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setSubTab(id)}
+              style={{
+                padding: "7px 18px",
+                borderRadius: 7,
+                border: "none",
+                cursor: "pointer",
+                fontSize: 13,
+                fontWeight: 700,
+                background: subTab === id ? "#fff" : "transparent",
+                color: subTab === id ? "#111" : "#696969",
+                boxShadow: subTab === id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                transition: "all 0.15s",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {subTab === "hosting" && <HostingGuide />}
+      {subTab === "chapter" && isChapterLead && <ChapterLeadGuide />}
+    </div>
+  );
+}
+
+// ─── Chapter Guide ────────────────────────────────────────────────────────────
+
+function ChapterGuideTab({
+  chapterId,
+  chapterName,
+  canEdit,
+}: {
+  chapterId: string;
+  chapterName: string;
+  canEdit: boolean;
+}) {
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken;
+
+  const [guide, setGuide] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    if (!token || !chapterId) return;
+    setLoading(true);
+    fetch(`${API_URL}/admin/chapters/${chapterId}/guide`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        setGuide(d.chapter_guide ?? null);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [token, chapterId]);
+
+  async function handleSave() {
+    if (!token) return;
+    setSaving(true);
+    setSaveError("");
+    const r = await fetch(`${API_URL}/admin/chapters/${chapterId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ chapter_guide: draft }),
+    });
+    setSaving(false);
+    if (!r.ok) {
+      setSaveError("Failed to save. Please try again.");
+      return;
+    }
+    const updated = await r.json();
+    setGuide(updated.chapter_guide ?? null);
+    setEditing(false);
+  }
+
+  function startEdit() {
+    setDraft(guide ?? "");
+    setSaveError("");
+    setEditing(true);
+  }
+
+  if (loading) {
+    return (
+      <div style={{ padding: "40px 0", color: "#696969", fontSize: 14 }}>Loading…</div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
+            📖 Chapter Guide
+          </h2>
+          <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+            {chapterName} — internal notes and resources for your chapter team.
+          </p>
+        </div>
+        {canEdit && !editing && (
+          <button
+            onClick={startEdit}
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "8px 18px",
+              borderRadius: 8,
+              border: "1.5px solid #56a1d2",
+              color: "#56a1d2",
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            ✏️ Edit
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Write your chapter guide in Markdown…
+
+# Welcome to the [City] Chapter
+
+Add notes, links, local contacts, recurring event info, and anything your team needs to know."
+            style={{
+              width: "100%",
+              minHeight: 400,
+              padding: "16px",
+              fontSize: 14,
+              lineHeight: 1.7,
+              border: "1.5px solid #d1d5db",
+              borderRadius: 10,
+              outline: "none",
+              fontFamily: "monospace",
+              resize: "vertical",
+              boxSizing: "border-box",
+              background: "#fafaf8",
+            }}
+            autoFocus
+          />
+          <div style={{ display: "flex", gap: 10, marginTop: 12, alignItems: "center" }}>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "9px 22px",
+                borderRadius: 8,
+                border: "none",
+                background: "#56a1d2",
+                color: "#fff",
+                cursor: "pointer",
+                opacity: saving ? 0.7 : 1,
+              }}
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => setEditing(false)}
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                padding: "9px 16px",
+                borderRadius: 8,
+                border: "1.5px solid #d1d5db",
+                background: "#fff",
+                color: "#696969",
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+            <span style={{ fontSize: 12, color: "#9ca3af" }}>
+              Markdown supported
+            </span>
+          </div>
+          {saveError && (
+            <p style={{ fontSize: 13, color: "#dc2626", marginTop: 8 }}>{saveError}</p>
+          )}
+        </div>
+      ) : guide ? (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            border: "1px solid #ede9d8",
+            padding: "24px 28px",
+          }}
+        >
+          <div className="chapter-guide-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{guide}</ReactMarkdown>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            border: "2px dashed #ede9d8",
+            padding: "60px 24px",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ fontSize: 32, marginBottom: 12 }}>📖</div>
+          <p style={{ fontSize: 15, fontWeight: 700, color: "#111", marginBottom: 6 }}>
+            No chapter guide yet
+          </p>
+          <p style={{ fontSize: 13, color: "#696969", marginBottom: 20 }}>
+            {canEdit
+              ? "Add notes, local contacts, event info, and resources for your chapter team."
+              : "Your chapter lead hasn't added a guide yet."}
+          </p>
+          {canEdit && (
+            <button
+              onClick={startEdit}
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                padding: "10px 24px",
+                borderRadius: 8,
+                border: "none",
+                background: "#56a1d2",
+                color: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              Create Guide
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Chapter Team Tab ─────────────────────────────────────────────────────────
+
+function ChapterTeamTab({ chapterCode }: { chapterCode: string }) {
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API_URL}/chapters/${chapterCode}`)
+      .then((r) => r.json())
+      .then((d) => {
+        setMembers(d.team_members ?? []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [chapterCode]);
+
+  if (loading) {
+    return <div style={{ padding: "40px 0", color: "#696969", fontSize: 14 }}>Loading…</div>;
+  }
+
+  return (
+    <div>
+      <div style={{ marginBottom: 18 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
+          👥 Chapter Team
+        </h2>
+        <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+          Your fellow hosts and chapter leads.
+        </p>
+      </div>
+
+      {members.length === 0 ? (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            border: "2px dashed #ede9d8",
+            padding: "48px 24px",
+            textAlign: "center",
+            color: "#696969",
+            fontSize: 14,
+          }}
+        >
+          No team members added yet.
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: 16,
+          }}
+        >
+          {members.map((m: any) => (
+            <div
+              key={m.id}
+              style={{
+                background: "#fff",
+                borderRadius: 12,
+                border: "1px solid #ede9d8",
+                padding: "20px 16px",
+                textAlign: "center",
+              }}
+            >
+              {m.profile_image_url ? (
+                <img
+                  src={m.profile_image_url.startsWith("/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url}
+                  alt={m.name}
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: "50%",
+                    objectFit: "cover",
+                    marginBottom: 10,
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    width: 64,
+                    height: 64,
+                    borderRadius: "50%",
+                    background: "#f0ebe0",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 22,
+                    margin: "0 auto 10px",
+                  }}
+                >
+                  👤
+                </div>
+              )}
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 2 }}>
+                {m.name}
+              </div>
+              <div style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600, marginBottom: m.is_cofounder ? 4 : 0 }}>
+                {m.role}
+              </div>
+              {m.is_cofounder && (
+                <div style={{ fontSize: 11, color: "#d2b356", fontWeight: 700 }}>⭐ Co-founder</div>
+              )}
+              {m.linkedin && (
+                <a
+                  href={m.linkedin}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ fontSize: 11, color: "#696969", marginTop: 6, display: "block" }}
+                >
+                  LinkedIn ↗
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Community Stats ──────────────────────────────────────────────────────────
+
+function CommunityStats({ token }: { token: string }) {
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/admin/community-stats`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then(setStats)
+      .catch(() => {});
+  }, [token]);
+
+  if (!stats) return null;
+
+  const totals = stats.totals;
+  const items = [
+    { label: "Published Articles", value: totals.published_count, emoji: "📰" },
+    { label: "Team Members", value: totals.team_size, emoji: "👥" },
+    { label: "Events Processed", value: totals.completed_jobs, emoji: "🎤" },
+  ];
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)",
+        gap: 12,
+        marginTop: 28,
+      }}
+    >
+      {items.map(({ label, value, emoji }) => (
+        <div
+          key={label}
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            border: "1px solid #ede9d8",
+            padding: "16px 18px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 22 }}>{emoji}</span>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: "#111", lineHeight: 1 }}>{value}</div>
+            <div style={{ fontSize: 11, color: "#696969", marginTop: 3 }}>{label}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Recent Activity ──────────────────────────────────────────────────────────
+
+function RecentActivity({ token, chapterCode }: { token: string; chapterCode: string }) {
+  const [articles, setArticles] = useState<any[]>([]);
+  const [team, setTeam] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_URL}/admin/articles`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((a) => setArticles(a.slice(0, 4)))
+      .catch(() => {});
+  }, [token]);
+
+  useEffect(() => {
+    fetch(`${API_URL}/chapters/${chapterCode}`)
+      .then((r) => r.json())
+      .then((d) => setTeam(d.team_members ?? []))
+      .catch(() => {});
+  }, [chapterCode]);
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginTop: 20 }}>
+      {/* Recent Articles */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <SectionLabel>Recent Articles</SectionLabel>
+          <Link href="/articles" style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600 }}>
+            View all →
+          </Link>
+        </div>
+        {articles.length === 0 ? (
+          <p style={{ fontSize: 13, color: "#9ca3af" }}>No articles yet.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {articles.map((a: any) => (
+              <Link
+                key={a.id}
+                href="/articles"
+                style={{
+                  display: "block",
+                  background: "#fff",
+                  borderRadius: 8,
+                  border: "1px solid #ede9d8",
+                  padding: "10px 14px",
+                  textDecoration: "none",
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#111", marginBottom: 3, lineHeight: 1.3 }}>
+                  {a.title}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: 10,
+                      background: a.status === "published" ? "#dcfce7" : "#f3f4f6",
+                      color: a.status === "published" ? "#16a34a" : "#6b7280",
+                    }}
+                  >
+                    {a.status}
+                  </span>
+                  <span style={{ fontSize: 11, color: "#9ca3af" }}>
+                    {new Date(a.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Team */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <SectionLabel>Your Team</SectionLabel>
+          <Link href="/team" style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600 }}>
+            Manage →
+          </Link>
+        </div>
+        {team.length === 0 ? (
+          <p style={{ fontSize: 13, color: "#9ca3af" }}>No team members yet.</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {team.slice(0, 5).map((m: any) => (
+              <div
+                key={m.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: "#fff",
+                  borderRadius: 8,
+                  border: "1px solid #ede9d8",
+                  padding: "8px 12px",
+                }}
+              >
+                {m.profile_image_url ? (
+                  <img
+                    src={m.profile_image_url.startsWith("/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url}
+                    alt={m.name}
+                    style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: "50%",
+                      background: "#f0ebe0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    👤
+                  </div>
+                )}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{m.name}</div>
+                  <div style={{ fontSize: 11, color: "#696969" }}>{m.role}</div>
+                </div>
+              </div>
+            ))}
+            {team.length > 5 && (
+              <p style={{ fontSize: 12, color: "#9ca3af", margin: "4px 0 0" }}>
+                +{team.length - 5} more — <Link href="/team" style={{ color: "#56a1d2" }}>view all</Link>
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Invite Card ──────────────────────────────────────────────────────────────
 
 function InviteCard() {
@@ -773,7 +1373,6 @@ function InviteCard() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
-  // Superadmins need the chapter list
   useEffect(() => {
     if (!isSuperadmin || !token) return;
     fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } })
@@ -934,6 +1533,106 @@ function InviteCard() {
   );
 }
 
+// ─── Chapter Guide (Superadmin with selector) ─────────────────────────────────
+
+function SuperadminChapterGuide({
+  allChapters,
+}: {
+  allChapters: { id: string; code: string; name: string }[];
+}) {
+  const [selectedId, setSelectedId] = useState(allChapters[0]?.id ?? "");
+  const selected = allChapters.find((c) => c.id === selectedId);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
+            📖 Chapter Guide
+          </h2>
+          <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+            View and edit each chapter&apos;s internal guide.
+          </p>
+        </div>
+        <select
+          value={selectedId}
+          onChange={(e) => setSelectedId(e.target.value)}
+          style={{
+            marginLeft: "auto",
+            padding: "8px 12px",
+            fontSize: 13,
+            fontWeight: 600,
+            border: "1.5px solid #d1d5db",
+            borderRadius: 8,
+            background: "#fff",
+            color: "#111",
+            cursor: "pointer",
+          }}
+        >
+          {allChapters.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+      {selected && (
+        <ChapterGuideTab
+          key={selected.id}
+          chapterId={selected.id}
+          chapterName={selected.name}
+          canEdit
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Tab bar ─────────────────────────────────────────────────────────────────
+
+function TabBar<T extends string>({
+  tabs,
+  active,
+  onChange,
+}: {
+  tabs: { id: T; label: string }[];
+  active: T;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 4,
+        background: "#f0ebe0",
+        padding: 4,
+        borderRadius: 10,
+        marginBottom: 20,
+        width: "fit-content",
+      }}
+    >
+      {tabs.map(({ id, label }) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          style={{
+            padding: "8px 20px",
+            borderRadius: 7,
+            border: "none",
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 700,
+            background: active === id ? "#fff" : "transparent",
+            color: active === id ? "#111" : "#696969",
+            boxShadow: active === id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+            transition: "all 0.15s",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export default function WelcomeDashboard({
@@ -941,15 +1640,24 @@ export default function WelcomeDashboard({
   userEmail,
   userRole,
   userChapter,
+  allChapters,
 }: {
   userName: string;
   userEmail: string;
   userRole: string;
-  userChapter?: { code: string; name: string };
+  userChapter?: { id: string; code: string; name: string };
+  allChapters: { id: string; code: string; name: string }[];
 }) {
-  const [activeTab, setActiveTab] = useState<"hosting" | "chapter">("hosting");
-  const showBothGuides = userRole === "chapter_lead" || userRole === "superadmin";
-  // host role only sees the hosting guide (showBothGuides = false for hosts)
+  const { data: session } = useSession();
+  const token = (session as any)?.accessToken ?? "";
+
+  const isHost = userRole === "host";
+  const isChapterLead = userRole === "chapter_lead";
+  const isSuperadmin = userRole === "superadmin";
+
+  // Tab state per role
+  const [hostTab, setHostTab] = useState<"hosting" | "team">("hosting");
+  const [leadTab, setLeadTab] = useState<"guide" | "resources">("guide");
 
   return (
     <div style={{ maxWidth: 1140, margin: "0 auto", padding: "32px 28px" }}>
@@ -965,32 +1673,8 @@ export default function WelcomeDashboard({
           overflow: "hidden",
         }}
       >
-        {/* decorative circles */}
-        <div
-          style={{
-            position: "absolute",
-            top: -30,
-            right: 40,
-            width: 160,
-            height: 160,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.07)",
-            pointerEvents: "none",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            bottom: -40,
-            right: -20,
-            width: 120,
-            height: 120,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,0.05)",
-            pointerEvents: "none",
-          }}
-        />
-
+        <div style={{ position: "absolute", top: -30, right: 40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.07)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", bottom: -40, right: -20, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
         <div style={{ position: "relative" }}>
           <p style={{ fontSize: 12, opacity: 0.75, marginBottom: 4, letterSpacing: 0.5, margin: "0 0 4px" }}>
             Welcome back
@@ -1010,7 +1694,7 @@ export default function WelcomeDashboard({
                 letterSpacing: 0.5,
               }}
             >
-              {userRole === "chapter_lead" ? "Chapter Lead" : userRole === "host" ? "Host" : "Super Admin"}
+              {isChapterLead ? "Chapter Lead" : isHost ? "Host" : "Super Admin"}
             </span>
             {userChapter && (
               <span
@@ -1042,81 +1726,87 @@ export default function WelcomeDashboard({
           alignItems: "start",
         }}
       >
-        {/* Main column */}
+        {/* ── Main column ── */}
         <div>
-          {/* Tab switcher */}
-          {showBothGuides && (
-            <div
-              style={{
-                display: "flex",
-                gap: 4,
-                background: "#f0ebe0",
-                padding: 4,
-                borderRadius: 10,
-                marginBottom: 20,
-                width: "fit-content",
-              }}
-            >
-              {(
-                [
-                  { id: "hosting", label: "🏡 Hosting Guide" },
-                  { id: "chapter", label: "🗺️ Chapter Lead Guide" },
-                ] as const
-              ).map(({ id, label }) => (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  style={{
-                    padding: "8px 20px",
-                    borderRadius: 7,
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: 13,
-                    fontWeight: 700,
-                    background: activeTab === id ? "#fff" : "transparent",
-                    color: activeTab === id ? "#111" : "#696969",
-                    boxShadow: activeTab === id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+          {/* HOST view */}
+          {isHost && (
+            <>
+              <TabBar
+                tabs={[
+                  { id: "hosting" as const, label: "🏡 Hosting Guide" },
+                  { id: "team" as const, label: "👥 Chapter Team" },
+                ]}
+                active={hostTab}
+                onChange={setHostTab}
+              />
+              {hostTab === "hosting" && (
+                <div>
+                  <div style={{ marginBottom: 18 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
+                      🏡 Hosting Guide
+                    </h2>
+                    <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+                      Everything you need to plan, run, and follow up on an Ai Salon.
+                    </p>
+                  </div>
+                  <HostingGuide />
+                </div>
+              )}
+              {hostTab === "team" && userChapter && (
+                <ChapterTeamTab chapterCode={userChapter.code} />
+              )}
+            </>
           )}
 
-          {/* Hosting Guide */}
-          {(!showBothGuides || activeTab === "hosting") && (
-            <div>
-              <div style={{ marginBottom: 18 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
-                  🏡 Hosting Guide
-                </h2>
-                <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
-                  Everything you need to plan, run, and follow up on an Ai Salon.
-                </p>
-              </div>
-              <HostingGuide />
-            </div>
+          {/* CHAPTER LEAD view */}
+          {isChapterLead && userChapter && (
+            <>
+              <TabBar
+                tabs={[
+                  { id: "guide" as const, label: "📖 Chapter Guide" },
+                  { id: "resources" as const, label: "📚 Resources" },
+                ]}
+                active={leadTab}
+                onChange={setLeadTab}
+              />
+              {leadTab === "guide" && (
+                <ChapterGuideTab
+                  chapterId={userChapter.id}
+                  chapterName={userChapter.name}
+                  canEdit
+                />
+              )}
+              {leadTab === "resources" && <ResourcesTab isChapterLead />}
+
+              {/* Stats + Activity below tabs */}
+              <CommunityStats token={token} />
+              <RecentActivity token={token} chapterCode={userChapter.code} />
+            </>
           )}
 
-          {/* Chapter Lead Guide */}
-          {showBothGuides && activeTab === "chapter" && (
-            <div>
-              <div style={{ marginBottom: 18 }}>
-                <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
-                  🗺️ Chapter Lead Guide
-                </h2>
-                <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
-                  How to build a thriving local chapter and connect with the global Ai Salon community.
-                </p>
-              </div>
-              <ChapterLeadGuide />
-            </div>
+          {/* SUPERADMIN view */}
+          {isSuperadmin && (
+            <>
+              <TabBar
+                tabs={[
+                  { id: "guide" as const, label: "📖 Chapter Guide" },
+                  { id: "resources" as const, label: "📚 Resources" },
+                ]}
+                active={leadTab}
+                onChange={setLeadTab}
+              />
+              {leadTab === "guide" && (
+                <SuperadminChapterGuide allChapters={allChapters} />
+              )}
+              {leadTab === "resources" && <ResourcesTab isChapterLead />}
+
+              {/* Stats below tabs */}
+              <CommunityStats token={token} />
+            </>
           )}
         </div>
 
-        {/* Sidebar */}
+        {/* ── Sidebar ── */}
         <div style={{ position: "sticky", top: 20, display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Upload CTA */}
           <a
@@ -1155,8 +1845,8 @@ export default function WelcomeDashboard({
             </span>
           </a>
 
-          {/* Invite CTA — for chapter leads and superadmins */}
-          {(userRole === "chapter_lead" || userRole === "superadmin") && <InviteCard />}
+          {/* Invite — for chapter leads and superadmins */}
+          {(isChapterLead || isSuperadmin) && <InviteCard />}
 
           {/* Quick Links */}
           <div
@@ -1186,31 +1876,11 @@ export default function WelcomeDashboard({
             }}
           >
             <SectionLabel>Our Values</SectionLabel>
-            <ValueRow
-              emoji="🧘"
-              title="Give Space and Take Space"
-              desc="Foster respect through active listening and thoughtful contribution."
-            />
-            <ValueRow
-              emoji="🔭"
-              title="Seek the Truth"
-              desc="Engage with curiosity and rigor; ground points in facts."
-            />
-            <ValueRow
-              emoji="🚀"
-              title="Encourage Exploration"
-              desc="Welcome all angles via free-flowing dialogue."
-            />
-            <ValueRow
-              emoji="🤝"
-              title="Find Strength in Community"
-              desc="Come together to support one another and have fun."
-            />
-            <ValueRow
-              emoji="🫴"
-              title="Promote Positive Impact"
-              desc="Convert ideas into positive projects and partnerships."
-            />
+            <ValueRow emoji="🧘" title="Give Space and Take Space" desc="Foster respect through active listening and thoughtful contribution." />
+            <ValueRow emoji="🔭" title="Seek the Truth" desc="Engage with curiosity and rigor; ground points in facts." />
+            <ValueRow emoji="🚀" title="Encourage Exploration" desc="Welcome all angles via free-flowing dialogue." />
+            <ValueRow emoji="🤝" title="Find Strength in Community" desc="Come together to support one another and have fun." />
+            <ValueRow emoji="🫴" title="Promote Positive Impact" desc="Convert ideas into positive projects and partnerships." />
           </div>
 
           {/* Connect */}

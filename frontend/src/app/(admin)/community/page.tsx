@@ -85,13 +85,6 @@ function ChapterCard({ stats }: { stats: ChapterStats }) {
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>Jobs</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#111" }}>{stats.jobs_count}</div>
-          <div style={{ fontSize: 11, color: "#696969" }}>
-            {stats.completed_jobs} completed · {stats.failed_jobs} failed
-          </div>
-        </div>
-        <div>
           <div style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.05em" }}>Team</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#111" }}>{stats.team_size}</div>
         </div>
@@ -136,7 +129,6 @@ export default function CommunityPage() {
       {/* Totals bar */}
       <div style={{ display: "flex", gap: 16, marginBottom: 36, flexWrap: "wrap" }}>
         <StatCard label="Total Articles" value={totals.articles_count} icon="fa-file-text-o" color="#56a1d2" />
-        <StatCard label="Total Jobs" value={totals.jobs_count} icon="fa-cogs" color="#d2b356" />
         <StatCard label="Team Members" value={totals.team_size} icon="fa-users" color="#16a34a" />
         <StatCard label="Active Chapters" value={chapters.length} icon="fa-map-marker" color="#8b5cf6" />
       </div>

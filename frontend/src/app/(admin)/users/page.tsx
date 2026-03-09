@@ -8,6 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 type UserData = {
   id: string; email: string; username: string | null; role: string;
   chapter_id: string | null; is_active: boolean;
+  last_login_at: string | null; login_count_30d: number;
 };
 type Chapter = { id: string; name: string; code: string };
 
@@ -172,7 +173,7 @@ export default function UsersPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
-              {["Email", "Username", "Role", "Chapter", "Status", ""].map((h) => (
+              {["Email", "Username", "Role", "Chapter", "Status", "Last Login", "Logins (30d)", ""].map((h) => (
                 <th key={h} style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}>{h}</th>
               ))}
             </tr>
@@ -202,6 +203,12 @@ export default function UsersPage() {
                   }}>
                     {u.is_active ? "Active" : "Inactive"}
                   </span>
+                </td>
+                <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
+                  {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : "Never"}
+                </td>
+                <td style={{ padding: "14px 20px", fontSize: 13, color: "#111", fontWeight: 600 }}>
+                  {u.login_count_30d}
                 </td>
                 <td style={{ padding: "14px 20px", textAlign: "right", whiteSpace: "nowrap" }}>
                   <button

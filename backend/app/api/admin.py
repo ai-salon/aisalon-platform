@@ -1,6 +1,6 @@
 """Admin API endpoints: api-keys, jobs, articles, chapters, team."""
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -18,6 +18,7 @@ from app.models.team_member import TeamMember
 from app.models.hosting_interest import HostingInterest, InterestType
 from app.models.invite import Invite
 from app.models.system_setting import SystemSetting
+from app.models.login_event import UserLoginEvent
 from app.core.security import hash_password
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
@@ -440,6 +441,22 @@ async def get_transcript(
 
 # ── Chapters (admin edit) ─────────────────────────────────────────────────────
 
+@router.get("/chapters/{chapter_id}/guide")
+async def get_chapter_guide(
+    chapter_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return the chapter guide for any authenticated member of the chapter."""
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != chapter_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    chapter = result.scalar_one_or_none()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    return {"chapter_guide": chapter.chapter_guide}
+
+
 @router.patch("/chapters/{chapter_id}", response_model=ChapterResponse)
 async def update_chapter(
     chapter_id: str,
@@ -550,7 +567,22 @@ async def list_users(
 ):
     _require_admin(current_user)
     result = await db.execute(select(User).order_by(User.email))
-    return result.scalars().all()
+    users = result.scalars().all()
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    counts_result = await db.execute(
+        select(UserLoginEvent.user_id, func.count(UserLoginEvent.id).label("cnt"))
+        .where(UserLoginEvent.logged_in_at >= cutoff)
+        .group_by(UserLoginEvent.user_id)
+    )
+    login_counts = {row.user_id: row.cnt for row in counts_result}
+
+    responses = []
+    for u in users:
+        r = UserResponse.model_validate(u)
+        r.login_count_30d = login_counts.get(u.id, 0)
+        responses.append(r)
+    return responses
 
 
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
