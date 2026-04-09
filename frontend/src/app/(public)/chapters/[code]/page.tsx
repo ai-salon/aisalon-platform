@@ -93,6 +93,43 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
         </div>
       </section>
 
+      {/* ── UPCOMING EVENTS ── */}
+      {chapter.calendar_embed && (
+        <section style={{ background: "#fff", padding: "72px 30px" }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+            <span className="section-label">Events</span>
+            <h2 className="section-title">Upcoming Events</h2>
+            {chapter.events_description && (
+              <p className="section-subtitle" style={{ marginBottom: 24 }}>
+                {chapter.events_description}
+              </p>
+            )}
+            <div className="calendar-container">
+              <iframe
+                src={chapter.calendar_embed}
+                width="100%"
+                height="450"
+                style={{ border: "none", display: "block" }}
+                title={`${chapter.name} events calendar`}
+              />
+            </div>
+            {chapter.event_link && (
+              <div style={{ textAlign: "center", marginTop: 24 }}>
+                <a
+                  href={chapter.event_link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-primary"
+                  style={{ display: "inline-block" }}
+                >
+                  View All {chapter.name} Events
+                </a>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* ── ABOUT ── */}
       <section style={{ background: "#f8f6ec", padding: "72px 30px" }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", display: "flex", gap: 60, flexWrap: "wrap" }}>
@@ -153,94 +190,6 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
               body="We believe AI should be shaped by those it affects. Through participatory alignment and community-driven governance, we work to ensure diverse perspectives influence AI systems."
             />
           </div>
-        </div>
-      </section>
-
-      {/* ── EVENTS ── */}
-      <section style={{ background: "#fff", padding: "72px 30px" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <div style={{ display: "flex", gap: 60, flexWrap: "wrap", marginBottom: 56 }}>
-            {/* Left */}
-            <div style={{ flex: "0 0 300px", minWidth: 240 }}>
-              <span className="section-label">Events</span>
-              <h2 className="section-title">Join the Conversation</h2>
-              {chapter.events_description && (
-                <p className="section-subtitle" style={{ marginBottom: 20 }}>
-                  {chapter.events_description}
-                </p>
-              )}
-              <div className="social-proof-badge">
-                <i className="fa fa-calendar-check-o" aria-hidden="true" />
-                <span>70+ events hosted</span>
-              </div>
-            </div>
-
-            {/* Right */}
-            <div style={{ flex: "1 1 380px", display: "flex", flexWrap: "wrap", gap: "0 40px" }}>
-              <IconBlock
-                icon="fa-comments-o"
-                title="Intimate Salons"
-                body="Join our signature 10-20 person facilitated, single-threaded conversations that explore various themes in AI."
-              />
-              <IconBlock
-                icon="fa-users"
-                title="Large Symposia"
-                body="Experience our larger events, which bring together 100+ people around a broader topic before we break into more specific, intimate discussion groups."
-              />
-              <IconBlock
-                icon="fa-calendar"
-                title="Regular Schedule"
-                body="We've hosted 70+ events bringing over 1000 people together to discuss AI's impact across various domains."
-              />
-              <IconBlock
-                icon="fa-newspaper-o"
-                title="Digital Dialogue"
-                body="Subscribe to our Substack newsletter for curated insights from in-person conversations."
-              />
-            </div>
-          </div>
-
-          {/* Calendar */}
-          {chapter.calendar_embed && (
-            <div>
-              <h3 style={{ fontSize: 20, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#111", marginBottom: 16 }}>
-                {chapter.name} Calendar
-              </h3>
-              <div className="event-legend">
-                <span className="event-type-badge salon">
-                  <i className="fa fa-circle" style={{ fontSize: 8 }} aria-hidden="true" /> Salon
-                </span>
-                <span className="event-type-badge symposium">
-                  <i className="fa fa-circle" style={{ fontSize: 8 }} aria-hidden="true" /> Symposium
-                </span>
-                <span className="event-type-badge expert">
-                  <i className="fa fa-circle" style={{ fontSize: 8 }} aria-hidden="true" /> Expert Talk
-                </span>
-              </div>
-              <div className="calendar-container">
-                <iframe
-                  src={chapter.calendar_embed}
-                  width="100%"
-                  height="450"
-                  style={{ border: "none", display: "block" }}
-                  title={`${chapter.name} events calendar`}
-                />
-              </div>
-              {chapter.event_link && (
-                <div style={{ textAlign: "center", marginTop: 24 }}>
-                  <a
-                    href={chapter.event_link}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-primary"
-                    style={{ display: "inline-block" }}
-                  >
-                    View All {chapter.name} Events
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </section>
 

@@ -6,6 +6,21 @@ import "./globals.css";
 import Providers from "./providers";
 import MobileNav from "./MobileNav";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+type ChapterNav = { code: string; name: string };
+
+async function getChapters(): Promise<ChapterNav[]> {
+  try {
+    const r = await fetch(`${API_URL}/chapters`, { next: { revalidate: 300 } });
+    if (!r.ok) return [];
+    const data = await r.json();
+    return data.map((c: { code: string; name: string }) => ({ code: c.code, name: c.name }));
+  } catch {
+    return [];
+  }
+}
+
 const openSans = Open_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "600", "700", "800"],
@@ -19,7 +34,8 @@ export const metadata: Metadata = {
     "The Ai Salon is a global community bringing together scientists, founders, builders, and the curious to shape the future of AI through meaningful conversation.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const chapters = await getChapters();
   return (
     <html lang="en">
       <head>
@@ -123,7 +139,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <li><Link href="/insights">Insights</Link></li>
                 </ul>
               </li>
-              <li>
+              <li className="dropdown">
                 <Link
                   href="/#chapters"
                   style={{
@@ -134,10 +150,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     color: "#111",
                     display: "flex",
                     alignItems: "center",
+                    gap: 4,
                   }}
                 >
-                  Chapters
+                  Chapters <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
                 </Link>
+                <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
+                  {chapters.map((ch) => (
+                    <li key={ch.code}><Link href={`/chapters/${ch.code}`}>{ch.name}</Link></li>
+                  ))}
+                  <li style={{ borderTop: "1px solid rgba(0,0,0,0.08)", marginTop: 4, paddingTop: 4 }}>
+                    <Link href="/host">Start a Chapter</Link>
+                  </li>
+                </ul>
               </li>
             </ul>
 
@@ -162,7 +187,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
 
             {/* Mobile hamburger */}
-            <MobileNav />
+            <MobileNav chapters={chapters} />
           </div>
         </nav>
 

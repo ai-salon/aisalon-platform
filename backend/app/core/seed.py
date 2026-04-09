@@ -56,8 +56,8 @@ _CHAPTERS = [
             "pressing topics in artificial intelligence today."
         ),
         about="",
-        event_link="https://lu.ma/Ai-salon?tag=sf",
-        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=sf",
+        event_link="https://lu.ma/Ai-salon?tag=SF",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=SF",
         events_description=(
             "Join us in San Francisco for intimate salons and larger symposia exploring "
             "AI's impact on technology, society, and the future."
@@ -94,8 +94,8 @@ _CHAPTERS = [
             "development and impact."
         ),
         about="",
-        event_link="https://lu.ma/Ai-salon?tag=berlin",
-        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=berlin",
+        event_link="https://lu.ma/Ai-salon?tag=Berlin",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=Berlin",
         events_description=(
             "Berlin's vibrant tech and policy scene meets to explore AI's transformative "
             "potential through intimate salons and cross-cultural dialogue."
@@ -133,8 +133,8 @@ _CHAPTERS = [
             "startups, and world-class universities."
         ),
         about="",
-        event_link="https://lu.ma/Ai-salon?tag=london",
-        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=london",
+        event_link="https://lu.ma/Ai-salon?tag=London",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=London",
         events_description=(
             "London's world-class AI ecosystem gathers for thoughtful conversations "
             "spanning finance, policy, research, and the arts."
@@ -152,8 +152,8 @@ _CHAPTERS = [
             "shape AI's future in the world's largest democracy."
         ),
         about="",
-        event_link="https://lu.ma/Ai-salon?tag=bangalore",
-        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=bangalore",
+        event_link="https://lu.ma/Ai-salon?tag=Bangalore",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=Bangalore",
         events_description=(
             "India's tech capital hosts rich conversations on AI's potential to transform "
             "one of the world's fastest-growing economies."
@@ -188,8 +188,8 @@ _CHAPTERS = [
             "challenges and amplify African innovation."
         ),
         about="",
-        event_link="https://lu.ma/Ai-salon?tag=lagos",
-        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=lagos",
+        event_link="https://lu.ma/Ai-salon?tag=Lagos",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=Lagos",
         events_description=(
             "Lagos convenes Africa's AI community to explore how the continent can shape "
             "— and benefit from — the global AI transformation."
@@ -216,8 +216,8 @@ _CHAPTERS = [
             "one of the world's most livable and multicultural cities."
         ),
         about="",
-        event_link="https://lu.ma/Ai-salon?tag=vancouver",
-        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=vancouver",
+        event_link="https://lu.ma/Ai-salon?tag=Vancouver",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=Vancouver",
         events_description=(
             "Vancouver's diverse tech community gathers to explore responsible AI "
             "development with Canadian values at the forefront."
@@ -250,8 +250,8 @@ _CHAPTERS = [
             "and impact of artificial intelligence."
         ),
         about="",
-        event_link="https://lu.ma/Ai-salon?tag=zurich",
-        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=zurich",
+        event_link="https://lu.ma/Ai-salon?tag=Zurich",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=Zurich",
         events_description=(
             "Zurich's unique confluence of leading universities, global finance, and "
             "deep-tech innovation creates a rich setting for exploring AI's future."
@@ -279,8 +279,8 @@ _CHAPTERS = [
             "intersects with finance, media, healthcare, and social impact."
         ),
         about="",
-        event_link="https://lu.ma/Ai-salon?tag=nyc",
-        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=nyc",
+        event_link="https://lu.ma/Ai-salon?tag=NY",
+        calendar_embed="https://lu.ma/embed/calendar/cal-XHZLGpY8HDOAYm3/events?lt=light&tag=NY",
         events_description=(
             "New York's unparalleled mix of finance, media, tech, and culture creates "
             "a uniquely rich context for conversations about AI's future."

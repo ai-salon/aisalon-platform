@@ -23,8 +23,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 71px)" }}>
-      {/* Sidebar */}
-      <aside
+      {/* Sidebar — hidden when not logged in */}
+      {session && <aside
         style={{
           width: 220,
           flexShrink: 0,
@@ -64,7 +64,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div style={{ padding: "0 16px", borderTop: "1px solid rgba(0,0,0,0.06)", paddingTop: 12 }}>
           <SignOutButton />
         </div>
-      </aside>
+      </aside>}
 
       {/* Main content */}
       <main style={{ flex: 1, overflowY: "auto", background: "#fafaf8" }}>

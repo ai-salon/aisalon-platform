@@ -181,6 +181,66 @@ function CopyBox({ content }: { content: string }) {
   );
 }
 
+function MarkdownCopyBox({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div style={{ position: "relative", marginTop: 10 }}>
+      <div
+        style={{
+          background: "#f8f6ec",
+          border: "1px solid #ede9d8",
+          borderRadius: 8,
+          padding: "14px 16px",
+          paddingRight: 80,
+          fontSize: 12,
+          lineHeight: 1.7,
+          color: "#333",
+        }}
+      >
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            p: ({ children }) => <p style={{ margin: "0 0 8px" }}>{children}</p>,
+            a: ({ href, children }) => (
+              <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2", fontWeight: 600 }}>
+                {children}
+              </a>
+            ),
+            ul: ({ children }) => <ul style={{ margin: "4px 0 8px", paddingLeft: 18 }}>{children}</ul>,
+            li: ({ children }) => <li style={{ marginBottom: 2 }}>{children}</li>,
+            hr: () => <hr style={{ border: "none", borderTop: "1px solid #ede9d8", margin: "10px 0" }} />,
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(content);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        }}
+        style={{
+          position: "absolute",
+          top: 10,
+          right: 10,
+          padding: "4px 12px",
+          background: copied ? "#d2b356" : "#fff",
+          border: "1px solid #d2b356",
+          borderRadius: 6,
+          fontSize: 11,
+          fontWeight: 700,
+          color: copied ? "#fff" : "#d2b356",
+          cursor: "pointer",
+          transition: "all 0.15s",
+        }}
+      >
+        {copied ? "Copied!" : "Copy"}
+      </button>
+    </div>
+  );
+}
+
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <p
@@ -755,6 +815,371 @@ function ChapterLeadGuide() {
           </p>
         </div>
       </Accordion>
+    </div>
+  );
+}
+
+// ─── Event Creator ────────────────────────────────────────────────────────────
+
+function EventCreator({
+  chapterName,
+  chapterCode,
+}: {
+  chapterName?: string;
+  chapterCode?: string;
+}) {
+  const [theme, setTheme] = useState("");
+  const [format, setFormat] = useState<"general" | "expert">("general");
+  const [generated, setGenerated] = useState(false);
+
+  const city = chapterName || "";
+  const lumaTag = chapterCode || "";
+
+  const eventTitle = theme
+    ? `Ai Salon${city ? ` ${city}` : ""}: ${theme}`
+    : "";
+
+  const expertNote =
+    format === "expert"
+      ? `\n\nThis is part of our Expert Series — a recurring monthly conversation on ${theme || "[THEME]"} with professionals who work closely with AI. We meet regularly to explore how this theme evolves over time.`
+      : "";
+
+  const eventDescription = `Join us for an intimate Ai Salon conversation on "${theme || "[THEME]"}".${expertNote}
+
+[FILL IN: 2–3 sentences describing what makes this theme timely or interesting. What tension or question is at the heart of it? Why should someone show up?]
+
+We'll explore questions like:
+• [FILL IN: A specific question about this theme]
+• [FILL IN: Another angle — personal, societal, or philosophical]
+• [FILL IN: An open-ended question that invites diverse perspectives]
+
+---
+🔒 Approval required · Location shared with approved guests
+📍 Address revealed 24–48 hours before the event
+⏱️ 2–3 hours
+
+---
+[The Ai Salon](https://aisalon.xyz/) is a global community founded in San Francisco focused on intimate, small-sized group discussions on the sociological, economic, cultural, and philosophical impacts and meaning of AI developments. We host small group discussions, all of which you can find on [our calendar](https://lu.ma/ai-salon). You can find summaries of our [previous conversations on our substack](https://aisalon.substack.com/).`;
+
+  const regQuestions = [
+    `What topics would you most want to explore in the context of "${theme || "[THEME]"}"?`,
+    "What is your personal or professional relationship with AI?",
+    "LinkedIn URL",
+  ];
+
+  const promotionChannels = [
+    {
+      emoji: "🗓️",
+      label: "Luma — Global Ai Salon Calendar",
+      desc: "Creates directly on the Ai Salon calendar. Add contact@aisalon.xyz as co-host once created.",
+      link: "https://luma.com/create?calendar=cal-XHZLGpY8HDOAYm3",
+      linkLabel: "Create event on Ai Salon calendar →",
+      primary: true,
+    },
+    ...(lumaTag
+      ? [
+          {
+            emoji: "📍",
+            label: `Luma — ${city || lumaTag} Local Feed`,
+            desc: `Submit your event to appear in the local Luma aggregator for ${city || lumaTag}`,
+            link: `https://lu.ma/${lumaTag}`,
+            linkLabel: `Browse lu.ma/${lumaTag} →`,
+          },
+        ]
+      : []),
+    {
+      emoji: "💼",
+      label: "LinkedIn",
+      desc: "Post about the event and tag @The Ai Salon. Share in AI-focused groups and your network.",
+      link: "https://www.linkedin.com/company/92632727/",
+      linkLabel: "Ai Salon LinkedIn →",
+    },
+    {
+      emoji: "𝕏",
+      label: "X / Twitter",
+      desc: "Post and tag @TheAISalonSF. Use hashtags: #AiSalon #AI #[YourCity]",
+      link: "https://x.com/TheAISalonSF",
+      linkLabel: "@TheAISalonSF →",
+    },
+    {
+      emoji: "💬",
+      label: "WhatsApp — Ai Salon Hosts",
+      desc: "Share your event link in the Ai Salon Hosts: Global WhatsApp group for cross-chapter visibility",
+      link: "https://chat.whatsapp.com/GhNRrDFcZnIBPFFIjdT3gz",
+      linkLabel: "Community WhatsApp →",
+    },
+    {
+      emoji: "📰",
+      label: "Local AI & Tech Newsletters",
+      desc: "Reach out to city-specific newsletters, Substack writers, or community managers covering AI events in your area",
+      link: null,
+      linkLabel: null,
+    },
+    {
+      emoji: "🤝",
+      label: "Meetup.com & Local Groups",
+      desc: "Post in AI meetup groups, university AI clubs, or professional communities in your city",
+      link: "https://www.meetup.com/find/?keywords=artificial+intelligence",
+      linkLabel: "Find AI groups →",
+    },
+  ];
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
+          🗓️ Event Creator
+        </h2>
+        <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+          Generate ready-to-use event templates for Luma, then find out where to promote.
+        </p>
+      </div>
+
+      {/* Step 1: Inputs */}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #ede9d8",
+          borderRadius: 12,
+          padding: "20px 22px",
+          marginBottom: 20,
+        }}
+      >
+        <SectionLabel>Step 1 — Event Details</SectionLabel>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#444", marginBottom: 5 }}>
+              Theme / Topic *
+            </label>
+            <input
+              type="text"
+              value={theme}
+              onChange={(e) => { setTheme(e.target.value); setGenerated(false); }}
+              placeholder="e.g. AI & Relationships, Future of Work, Creativity..."
+              style={{
+                width: "100%",
+                padding: "9px 12px",
+                border: "1px solid #ddd",
+                borderRadius: 7,
+                fontSize: 13,
+                color: "#111",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#444", marginBottom: 5 }}>
+              Format
+            </label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {(["general", "expert"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => { setFormat(f); setGenerated(false); }}
+                  style={{
+                    flex: 1,
+                    padding: "9px 12px",
+                    border: `1.5px solid ${format === f ? "#56a1d2" : "#ddd"}`,
+                    borderRadius: 7,
+                    background: format === f ? "#eff6ff" : "#fff",
+                    color: format === f ? "#1d4ed8" : "#555",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {f === "general" ? "General Salon" : "Expert Series"}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: 11, color: "#999", margin: "5px 0 0" }}>
+              {format === "general"
+                ? "Broad theme, diverse attendees — AI Enthused"
+                : "Deep expertise, recurring series — AI Empowered"}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => { if (theme.trim()) setGenerated(true); }}
+          disabled={!theme.trim()}
+          style={{
+            padding: "10px 24px",
+            background: theme.trim() ? "#56a1d2" : "#ccc",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: theme.trim() ? "pointer" : "not-allowed",
+            transition: "background 0.15s",
+          }}
+        >
+          Generate Templates →
+        </button>
+      </div>
+
+      {/* Step 2: Generated templates */}
+      {generated && (
+        <div
+          style={{
+            background: "#fff",
+            border: "1px solid #ede9d8",
+            borderRadius: 12,
+            padding: "20px 22px",
+            marginBottom: 20,
+          }}
+        >
+          <SectionLabel>Step 2 — Copy Your Templates</SectionLabel>
+
+          <div style={{ marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#111", margin: "0 0 4px" }}>
+              Event Title
+            </p>
+            <CopyBox content={eventTitle} />
+          </div>
+
+          <div style={{ marginBottom: 18 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#111", margin: "0 0 4px" }}>
+              Event Description
+            </p>
+            <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>
+              Paste into Luma, then replace all <strong>[FILL IN]</strong> sections before publishing.
+            </p>
+            <MarkdownCopyBox content={eventDescription} />
+          </div>
+
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "#111", margin: "0 0 6px" }}>
+              Registration Questions
+            </p>
+            <p style={{ fontSize: 11, color: "#999", margin: "0 0 8px" }}>
+              Add these in Luma under &ldquo;Registration&rdquo; → &ldquo;Questions&rdquo;. Curate for enthusiasm, knowledge, and diversity.
+            </p>
+            {regQuestions.map((q, i) => (
+              <div key={i} style={{ marginBottom: 6 }}>
+                <CopyBox content={q} />
+              </div>
+            ))}
+            <p style={{ fontSize: 11, color: "#696969", marginTop: 8, lineHeight: 1.5 }}>
+              Typical acceptance rate ~50% — accept 20–30 guests if you want 15 attendees.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Create + Promote */}
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #ede9d8",
+          borderRadius: 12,
+          padding: "20px 22px",
+        }}
+      >
+        <SectionLabel>Step 3 — Create &amp; Promote</SectionLabel>
+
+        {/* Luma CTA */}
+        <a
+          href="https://luma.com/create?calendar=cal-XHZLGpY8HDOAYm3"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "14px 16px",
+            background: "linear-gradient(135deg, #56a1d2 0%, #3d7fb8 100%)",
+            borderRadius: 10,
+            textDecoration: "none",
+            marginBottom: 20,
+            color: "#fff",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>🗓️</span>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, lineHeight: 1.2 }}>Create Event on Luma</div>
+              <div style={{ fontSize: 11, opacity: 0.85, marginTop: 2 }}>
+                Use your generated templates above · Add contact@aisalon.xyz as co-host
+              </div>
+            </div>
+          </div>
+          <span style={{ fontSize: 18, fontWeight: 700 }}>→</span>
+        </a>
+
+        {/* Luma settings reminder */}
+        <div
+          style={{
+            padding: "12px 14px",
+            background: "#fdf9f0",
+            border: "1px solid #ede9d8",
+            borderRadius: 8,
+            marginBottom: 20,
+          }}
+        >
+          <p style={{ fontSize: 12, fontWeight: 700, color: "#d2b356", margin: "0 0 6px" }}>
+            ✅ Luma settings checklist
+          </p>
+          <ul style={{ margin: 0, paddingLeft: 16, fontSize: 12, color: "#555", lineHeight: 1.8 }}>
+            <li>Set visibility to <strong>Private</strong> first, go public 2–3 weeks out</li>
+            <li>Enable <strong>Approval Required</strong> and hide address until approved</li>
+            <li>Add <strong>contact@aisalon.xyz</strong> as a co-host</li>
+            <li>Add the 3 registration questions above</li>
+            {lumaTag && (
+              <li>
+                Tag with <strong>{lumaTag}</strong> so it appears on the{" "}
+                <a
+                  href={`https://lu.ma/Ai-salon?tag=${lumaTag}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#56a1d2" }}
+                >
+                  Ai Salon {city} calendar
+                </a>
+              </li>
+            )}
+          </ul>
+        </div>
+
+        {/* Promotion channels */}
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#444", margin: "0 0 12px" }}>
+          Where to promote your event
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {promotionChannels.map(({ emoji, label, desc, link, linkLabel, primary }) => (
+            <div
+              key={label}
+              style={{
+                display: "flex",
+                gap: 12,
+                padding: "12px 14px",
+                background: primary ? "#eff6ff" : "#fafaf8",
+                border: `1px solid ${primary ? "#bfdbfe" : "#ede9d8"}`,
+                borderRadius: 8,
+                alignItems: "flex-start",
+              }}
+            >
+              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.2 }}>{emoji}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#111", marginBottom: 2 }}>{label}</div>
+                <div style={{ fontSize: 12, color: "#696969", lineHeight: 1.5, marginBottom: link ? 6 : 0 }}>{desc}</div>
+                {link && linkLabel && (
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: "#56a1d2", fontWeight: 700, textDecoration: "none" }}
+                  >
+                    {linkLabel}
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1656,8 +2081,8 @@ export default function WelcomeDashboard({
   const isSuperadmin = userRole === "superadmin";
 
   // Tab state per role
-  const [hostTab, setHostTab] = useState<"hosting" | "team">("hosting");
-  const [leadTab, setLeadTab] = useState<"guide" | "resources">("guide");
+  const [hostTab, setHostTab] = useState<"hosting" | "event-creator" | "team">("hosting");
+  const [leadTab, setLeadTab] = useState<"guide" | "event-creator" | "resources">("guide");
 
   return (
     <div style={{ maxWidth: 1140, margin: "0 auto", padding: "32px 28px" }}>
@@ -1734,6 +2159,7 @@ export default function WelcomeDashboard({
               <TabBar
                 tabs={[
                   { id: "hosting" as const, label: "🏡 Hosting Guide" },
+                  { id: "event-creator" as const, label: "🗓️ Event Creator" },
                   { id: "team" as const, label: "👥 Chapter Team" },
                 ]}
                 active={hostTab}
@@ -1752,6 +2178,9 @@ export default function WelcomeDashboard({
                   <HostingGuide />
                 </div>
               )}
+              {hostTab === "event-creator" && (
+                <EventCreator chapterName={userChapter?.name} chapterCode={userChapter?.code} />
+              )}
               {hostTab === "team" && userChapter && (
                 <ChapterTeamTab chapterCode={userChapter.code} />
               )}
@@ -1764,6 +2193,7 @@ export default function WelcomeDashboard({
               <TabBar
                 tabs={[
                   { id: "guide" as const, label: "📖 Chapter Guide" },
+                  { id: "event-creator" as const, label: "🗓️ Event Creator" },
                   { id: "resources" as const, label: "📚 Resources" },
                 ]}
                 active={leadTab}
@@ -1775,6 +2205,9 @@ export default function WelcomeDashboard({
                   chapterName={userChapter.name}
                   canEdit
                 />
+              )}
+              {leadTab === "event-creator" && (
+                <EventCreator chapterName={userChapter.name} chapterCode={userChapter.code} />
               )}
               {leadTab === "resources" && <ResourcesTab isChapterLead />}
 
@@ -1790,6 +2223,7 @@ export default function WelcomeDashboard({
               <TabBar
                 tabs={[
                   { id: "guide" as const, label: "📖 Chapter Guide" },
+                  { id: "event-creator" as const, label: "🗓️ Event Creator" },
                   { id: "resources" as const, label: "📚 Resources" },
                 ]}
                 active={leadTab}
@@ -1797,6 +2231,9 @@ export default function WelcomeDashboard({
               />
               {leadTab === "guide" && (
                 <SuperadminChapterGuide allChapters={allChapters} />
+              )}
+              {leadTab === "event-creator" && (
+                <EventCreator />
               )}
               {leadTab === "resources" && <ResourcesTab isChapterLead />}
 

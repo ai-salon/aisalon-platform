@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
-export default function MobileNav() {
+type ChapterNav = { code: string; name: string };
+
+export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -74,43 +76,13 @@ export default function MobileNav() {
               <NavLink href="https://aisalon.substack.com" icon="fa-newspaper-o" external>Insights</NavLink>
             </NavSection>
 
-            <div style={{ borderBottom: "1px solid rgba(0,0,0,0.08)", paddingBottom: 16, marginBottom: 16 }}>
-              <Link
-                href="/#chapters"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 0",
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "#111",
-                  textDecoration: "none",
-                }}
-              >
-                <i className="fa fa-map-marker" style={{ color: "#56a1d2", width: 20, textAlign: "center" }} aria-hidden="true" />
-                Chapters
-              </Link>
-            </div>
+            <NavSection label="Chapters">
+              {chapters.map((ch) => (
+                <NavLink key={ch.code} href={`/chapters/${ch.code}`} icon="fa-map-marker">{ch.name}</NavLink>
+              ))}
+              <NavLink href="/host" icon="fa-plus-circle">Start a Chapter</NavLink>
+            </NavSection>
 
-            <div style={{ borderBottom: "1px solid rgba(0,0,0,0.08)", paddingBottom: 16, marginBottom: 16 }}>
-              <Link
-                href="/host"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 0",
-                  fontSize: 16,
-                  fontWeight: 700,
-                  color: "#111",
-                  textDecoration: "none",
-                }}
-              >
-                <i className="fa fa-plus-circle" style={{ color: "#d2b356", width: 20, textAlign: "center" }} aria-hidden="true" />
-                Host a Chapter
-              </Link>
-            </div>
           </div>
 
           {/* CTA buttons at bottom */}
