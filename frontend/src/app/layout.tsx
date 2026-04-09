@@ -137,6 +137,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
                   <li><Link href="/#events">Events</Link></li>
                   <li><Link href="/insights">Insights</Link></li>
+                  <li><Link href="/volunteer">Volunteer</Link></li>
                 </ul>
               </li>
               <li className="dropdown">

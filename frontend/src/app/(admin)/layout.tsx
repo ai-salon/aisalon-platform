@@ -17,6 +17,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ...(!isHost ? [{ href: "/chapters", label: "Chapters", icon: "fa-map-marker" }] : []),
     ...(!isHost ? [{ href: "/team", label: "Team", icon: "fa-users" }] : []),
     ...(isSuperadmin ? [{ href: "/users", label: "Users", icon: "fa-user-circle-o" }] : []),
+    ...(!isHost ? [{ href: "/volunteer-roles", label: "Volunteer Roles", icon: "fa-hand-paper-o" }] : []),
+    ...(!isHost ? [{ href: "/volunteer-applications", label: "Applications", icon: "fa-envelope-open-o" }] : []),
     ...(!isHost ? [{ href: "/hosting-interest", label: "Host Interest", icon: "fa-star" }] : []),
     { href: "/settings", label: "Settings", icon: "fa-cog" },
   ];

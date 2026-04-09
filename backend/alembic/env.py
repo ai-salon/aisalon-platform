@@ -17,6 +17,7 @@ import app.models.invite  # noqa: F401
 import app.models.system_setting  # noqa: F401
 import app.models.social_post  # noqa: F401
 import app.models.login_event  # noqa: F401
+import app.models.volunteer  # noqa: F401
 
 from app.models.base import Base
 from app.core.config import settings

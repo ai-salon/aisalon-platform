@@ -74,6 +74,7 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
             <NavSection label="Our Work">
               <NavLink href="https://lu.ma/Ai-salon" icon="fa-calendar" external>Events</NavLink>
               <NavLink href="https://aisalon.substack.com" icon="fa-newspaper-o" external>Insights</NavLink>
+              <NavLink href="/volunteer" icon="fa-hand-paper-o">Volunteer</NavLink>
             </NavSection>
 
             <NavSection label="Chapters">

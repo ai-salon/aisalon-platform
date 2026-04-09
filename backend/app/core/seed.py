@@ -1,4 +1,4 @@
-"""Startup seed: superadmin + all chapters + team members."""
+"""Startup seed: superadmin + all chapters + team members + volunteer roles."""
 import logging
 
 from sqlalchemy import select
@@ -9,6 +9,7 @@ from app.core.security import hash_password
 from app.models.user import User, UserRole
 from app.models.chapter import Chapter
 from app.models.team_member import TeamMember
+from app.models.volunteer import VolunteerRole
 
 logger = logging.getLogger(__name__)
 
@@ -369,4 +370,147 @@ async def seed_chapter_leads() -> None:
             ))
             logger.info("Seeded chapter lead: %s", code)
 
+        await db.commit()
+
+
+_VOLUNTEER_ROLES = [
+    dict(
+        title="Chapter Lead",
+        slug="chapter-lead",
+        description=(
+            "Chapter Leads are the heart of the Ai Salon's global presence. You'll build "
+            "and nurture a local AI community, organizing monthly salons that bring together "
+            "diverse voices to explore AI's impact on society.\n\n"
+            "**Why this role matters:** Each chapter is a local hub where people from all "
+            "backgrounds come together to understand AI — not just technologists, but "
+            "policymakers, artists, educators, and curious citizens. As a Chapter Lead, "
+            "you shape these conversations and help your city become part of a global "
+            "movement for thoughtful AI discourse."
+        ),
+        requirements=(
+            "- Passion for AI and its societal implications\n"
+            "- Experience organizing events or building communities\n"
+            "- Strong communication and facilitation skills\n"
+            "- Ability to recruit and coordinate local hosts\n"
+            "- Based in a city without an existing Ai Salon chapter"
+        ),
+        time_commitment="6-10 hours/month",
+        display_order=0,
+    ),
+    dict(
+        title="Salon Host",
+        slug="salon-host",
+        description=(
+            "Salon Hosts facilitate individual salon discussions, creating a welcoming space "
+            "where participants feel comfortable sharing ideas and challenging assumptions "
+            "about AI.\n\n"
+            "**Why this role matters:** The quality of a salon depends on its facilitation. "
+            "Great hosts draw out quiet voices, keep discussions productive, and ensure every "
+            "participant leaves having learned something new. You're the person who makes the "
+            "magic happen in the room."
+        ),
+        requirements=(
+            "- Comfort facilitating group discussions (8-30 people)\n"
+            "- Interest in AI topics across technical and social dimensions\n"
+            "- Good listening skills and ability to synthesize ideas\n"
+            "- Located in a city with an existing Ai Salon chapter"
+        ),
+        time_commitment="4-6 hours/month",
+        display_order=1,
+    ),
+    dict(
+        title="Content Writer",
+        slug="content-writer",
+        description=(
+            "Content Writers transform salon discussions into compelling articles that extend "
+            "the conversation beyond the room. Using our AI-assisted pipeline, you'll craft "
+            "narratives that capture key insights while making complex AI topics accessible.\n\n"
+            "**Why this role matters:** Most salon conversations are ephemeral — brilliant "
+            "insights shared in the room vanish when people go home. Our writers preserve and "
+            "amplify these ideas, creating a growing library of community-generated thought "
+            "leadership on AI."
+        ),
+        requirements=(
+            "- Strong writing skills with ability to distill complex topics\n"
+            "- Interest in AI policy, ethics, technology, or culture\n"
+            "- Comfort working with AI-assisted writing tools\n"
+            "- Ability to meet publishing deadlines"
+        ),
+        time_commitment="3-5 hours/month",
+        display_order=2,
+    ),
+    dict(
+        title="Social Media Manager",
+        slug="social-media-manager",
+        description=(
+            "Social Media Managers amplify the Ai Salon's voice across platforms, sharing "
+            "salon insights, promoting events, and building our online community.\n\n"
+            "**Why this role matters:** The conversations happening in our salons deserve "
+            "a wider audience. You'll help bridge the gap between in-person discussions and "
+            "the broader public discourse on AI, ensuring our community's insights reach "
+            "the people who need to hear them."
+        ),
+        requirements=(
+            "- Experience managing social media accounts (Twitter/X, LinkedIn, Substack)\n"
+            "- Understanding of AI topics and current discourse\n"
+            "- Strong copywriting skills for short-form content\n"
+            "- Familiarity with social media analytics"
+        ),
+        time_commitment="3-5 hours/week",
+        display_order=3,
+    ),
+    dict(
+        title="Community Manager",
+        slug="community-manager",
+        description=(
+            "Community Managers nurture our online spaces, ensuring members feel welcomed, "
+            "connected, and engaged between salon events.\n\n"
+            "**Why this role matters:** A salon is more than an event — it's a community. "
+            "Between monthly gatherings, our Discord and online channels keep the conversation "
+            "alive. You'll foster the connections that turn attendees into a true community of "
+            "practice around responsible AI."
+        ),
+        requirements=(
+            "- Experience moderating online communities (Discord, Slack, forums)\n"
+            "- Strong interpersonal skills and conflict resolution ability\n"
+            "- Passion for building inclusive, welcoming spaces\n"
+            "- Availability to check in on community channels regularly"
+        ),
+        time_commitment="4-6 hours/week",
+        display_order=4,
+    ),
+    dict(
+        title="Event Coordinator",
+        slug="event-coordinator",
+        description=(
+            "Event Coordinators plan and execute special events — from cross-chapter symposia "
+            "to partnerships with other organizations — that expand the Ai Salon's reach "
+            "and impact.\n\n"
+            "**Why this role matters:** Beyond regular monthly salons, special events create "
+            "landmark moments for our community. Whether it's a multi-city AI symposium or "
+            "a collaboration with a university, these events push the boundaries of what our "
+            "community can accomplish together."
+        ),
+        requirements=(
+            "- Event planning experience (virtual and/or in-person)\n"
+            "- Strong organizational and project management skills\n"
+            "- Ability to coordinate across time zones and teams\n"
+            "- Creative thinking for event formats and programming"
+        ),
+        time_commitment="5-10 hours/month (varies by event cycle)",
+        display_order=5,
+    ),
+]
+
+
+async def seed_volunteer_roles() -> None:
+    """Create initial volunteer roles (idempotent)."""
+    async with AsyncSessionLocal() as db:
+        for role_data in _VOLUNTEER_ROLES:
+            result = await db.execute(
+                select(VolunteerRole).where(VolunteerRole.slug == role_data["slug"])
+            )
+            if not result.scalar_one_or_none():
+                db.add(VolunteerRole(**role_data))
+                logger.info("Seeded volunteer role: %s", role_data["title"])
         await db.commit()

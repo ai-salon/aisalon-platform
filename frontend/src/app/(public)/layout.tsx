@@ -40,6 +40,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 ["Events", "https://lu.ma/Ai-salon"],
                 ["Insights", "/insights"],
                 ["Host a Chapter", "/host"],
+                ["Volunteer", "/volunteer"],
                 ["Newsletter", "https://aisalon.substack.com"],
                 ["Member Sign In", "/login"],
               ].map(([label, href]) => (

@@ -14,8 +14,9 @@ from app.api.auth import router as auth_router
 from app.api.admin import router as admin_router
 from app.api.articles import router as articles_router
 from app.api.hosting_interest import router as hosting_interest_router
+from app.api.volunteer import router as volunteer_router
 from app.core.config import settings
-from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads
+from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles
 
 # Ensure models are imported so SQLAlchemy can discover them
 import app.models.chapter  # noqa: F401
@@ -28,6 +29,7 @@ import app.models.hosting_interest  # noqa: F401
 import app.models.invite  # noqa: F401
 import app.models.system_setting  # noqa: F401
 import app.models.social_post  # noqa: F401
+import app.models.volunteer  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +39,7 @@ async def lifespan(app: FastAPI):
     await seed_superadmin()
     await seed_chapters()
     await seed_chapter_leads()
+    await seed_volunteer_roles()
     yield
 
 
@@ -64,6 +67,7 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(articles_router)
 app.include_router(hosting_interest_router)
+app.include_router(volunteer_router)
 
 upload_dir = Path(settings.UPLOAD_DIR)
 upload_dir.mkdir(parents=True, exist_ok=True)
