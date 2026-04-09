@@ -21,7 +21,7 @@ export default function VolunteerPage() {
 
   useEffect(() => {
     fetch(`${API_URL}/volunteer-roles`)
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json() : []))
       .then(setRoles)
       .catch(() => setRoles([]))
       .finally(() => setLoading(false));
