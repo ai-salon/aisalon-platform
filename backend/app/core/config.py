@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "changeme123"
     BASE_PASSWORD: str = "impact"
 
+    SENTRY_DSN: str = ""
+    LOG_LEVEL: str = "INFO"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 

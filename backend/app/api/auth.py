@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 
 from app.core.database import get_db
+from app.core.logging import get_logger
 from app.core.security import verify_password, create_access_token, hash_password
 from app.core.deps import get_current_user
 from app.models.user import User
@@ -14,6 +15,8 @@ from app.models.login_event import UserLoginEvent
 from app.schemas.auth import (
     LoginRequest, RegisterRequest, TokenResponse, UserOut, InviteInfoResponse,
 )
+
+logger = get_logger(__name__)
 
 router = APIRouter(tags=["auth"])
 
@@ -28,6 +31,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
 
     if not user or not verify_password(body.password, user.hashed_password) or not user.is_active:
+        logger.warning("login_failed", identifier=body.identifier)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -39,6 +43,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     db.add(UserLoginEvent(user_id=user.id, logged_in_at=now))
     await db.commit()
 
+    logger.info("login_success", user_id=user.id, role=user.role.value)
     token = create_access_token({"sub": user.id, "email": user.email, "role": user.role.value})
     return TokenResponse(access_token=token)
 
@@ -95,6 +100,12 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(user)
 
+    logger.info(
+        "user_registered",
+        user_id=user.id,
+        role=invite.role,
+        chapter_id=str(invite.chapter_id),
+    )
     token = create_access_token({"sub": user.id, "email": user.email, "role": user.role})
     return TokenResponse(access_token=token)
 

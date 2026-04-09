@@ -1,5 +1,4 @@
 """Admin API endpoints: api-keys, jobs, articles, chapters, team."""
-import logging
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +8,7 @@ from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
 from app.core.config import settings
 from app.core.encryption import encrypt_key, decrypt_key
+from app.core.logging import get_logger
 from app.models.user import User, UserRole
 from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.models.job import Job, JobStatus
@@ -34,7 +34,7 @@ from app.schemas.admin import (
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -64,16 +64,18 @@ def _chapter_filter(user: User):
 
 async def run_job(job_id: str) -> None:
     """Background task: transcribe audio → generate article → update job status."""
+    job_log = logger.bind(job_id=job_id)
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(Job).where(Job.id == job_id))
         job = result.scalar_one_or_none()
         if not job:
-            logger.error("run_job: job %s not found", job_id)
+            job_log.error("job_not_found")
             return
 
         job.status = JobStatus.processing
         job.started_at = datetime.now(timezone.utc)
         await db.commit()
+        job_log.info("job_processing", chapter_id=job.chapter_id)
 
         async def set_step(label: str) -> None:
             job.step = label
@@ -100,8 +102,9 @@ async def run_job(job_id: str) -> None:
             db.add(article)
             job.status = JobStatus.completed
             job.completed_at = datetime.now(timezone.utc)
+            job_log.info("job_completed", title=article_data["title"])
         except Exception as exc:
-            logger.exception("run_job %s failed", job_id)
+            job_log.exception("job_failed", error=str(exc))
             job.status = JobStatus.failed
             job.error_message = str(exc)
 
@@ -285,6 +288,12 @@ async def create_job(
     db.add(job)
     await db.commit()
     await db.refresh(job)
+    logger.info(
+        "job_created",
+        job_id=job.id,
+        chapter_id=chapter_id,
+        filename=file.filename,
+    )
     background_tasks.add_task(run_job, job.id)
     return job
 

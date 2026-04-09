@@ -21,6 +21,8 @@ pyyaml = "^6.0"
 python-multipart = "^0.0.20"
 aiofiles = "^24.1.0"
 httpx = "^0.28.0"
+sentry-sdk = {extras = ["fastapi"], version = "^2.57.0"}
+structlog = "^25.5.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.0"

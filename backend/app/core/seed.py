@@ -1,17 +1,16 @@
 """Startup seed: superadmin + all chapters + team members + volunteer roles."""
-import logging
-
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.core.security import hash_password
 from app.models.user import User, UserRole
 from app.models.chapter import Chapter
 from app.models.team_member import TeamMember
 from app.models.volunteer import VolunteerRole
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _P = "/images/people"
 

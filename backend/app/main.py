@@ -1,7 +1,10 @@
-import logging
+import time
+import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import sentry_sdk
+import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
@@ -16,6 +19,7 @@ from app.api.articles import router as articles_router
 from app.api.hosting_interest import router as hosting_interest_router
 from app.api.volunteer import router as volunteer_router
 from app.core.config import settings
+from app.core.logging import setup_logging, get_logger
 from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles
 
 # Ensure models are imported so SQLAlchemy can discover them
@@ -31,7 +35,18 @@ import app.models.system_setting  # noqa: F401
 import app.models.social_post  # noqa: F401
 import app.models.volunteer  # noqa: F401
 
-logger = logging.getLogger(__name__)
+# Initialize structured logging
+setup_logging()
+logger = get_logger(__name__)
+
+# Initialize Sentry (no-op if DSN is empty)
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        environment=settings.ENVIRONMENT,
+        traces_sample_rate=0.2,
+        send_default_pii=False,
+    )
 
 
 @asynccontextmanager
@@ -54,9 +69,36 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def request_logging_middleware(request: Request, call_next):
+    request_id = str(uuid.uuid4())[:8]
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(request_id=request_id)
+
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = round((time.perf_counter() - start) * 1000)
+
+    if request.url.path != "/health":
+        logger.info(
+            "request",
+            method=request.method,
+            path=request.url.path,
+            status=response.status_code,
+            duration_ms=duration_ms,
+        )
+
+    return response
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> PlainTextResponse:
-    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    logger.exception(
+        "unhandled_error",
+        method=request.method,
+        path=request.url.path,
+        error=str(exc),
+    )
     return PlainTextResponse("Internal Server Error", status_code=500)
 
 

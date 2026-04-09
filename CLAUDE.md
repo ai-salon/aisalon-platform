@@ -182,10 +182,13 @@ Tailwind v4 tokens (use these, not hex values directly):
 - `UPLOAD_DIR` — file upload directory (default: `uploads`)
 - `ADMIN_PASSWORD` — seeded superadmin password (default: `salonconvo`)
 - `BASE_PASSWORD` — base for seeded chapter lead passwords (default: `impact`)
+- `SENTRY_DSN` — Sentry project DSN for error tracking (optional, no-op when empty)
+- `LOG_LEVEL` — structlog level: DEBUG, INFO, WARNING, ERROR (default: `INFO`)
 
 **Frontend** (`.env.local`):
 - `NEXT_PUBLIC_API_URL` — backend API URL (default: `http://localhost:8000`)
 - `AUTH_SECRET` — NextAuth session encryption secret
+- `NEXT_PUBLIC_SENTRY_DSN` — Sentry project DSN for frontend error tracking (optional)
 
 ## Testing
 
@@ -194,6 +197,15 @@ Backend tests use an in-memory SQLite DB (never hits `dev.db`). Key fixtures in 
 - `superadmin`, `admin_token`, `admin_headers` — authenticated superadmin
 - `sf_chapter`, `chapter_lead`, `lead_token`, `lead_headers` — scoped chapter lead
 - `host_user`, `host_token`, `host_headers` — host user for a chapter
+
+## Monitoring & Logging
+
+See `docs/monitoring.md` for full details.
+
+- **Error tracking:** Sentry (free tier) — both backend and frontend. Configured via `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` env vars. No-op when DSN is not set.
+- **Structured logging:** structlog on backend — JSON output in production, console in dev. Use `from app.core.logging import get_logger` for new modules.
+- **Request logging:** Middleware in `main.py` logs method, path, status, duration for every request (except `/health`).
+- **Sentry API:** Query errors programmatically — see `docs/monitoring.md` for curl examples.
 
 ## Deployment
 
