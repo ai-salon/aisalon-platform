@@ -11,8 +11,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Backend: http://localhost:8000
 - Frontend: http://localhost:3000
 
+## Branching Strategy
+
+- **`main`** — production branch, deployed to Railway. Must always be green.
+- **`develop`** — integration branch. All feature work merges here first.
+- **Feature branches** — branch off `develop` with descriptive names (e.g., `feature/add-events-api`, `fix/login-redirect`). Open PRs against `develop`.
+- When `develop` is stable and tested, merge to `main` for production deploy.
+
 ## Testing and TDD
-Using red-green testing pattern when developing
+
+Follow **red-green** testing:
+1. **Red** — Write a failing test that describes the desired behavior.
+2. **Green** — Write the minimum code to make the test pass.
+3. **Refactor** — Clean up while keeping tests green.
+
+Run tests before and after every change:
+- Backend: `cd backend && poetry run pytest -q`
+- Frontend: `cd frontend && npm run build`
 
 ## Backend (FastAPI, Python 3.11, Poetry)
 
