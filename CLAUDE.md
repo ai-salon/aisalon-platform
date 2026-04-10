@@ -18,6 +18,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Feature branches** — branch off `develop` with descriptive names (e.g., `feature/add-events-api`, `fix/login-redirect`). Open PRs against `develop`.
 - When `develop` is stable and tested, merge to `main` for production deploy.
 
+### Merge and Push After Completing Work
+
+After finishing a significant unit of work (feature, bugfix, or set of related changes):
+
+1. **Run all tests** — backend (`poetry run pytest -q`) and frontend (`npm run build`) must pass.
+2. **Merge to `develop`** — switch to `develop`, merge the feature branch, and resolve any conflicts.
+3. **Push `develop`** — `git push origin develop` so the remote stays current and CI runs.
+4. **Clean up** — delete the merged feature branch locally and remotely (`git branch -d <branch>`, `git push origin --delete <branch>`).
+
+Do not leave completed work sitting on unpushed feature branches. The `develop` branch should always reflect the latest integrated state of the project.
+
 ## Testing and TDD
 
 Follow **red-green** testing:
