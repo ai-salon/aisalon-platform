@@ -9,6 +9,7 @@ from app.models.user import User, UserRole
 from app.models.chapter import Chapter
 from app.models.team_member import TeamMember
 from app.models.volunteer import VolunteerRole
+from app.models.topic import Topic
 
 logger = get_logger(__name__)
 
@@ -539,4 +540,111 @@ async def seed_volunteer_roles() -> None:
             if not result.scalar_one_or_none():
                 db.add(VolunteerRole(**role_data))
                 logger.info("Seeded volunteer role: %s", role_data["title"])
+        await db.commit()
+
+
+_TOPICS = [
+    dict(
+        title="AI and the Future of Work",
+        description=(
+            "How will AI transform employment, skills, and the meaning of work itself? "
+            "Explore automation, augmentation, and the evolving relationship between "
+            "humans and machines in the workplace."
+        ),
+        opening_question="In what ways is AI already changing how you work, and what shifts do you anticipate in the next five years?",
+        prompts=[
+            "Which jobs or industries do you think will be most transformed by AI?",
+            "How should education systems adapt to prepare people for an AI-augmented workforce?",
+            "What policies could help ensure the benefits of AI in the workplace are shared broadly?",
+        ],
+        display_order=0,
+    ),
+    dict(
+        title="AI Ethics and Governance",
+        description=(
+            "Who decides how AI systems should behave, and what frameworks should guide "
+            "those decisions? Discuss accountability, transparency, bias, and the role of "
+            "regulation in shaping responsible AI."
+        ),
+        opening_question="What ethical principle do you think is most often overlooked in AI development today?",
+        prompts=[
+            "Should AI systems be required to explain their decisions? In what contexts?",
+            "How do we balance innovation speed with the need for safety and fairness?",
+            "What role should governments play versus industry self-regulation?",
+        ],
+        display_order=1,
+    ),
+    dict(
+        title="AI in Creative Arts",
+        description=(
+            "AI is generating art, music, and writing. Explore what this means for "
+            "creativity, authorship, and the value we place on human expression in "
+            "an age of machine-generated content."
+        ),
+        opening_question="When an AI creates a painting or writes a poem, is it art? Why or why not?",
+        prompts=[
+            "How do you think AI tools will change the creative process for artists and writers?",
+            "Should AI-generated works be eligible for copyright protection?",
+            "What is lost — or gained — when machines participate in creative expression?",
+        ],
+        display_order=2,
+    ),
+    dict(
+        title="AI and Personal Privacy",
+        description=(
+            "AI systems collect and analyze vast amounts of personal data. Discuss the "
+            "tension between personalization and privacy, surveillance, and what digital "
+            "autonomy means in the AI era."
+        ),
+        opening_question="How comfortable are you with AI systems knowing your habits, preferences, and behaviors?",
+        prompts=[
+            "Where do you draw the line between helpful personalization and invasive surveillance?",
+            "How should companies handle the data used to train AI models?",
+            "What rights should individuals have over AI-generated insights about them?",
+        ],
+        display_order=3,
+    ),
+    dict(
+        title="AI and Education",
+        description=(
+            "From personalized tutoring to automated grading, AI is reshaping how we "
+            "learn and teach. Explore what this means for students, educators, and the "
+            "future of knowledge."
+        ),
+        opening_question="How should schools and universities integrate AI tools into learning?",
+        prompts=[
+            "Will AI tutors make education more equitable or widen existing gaps?",
+            "How do we teach critical thinking when AI can generate convincing answers to any question?",
+            "What skills become more important — not less — in an AI-powered world?",
+        ],
+        display_order=4,
+    ),
+    dict(
+        title="AI and Health",
+        description=(
+            "AI is diagnosing diseases, discovering drugs, and personalizing treatment. "
+            "Explore the promise and the perils of AI in healthcare — from bias in medical "
+            "AI to the future of the doctor-patient relationship."
+        ),
+        opening_question="Would you trust an AI to diagnose a medical condition? What would make you more or less comfortable?",
+        prompts=[
+            "How do we ensure AI health tools work equally well for all populations?",
+            "What role should AI play in mental health support?",
+            "How might AI change the relationship between patients and doctors?",
+        ],
+        display_order=5,
+    ),
+]
+
+
+async def seed_topics() -> None:
+    """Create initial conversation topics (idempotent)."""
+    async with AsyncSessionLocal() as db:
+        for topic_data in _TOPICS:
+            result = await db.execute(
+                select(Topic).where(Topic.title == topic_data["title"])
+            )
+            if not result.scalar_one_or_none():
+                db.add(Topic(**topic_data))
+                logger.info("Seeded topic: %s", topic_data["title"])
         await db.commit()

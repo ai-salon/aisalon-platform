@@ -9,11 +9,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.api.health import router as health_router
 from app.api.chapters import router as chapters_router
 from app.api.team import router as team_router
-from app.api.auth import router as auth_router
+from app.api.auth import router as auth_router, limiter
 from app.api.admin import router as admin_router
 from app.api.articles import router as articles_router
 from app.api.hosting_interest import router as hosting_interest_router
@@ -22,7 +24,7 @@ from app.api.topics import router as topics_router
 from app.api.community import router as community_router
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles
+from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles, seed_topics
 
 # Ensure models are imported so SQLAlchemy can discover them
 import app.models.chapter  # noqa: F401
@@ -59,10 +61,13 @@ async def lifespan(app: FastAPI):
     await seed_chapters()
     await seed_chapter_leads()
     await seed_volunteer_roles()
+    await seed_topics()
     yield
 
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
