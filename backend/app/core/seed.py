@@ -439,41 +439,45 @@ _VOLUNTEER_ROLES = [
         display_order=2,
     ),
     dict(
-        title="Social Media Manager",
-        slug="social-media-manager",
+        title="Marketing & Social Lead",
+        slug="marketing-social-lead",
         description=(
-            "Social Media Managers amplify the Ai Salon's voice across platforms, sharing "
-            "salon insights, promoting events, and building our online community.\n\n"
-            "**Why this role matters:** The conversations happening in our salons deserve "
-            "a wider audience. You'll help bridge the gap between in-person discussions and "
-            "the broader public discourse on AI, ensuring our community's insights reach "
-            "the people who need to hear them."
+            "Shape the public-facing voice of The Ai Salon across Substack, LinkedIn, and "
+            "Instagram/X. You'll own content strategy, social media management, and audience "
+            "growth — turning salon conversations into a broader cultural presence.\n\n"
+            "**Why this role matters:** The Ai Salon's ideas deserve to travel far beyond the "
+            "room. As Marketing & Social Lead you'll craft the narratives that introduce new "
+            "audiences to our community, build thought-leadership credibility, and drive "
+            "attendance growth through compelling content."
         ),
         requirements=(
-            "- Experience managing social media accounts (Twitter/X, LinkedIn, Substack)\n"
-            "- Understanding of AI topics and current discourse\n"
-            "- Strong copywriting skills for short-form content\n"
-            "- Familiarity with social media analytics"
+            "- Experience with content strategy and social media management\n"
+            "- Strong copywriting skills across long-form (Substack) and short-form (LinkedIn, X)\n"
+            "- Ability to build and execute a content calendar\n"
+            "- Comfort with growth experiments and analytics\n"
+            "- Interest in AI topics and current discourse"
         ),
-        time_commitment="3-5 hours/week",
+        time_commitment="5-8 hours/week",
         display_order=3,
     ),
     dict(
-        title="Community Manager",
-        slug="community-manager",
+        title="Community Lead",
+        slug="community-lead",
         description=(
-            "Community Managers nurture our online spaces, ensuring members feel welcomed, "
-            "connected, and engaged between salon events.\n\n"
+            "Cultivate belonging within the SF chapter while designing scalable systems for "
+            "other chapters. You'll deepen member connections, foster WhatsApp engagement, and "
+            "ensure attendees become active contributors to the community.\n\n"
             "**Why this role matters:** A salon is more than an event — it's a community. "
-            "Between monthly gatherings, our Discord and online channels keep the conversation "
-            "alive. You'll foster the connections that turn attendees into a true community of "
-            "practice around responsible AI."
+            "The Community Lead turns one-time attendees into invested members by creating "
+            "rituals, feedback loops, and connection points that keep people engaged between "
+            "events and across chapters."
         ),
         requirements=(
-            "- Experience moderating online communities (Discord, Slack, forums)\n"
-            "- Strong interpersonal skills and conflict resolution ability\n"
-            "- Passion for building inclusive, welcoming spaces\n"
-            "- Availability to check in on community channels regularly"
+            "- Experience building or managing communities (online or in-person)\n"
+            "- Strong interpersonal skills and ability to foster inclusive spaces\n"
+            "- Interest in designing scalable community playbooks\n"
+            "- Comfort facilitating feedback surveys and engagement experiments\n"
+            "- Passion for AI's societal impact"
         ),
         time_commitment="4-6 hours/week",
         display_order=4,
@@ -498,6 +502,29 @@ _VOLUNTEER_ROLES = [
         ),
         time_commitment="5-10 hours/month (varies by event cycle)",
         display_order=5,
+    ),
+    dict(
+        title="Insights Lead",
+        slug="insights-lead",
+        description=(
+            "Mine and organize insights from 2+ years of AI Salon events. You'll shape "
+            "transcripts and summaries into thematic reports, briefs, and thought leadership "
+            "— working toward an Annual AI Salon Index Report.\n\n"
+            "**Why this role matters:** The Ai Salon has accumulated a rich archive of "
+            "cross-city, cross-discipline conversations about AI. The Insights Lead turns "
+            "that raw material into structured knowledge products that inform our community, "
+            "attract new audiences, and establish the Ai Salon as a source of original "
+            "research on public AI discourse."
+        ),
+        requirements=(
+            "- Strong analytical and writing skills\n"
+            "- Experience synthesizing qualitative data into structured reports\n"
+            "- Interest in AI policy, ethics, technology, or culture\n"
+            "- Ability to identify cross-cutting themes across diverse discussions\n"
+            "- Comfort working with transcripts and AI-assisted analysis tools"
+        ),
+        time_commitment="4-6 hours/week",
+        display_order=6,
     ),
 ]
 
