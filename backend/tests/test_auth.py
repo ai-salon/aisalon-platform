@@ -132,13 +132,13 @@ class TestRegister:
             "invite_token": "regtoken",
             "username": "newhost",
             "email": "newhost@example.com",
-            "password": "securepass",
+            "password": "SecurePass123!",
         })
         assert r.status_code == 201
         assert "access_token" in r.json()
 
         # Verify can login with username
-        login = await client.post("/auth/login", json={"identifier": "newhost", "password": "securepass"})
+        login = await client.post("/auth/login", json={"identifier": "newhost", "password": "SecurePass123!"})
         assert login.status_code == 200
 
     async def test_register_invalid_invite(self, client: AsyncClient):
@@ -146,7 +146,7 @@ class TestRegister:
             "invite_token": "badtoken",
             "username": "user1",
             "email": "user1@example.com",
-            "password": "pass123",
+            "password": "SecurePass123!",
         })
         assert r.status_code == 400
 
@@ -166,6 +166,6 @@ class TestRegister:
             "invite_token": "duptoken",
             "username": "another",
             "email": user.email,
-            "password": "pass123",
+            "password": "SecurePass123!",
         })
         assert r.status_code == 409

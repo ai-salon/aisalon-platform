@@ -1,9 +1,12 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy import select, or_
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.logging import get_logger
 from app.core.security import verify_password, create_access_token, hash_password
@@ -18,11 +21,18 @@ from app.schemas.auth import (
 
 logger = get_logger(__name__)
 
+limiter = Limiter(
+    key_func=get_remote_address,
+    enabled=settings.ENVIRONMENT not in ("development", "test"),
+)
 router = APIRouter(tags=["auth"])
 
 
 @router.post("/auth/login", response_model=TokenResponse)
-async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/15minutes")
+async def login(
+    request: Request, body: LoginRequest, db: AsyncSession = Depends(get_db)
+):
     result = await db.execute(
         select(User).where(
             or_(User.email == body.identifier, User.username == body.identifier)
@@ -30,7 +40,11 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     )
     user = result.scalar_one_or_none()
 
-    if not user or not verify_password(body.password, user.hashed_password) or not user.is_active:
+    if (
+        not user
+        or not verify_password(body.password, user.hashed_password)
+        or not user.is_active
+    ):
         logger.warning("login_failed", identifier=body.identifier)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -44,7 +58,9 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
     logger.info("login_success", user_id=user.id, role=user.role.value)
-    token = create_access_token({"sub": user.id, "email": user.email, "role": user.role.value})
+    token = create_access_token(
+        {"sub": user.id, "email": user.email, "role": user.role.value}
+    )
     return TokenResponse(access_token=token)
 
 
@@ -59,7 +75,9 @@ async def get_invite_info(token: str, db: AsyncSession = Depends(get_db)):
     if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=410, detail="Invite has expired")
 
-    ch_result = await db.execute(select(Chapter).where(Chapter.id == invite.chapter_id))
+    ch_result = await db.execute(
+        select(Chapter).where(Chapter.id == invite.chapter_id)
+    )
     chapter = ch_result.scalar_one_or_none()
     return InviteInfoResponse(
         chapter_name=chapter.name if chapter else "Unknown",
@@ -69,8 +87,9 @@ async def get_invite_info(token: str, db: AsyncSession = Depends(get_db)):
 
 @router.post("/auth/register", response_model=TokenResponse, status_code=201)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    # Validate invite
-    result = await db.execute(select(Invite).where(Invite.token == body.invite_token))
+    result = await db.execute(
+        select(Invite).where(Invite.token == body.invite_token)
+    )
     invite = result.scalar_one_or_none()
     if not invite or not invite.is_active:
         raise HTTPException(status_code=400, detail="Invalid invite token")
@@ -79,14 +98,16 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     if invite.expires_at and invite.expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Invite has expired")
 
-    # Check uniqueness
     existing = await db.execute(
-        select(User).where(or_(User.email == body.email, User.username == body.username))
+        select(User).where(
+            or_(User.email == body.email, User.username == body.username)
+        )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="Email or username already taken")
+        raise HTTPException(
+            status_code=409, detail="Email or username already taken"
+        )
 
-    # Create user
     user = User(
         email=body.email,
         username=body.username,
@@ -106,7 +127,9 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         role=invite.role,
         chapter_id=str(invite.chapter_id),
     )
-    token = create_access_token({"sub": user.id, "email": user.email, "role": user.role})
+    token = create_access_token(
+        {"sub": user.id, "email": user.email, "role": user.role}
+    )
     return TokenResponse(access_token=token)
 
 

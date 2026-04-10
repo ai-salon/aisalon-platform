@@ -7,9 +7,12 @@ RUN pip install poetry && poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock* ./
 RUN poetry install --only main --no-interaction
-RUN pip install git+https://github.com/ai-salon/SocraticAI.git
+RUN pip install git+https://github.com/ai-salon/SocraticAI.git@ad3864991557ea0648f15432051e2fc0ef6f1121
 
 COPY . .
+
+RUN useradd --create-home --uid 1000 appuser && chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 8000
 

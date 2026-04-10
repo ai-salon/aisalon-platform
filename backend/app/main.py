@@ -9,19 +9,20 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
 from app.api.health import router as health_router
 from app.api.chapters import router as chapters_router
 from app.api.team import router as team_router
-from app.api.auth import router as auth_router
+from app.api.auth import limiter, router as auth_router
 from app.api.admin import router as admin_router
 from app.api.articles import router as articles_router
 from app.api.hosting_interest import router as hosting_interest_router
 from app.api.volunteer import router as volunteer_router
-from app.api.topics import router as topics_router
-from app.api.community import router as community_router
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles, seed_topics
+from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles
 
 # Ensure models are imported so SQLAlchemy can discover them
 import app.models.chapter  # noqa: F401
@@ -35,8 +36,6 @@ import app.models.invite  # noqa: F401
 import app.models.system_setting  # noqa: F401
 import app.models.social_post  # noqa: F401
 import app.models.volunteer  # noqa: F401
-import app.models.topic  # noqa: F401
-import app.models.community_upload  # noqa: F401
 
 # Initialize structured logging
 setup_logging()
@@ -58,11 +57,12 @@ async def lifespan(app: FastAPI):
     await seed_chapters()
     await seed_chapter_leads()
     await seed_volunteer_roles()
-    await seed_topics()
     yield
 
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -96,7 +96,9 @@ async def request_logging_middleware(request: Request, call_next):
 
 
 @app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception) -> PlainTextResponse:
+async def unhandled_exception_handler(
+    request: Request, exc: Exception
+) -> PlainTextResponse:
     logger.exception(
         "unhandled_error",
         method=request.method,
@@ -114,8 +116,6 @@ app.include_router(admin_router)
 app.include_router(articles_router)
 app.include_router(hosting_interest_router)
 app.include_router(volunteer_router)
-app.include_router(topics_router)
-app.include_router(community_router)
 
 upload_dir = Path(settings.UPLOAD_DIR)
 upload_dir.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,11 @@
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+_INSECURE_DEFAULTS = {
+    "SECRET_KEY": "dev-secret-key-change-in-production",
+    "ADMIN_PASSWORD": "changeme123",
+    "BASE_PASSWORD": "impact",
+}
 
 
 class Settings(BaseSettings):
@@ -19,7 +26,7 @@ class Settings(BaseSettings):
 
     SECRET_KEY: str = "dev-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 120  # 2 hours
     UPLOAD_DIR: str = "uploads"
 
     ADMIN_PASSWORD: str = "changeme123"
@@ -29,6 +36,18 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
+
+    @model_validator(mode="after")
+    def reject_insecure_defaults_in_production(self):
+        if self.ENVIRONMENT == "production":
+            for field, default in _INSECURE_DEFAULTS.items():
+                if getattr(self, field) == default:
+                    raise ValueError(
+                        f"{field} still has its insecure default value. "
+                        f"Set a strong {field} via environment variables "
+                        f"before running in production."
+                    )
+        return self
 
 
 settings = Settings()
