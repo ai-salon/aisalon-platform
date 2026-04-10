@@ -39,11 +39,7 @@ export default function AdminTopicsPage() {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  useEffect(() => {
-    if (token) fetchTopics();
-  }, [token]);
-
-  async function fetchTopics() {
+  const fetchTopics = async () => {
     setLoading(true);
     try {
       const r = await fetch(`${API}/admin/topics`, {
@@ -52,7 +48,11 @@ export default function AdminTopicsPage() {
       if (r.ok) setTopics(await r.json());
     } catch {}
     setLoading(false);
-  }
+  };
+
+  useEffect(() => {
+    if (token) fetchTopics();
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function resetForm() {
     setTitle("");
