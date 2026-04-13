@@ -3,7 +3,9 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.pool import StaticPool
 
+import app.api.admin as admin_module
 from app.main import app
 from app.models.base import Base
 from app.core.database import get_db
@@ -16,7 +18,11 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 @pytest_asyncio.fixture
 async def db_engine():
-    engine = create_async_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+    engine = create_async_engine(
+        TEST_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
@@ -41,9 +47,13 @@ async def client(db_engine):
             yield session
 
     app.dependency_overrides[get_db] = override_get_db
+    # Patch AsyncSessionLocal used directly by run_job background task
+    _original = admin_module.AsyncSessionLocal
+    admin_module.AsyncSessionLocal = Session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
+    admin_module.AsyncSessionLocal = _original
 
 
 # ── Auth helpers ────────────────────────────────────────────────────────────
