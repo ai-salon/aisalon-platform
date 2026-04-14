@@ -12,8 +12,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 
-RUN useradd --create-home --uid 1000 appuser && chown -R appuser:appuser /app
-USER appuser
+RUN chown -R node:node /app
+USER node
 
 EXPOSE 3000
 
