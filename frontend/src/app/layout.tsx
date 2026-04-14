@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Open_Sans } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "./providers";
 import MobileNav from "./MobileNav";
@@ -195,6 +196,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Providers>
           <main id="main-content">{children}</main>
         </Providers>
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );
