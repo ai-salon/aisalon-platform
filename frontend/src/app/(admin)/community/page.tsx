@@ -137,11 +137,29 @@ export default function CommunityPage() {
       <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 16 }}>
         {chapters.length === 1 ? "Your Chapter" : "By Chapter"}
       </h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340, 1fr))", gap: 16 }}>
-        {chapters.map((ch) => (
-          <ChapterCard key={ch.chapter_code} stats={ch} />
-        ))}
-      </div>
+      {chapters.length === 0 ? (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 8,
+            padding: "40px 24px",
+            textAlign: "center",
+            color: "#696969",
+            border: "1px solid #ede9d8",
+          }}
+        >
+          <i className="fa fa-bar-chart" style={{ fontSize: 28, color: "#d1d5db", marginBottom: 12, display: "block" }} />
+          <p style={{ fontSize: 14, margin: 0 }}>
+            No community data yet. Stats appear once you&apos;ve published articles and built your team.
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340, 1fr))", gap: 16 }}>
+          {chapters.map((ch) => (
+            <ChapterCard key={ch.chapter_code} stats={ch} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

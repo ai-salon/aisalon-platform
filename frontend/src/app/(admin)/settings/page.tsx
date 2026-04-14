@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { toast } from "@/lib/toast";
+import { validateApiKey } from "@/lib/validation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const PROVIDERS = ["assemblyai", "google"] as const;
@@ -289,7 +290,11 @@ export default function SettingsPage() {
   }
 
   async function handleSave(provider: Provider) {
-    if (!value.trim()) return;
+    const validationError = validateApiKey(value);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     setSaving(true);
     setError("");
     const r = await fetch(`${API_URL}/admin/api-keys`, {

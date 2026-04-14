@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
+import { validateTeamMember } from "@/lib/validation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -37,6 +38,7 @@ export default function TeamPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [filterChapterId, setFilterChapterId] = useState<string>("all");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>("");
@@ -104,6 +106,12 @@ export default function TeamPage() {
   }
 
   async function handleSave() {
+    const errors = validateTeamMember({ name: form.name, role: form.role });
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
     setSaving(true);
     setError("");
     let photoUrl = form.profile_image_url;
@@ -285,22 +293,46 @@ export default function TeamPage() {
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Name</label>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>
+                Name <span style={{ color: "#dc2626" }}>*</span>
+              </label>
               <input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, boxSizing: "border-box" }}
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  fontSize: 14,
+                  border: `1.5px solid ${formErrors.name ? "#dc2626" : "#d1d5db"}`,
+                  borderRadius: 6,
+                  boxSizing: "border-box",
+                }}
               />
+              {formErrors.name && (
+                <p style={{ fontSize: 12, color: "#dc2626", margin: "4px 0 0" }}>{formErrors.name}</p>
+              )}
             </div>
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Role</label>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>
+                Role <span style={{ color: "#dc2626" }}>*</span>
+              </label>
               <select
                 value={form.role}
                 onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, background: "#fff" }}
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  fontSize: 14,
+                  border: `1.5px solid ${formErrors.role ? "#dc2626" : "#d1d5db"}`,
+                  borderRadius: 6,
+                  background: "#fff",
+                }}
               >
                 {ROLE_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
               </select>
+              {formErrors.role && (
+                <p style={{ fontSize: 12, color: "#dc2626", margin: "4px 0 0" }}>{formErrors.role}</p>
+              )}
             </div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Image URL</label>

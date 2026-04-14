@@ -143,11 +143,24 @@ export default function ArticlesPage() {
           }}
         >
           <i className="fa fa-file-text-o" style={{ fontSize: 32, color: "#d1d5db", marginBottom: 12 }} />
-          <p style={{ fontSize: 14, margin: 0 }}>
-            {tab === "transcripts"
-              ? "No transcripts yet. They appear after processing completes."
-              : "No articles yet. They'll appear here once jobs complete."}
-          </p>
+          <div style={{ fontSize: 14 }}>
+            {tab === "transcripts" ? (
+              <>
+                Transcripts appear here after a conversation is processed.{" "}
+                <Link href="/upload" style={{ color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}>
+                  Go to Upload →
+                </Link>
+              </>
+            ) : (
+              <>
+                No articles yet.{" "}
+                <Link href="/upload" style={{ color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}>
+                  Upload a conversation →
+                </Link>{" "}
+                to generate your first one.
+              </>
+            )}
+          </div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

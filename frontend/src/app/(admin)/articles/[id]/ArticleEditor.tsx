@@ -130,6 +130,7 @@ export default function ArticleEditor({
       : "preview";
   const [tab, setTab] = useState<Tab>(initialTab);
   const [title, setTitle] = useState(initial.title);
+  const [titleError, setTitleError] = useState("");
   const [content, setContent] = useState(initial.content_md ?? "");
   const [substackUrl, setSubstackUrl] = useState(initial.substack_url ?? "");
   const [articleStatus, setArticleStatus] = useState<"draft" | "scheduled" | "published">(initial.status);
@@ -142,6 +143,11 @@ export default function ArticleEditor({
 
   const save = useCallback(
     async () => {
+      if (!title.trim()) {
+        setTitleError("Title is required");
+        return;
+      }
+      setTitleError("");
       setSaving(true);
       try {
         const r = await fetch(`${API_URL}/admin/articles/${initial.id}`, {
@@ -289,7 +295,7 @@ export default function ArticleEditor({
                 }}
               >
                 <i className="fa fa-check" />
-                {publishingArticle ? "Publishing…" : "Publish"}
+                {publishingArticle ? "Marking…" : "Mark as Done"}
               </button>
             )}
 
@@ -346,10 +352,19 @@ export default function ArticleEditor({
           </div>
         </div>
 
+        {articleStatus === "draft" && (
+          <p style={{ fontSize: 11, color: "#9ca3af", textAlign: "right", margin: "-16px 0 18px" }}>
+            Marks this article as finished. To share externally, publish to Substack using the button above.
+          </p>
+        )}
+
         {/* ── Title ── */}
         <input
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            if (titleError && e.target.value.trim()) setTitleError("");
+          }}
           style={{
             width: "100%",
             fontSize: 28,
@@ -365,6 +380,9 @@ export default function ArticleEditor({
           }}
           placeholder="Article title…"
         />
+        {titleError && (
+          <p style={{ fontSize: 12, color: "#dc2626", margin: "0 0 8px" }}>{titleError}</p>
+        )}
         <div
           style={{
             display: "flex",
@@ -414,7 +432,7 @@ export default function ArticleEditor({
           <input
             value={substackUrl}
             onChange={(e) => setSubstackUrl(e.target.value)}
-            placeholder="Paste Substack URL once published there…"
+            placeholder="After publishing on Substack, paste the URL here to enable social sharing"
             style={{
               flex: 1,
               fontSize: 13,

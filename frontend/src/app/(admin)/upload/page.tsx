@@ -328,7 +328,12 @@ export default function UploadPage() {
           {jobs.length === 0 ? (
             <div style={{ padding: "40px 20px", textAlign: "center", color: "#9ca3af" }}>
               <i className="fa fa-inbox" style={{ fontSize: 28, marginBottom: 10, display: "block" }} />
-              <p style={{ fontSize: 13, margin: 0 }}>No jobs yet</p>
+              <p style={{ fontSize: 13, margin: "0 0 6px", color: "#6b7280" }}>
+                No conversations uploaded yet.
+              </p>
+              <p style={{ fontSize: 12, margin: 0, color: "#b0b0b0" }}>
+                Select an audio file above to get started — transcription takes ~5 minutes.
+              </p>
             </div>
           ) : (
             <div>

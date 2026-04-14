@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
+import { validateUser } from "@/lib/validation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -24,6 +25,7 @@ export default function UsersPage() {
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const token = (session as any)?.accessToken;
   const userRole = (session?.user as any)?.role;
@@ -51,6 +53,12 @@ export default function UsersPage() {
   }
 
   async function handleCreate() {
+    const errors = validateUser({ email: form.email, password: form.password, role: form.role });
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    setFormErrors({});
     setSaving(true);
     setError("");
     const r = await fetch(`${API_URL}/admin/users`, {
@@ -127,31 +135,55 @@ export default function UsersPage() {
           <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 18px" }}>New User</h3>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
-              { key: "email", label: "Email", type: "email" },
-              { key: "username", label: "Username (optional)", type: "text" },
-              { key: "password", label: "Password", type: "password" },
-            ].map(({ key, label, type }) => (
+              { key: "email", label: "Email", type: "email", required: true },
+              { key: "username", label: "Username (optional)", type: "text", required: false },
+              { key: "password", label: "Password", type: "password", required: true },
+            ].map(({ key, label, type, required }) => (
               <div key={key}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>{label}</label>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>
+                  {label} {required && <span style={{ color: "#dc2626" }}>*</span>}
+                </label>
                 <input
                   type={type}
-                  value={(form as any)[key]}
+                  value={(form as Record<string, string>)[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, boxSizing: "border-box" }}
+                  style={{
+                    width: "100%",
+                    padding: "9px 12px",
+                    fontSize: 14,
+                    border: `1.5px solid ${formErrors[key] ? "#dc2626" : "#d1d5db"}`,
+                    borderRadius: 6,
+                    boxSizing: "border-box",
+                  }}
                 />
+                {formErrors[key] && (
+                  <p style={{ fontSize: 12, color: "#dc2626", margin: "4px 0 0" }}>{formErrors[key]}</p>
+                )}
               </div>
             ))}
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Role</label>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>
+                Role <span style={{ color: "#dc2626" }}>*</span>
+              </label>
               <select
                 value={form.role}
                 onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, background: "#fff" }}
+                style={{
+                  width: "100%",
+                  padding: "9px 12px",
+                  fontSize: 14,
+                  border: `1.5px solid ${formErrors.role ? "#dc2626" : "#d1d5db"}`,
+                  borderRadius: 6,
+                  background: "#fff",
+                }}
               >
                 <option value="host">Host</option>
                 <option value="chapter_lead">Chapter Lead</option>
                 <option value="superadmin">Superadmin</option>
               </select>
+              {formErrors.role && (
+                <p style={{ fontSize: 12, color: "#dc2626", margin: "4px 0 0" }}>{formErrors.role}</p>
+              )}
             </div>
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Chapter</label>
