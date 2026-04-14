@@ -68,11 +68,10 @@ def parse_role_markdown(path: Path) -> dict:
     who = _section(text, "Who Would Be a Good Fit?") or _section(text, "Requirements")
     time_commitment = _section(text, "Time Commitment") or None
 
-    # Combine into one markdown block for the description field
+    # Build the full markdown block — headings included so the page renders them
+    description = f"## About This Role\n\n{about}"
     if who:
-        description = f"{about}\n\n## Who would be a good fit?\n\n{who}"
-    else:
-        description = about
+        description += f"\n\n## Who Would Be a Good Fit?\n\n{who}"
 
     return {
         "title": title,

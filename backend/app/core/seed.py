@@ -378,11 +378,12 @@ _VOLUNTEER_ROLES = [
         title="Marketing & Social Lead",
         slug="marketing-social-lead",
         description=(
+            "## About This Role\n\n"
             "Shape the public-facing voice of The Ai Salon across our Substack newsletter, "
             "LinkedIn, and Instagram/X. You'll own our content strategy — turning salon "
             "conversations into thought-leadership pieces, social posts, and newsletter "
             "content that grows our audience and introduces new people to the community.\n\n"
-            "## Who would be a good fit?\n\n"
+            "## Who Would Be a Good Fit?\n\n"
             "You're probably someone who genuinely loves both writing and building audiences "
             "online. Maybe you've run a newsletter, managed a brand's social presence, or "
             "created content that earned real engagement — and you found it satisfying rather "
@@ -402,11 +403,12 @@ _VOLUNTEER_ROLES = [
         title="Online Community Manager",
         slug="online-community-manager",
         description=(
+            "## About This Role\n\n"
             "Keep the Ai Salon community alive and connected between events. You'll manage "
             "our online channels — including our WhatsApp groups and Discord server — "
             "fostering member conversations, welcoming new members, and creating the moments "
             "of connection that turn one-time attendees into an ongoing community.\n\n"
-            "## Who would be a good fit?\n\n"
+            "## Who Would Be a Good Fit?\n\n"
             "This role suits someone who finds community-building genuinely energizing — the "
             "kind of person who naturally makes introductions, checks in on people, and knows "
             "when a group conversation needs a nudge. You probably have some experience "
@@ -428,12 +430,13 @@ _VOLUNTEER_ROLES = [
         title="Insights Lead",
         slug="insights-lead",
         description=(
+            "## About This Role\n\n"
             "Mine and organize insights from 2+ years of AI Salon discussions across cities "
             "and disciplines. Working with transcripts and summaries from our events, you'll "
             "identify recurring themes, track how public AI discourse is evolving, and shape "
             "that material into structured reports — published on our Substack and shared "
             "with our community — culminating in an Annual AI Salon Index Report.\n\n"
-            "## Who would be a good fit?\n\n"
+            "## Who Would Be a Good Fit?\n\n"
             "You're drawn to this if you love finding patterns in a pile of qualitative "
             "material and turning them into something coherent and useful. Maybe you've done "
             "research synthesis, policy analysis, journalism, or academic writing — anything "

@@ -8,8 +8,6 @@ import remarkGfm from "remark-gfm";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const ABOUT_AI_SALON = `The Ai Salon is a global community of curious, thoughtful people gathered around one question: what does AI mean for humanity? Founded in San Francisco, we host small, intimate discussion groups in cities around the world — bringing together engineers, ethicists, artists, policymakers, and everyday citizens to explore AI's sociological, economic, cultural, and philosophical implications. We believe these conversations are too important to leave to technologists alone. The Salon is powered entirely by volunteers who share our commitment to rigorous, human-centered inquiry.`;
-
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "11px 14px",
@@ -142,16 +140,6 @@ export default function VolunteerRoleDetailPage() {
       {/* ── CONTENT ── */}
       <section style={{ background: "#f8f6ec", padding: "64px 30px" }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
-
-          {/* About the Ai Salon */}
-          <div style={{ background: "#fff", borderRadius: 10, padding: "32px 44px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginBottom: 24 }}>
-            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af", marginTop: 0, marginBottom: 12 }}>
-              About the Ai Salon
-            </p>
-            <p style={{ fontSize: 15, color: "#444", lineHeight: 1.8, margin: 0 }}>
-              {ABOUT_AI_SALON}
-            </p>
-          </div>
 
           {/* Role content — rendered as markdown */}
           <div style={{ background: "#fff", borderRadius: 10, padding: "40px 44px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginBottom: 32 }}>

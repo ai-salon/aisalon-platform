@@ -101,7 +101,7 @@ export default function VolunteerPage() {
                       </div>
                     )}
                     <p style={{ fontSize: 14, color: "#696969", lineHeight: 1.6, margin: 0, flex: 1 }}>
-                      {role.description.split("\n")[0].slice(0, 160)}...
+                      {role.description.split("\n").find(l => l.trim() && !l.startsWith("#"))?.slice(0, 160)}...
                     </p>
                     <div style={{ marginTop: 16, fontSize: 14, fontWeight: 600, color: "#56a1d2" }}>
                       Learn More & Apply <i className="fa fa-arrow-right" style={{ marginLeft: 4 }} />
