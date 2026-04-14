@@ -1970,20 +1970,11 @@ function SuperadminChapterGuide({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-        <div>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
-            📖 Chapter Guide
-          </h2>
-          <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
-            View and edit each chapter&apos;s internal guide.
-          </p>
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
         <select
           value={selectedId}
           onChange={(e) => setSelectedId(e.target.value)}
           style={{
-            marginLeft: "auto",
             padding: "8px 12px",
             fontSize: 13,
             fontWeight: 600,
