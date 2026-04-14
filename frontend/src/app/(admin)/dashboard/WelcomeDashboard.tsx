@@ -836,7 +836,7 @@ function EventCreator({
   const lumaTag = chapterCode || "";
 
   const eventTitle = theme
-    ? `Ai Salon${city ? ` ${city}` : ""}: ${theme}`
+    ? `Ai Salon: ${theme}${lumaTag ? ` [${lumaTag.toUpperCase()}]` : ""}`
     : "";
 
   const expertNote =
@@ -1144,37 +1144,40 @@ We'll explore questions like:
         </div>
 
         {/* Promotion channels */}
-        <p style={{ fontSize: 12, fontWeight: 700, color: "#444", margin: "0 0 12px" }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#444", margin: "0 0 8px" }}>
           Where to promote your event
         </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {promotionChannels.map(({ emoji, label, desc, link, linkLabel, primary }) => (
             <div
               key={label}
               style={{
                 display: "flex",
-                gap: 12,
-                padding: "12px 14px",
+                gap: 8,
+                padding: "7px 10px",
                 background: primary ? "#eff6ff" : "#fafaf8",
                 border: `1px solid ${primary ? "#bfdbfe" : "#ede9d8"}`,
-                borderRadius: 8,
-                alignItems: "flex-start",
+                borderRadius: 6,
+                alignItems: "center",
               }}
             >
-              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1.2 }}>{emoji}</span>
+              <span style={{ fontSize: 14, flexShrink: 0 }}>{emoji}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#111", marginBottom: 2 }}>{label}</div>
-                <div style={{ fontSize: 12, color: "#696969", lineHeight: 1.5, marginBottom: link ? 6 : 0 }}>{desc}</div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#111" }}>{label}</span>
                 {link && linkLabel && (
-                  <a
-                    href={link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ fontSize: 12, color: "#56a1d2", fontWeight: 700, textDecoration: "none" }}
-                  >
-                    {linkLabel}
-                  </a>
+                  <>
+                    {" · "}
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}
+                    >
+                      {linkLabel}
+                    </a>
+                  </>
                 )}
+                <div style={{ fontSize: 11, color: "#888", lineHeight: 1.4 }}>{desc}</div>
               </div>
             </div>
           ))}
