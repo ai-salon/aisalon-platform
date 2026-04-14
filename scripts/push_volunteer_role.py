@@ -59,30 +59,22 @@ def parse_role_markdown(path: Path) -> dict:
         raise ValueError(f"No top-level heading found in {path}")
     title = title_match.group(1).strip()
 
-    overview = _section(text, "Overview")
-    why = _section(text, "Why This Role Matters")
-    requirements_raw = _section(text, "Requirements")
-    time_commitment = _section(text, "Time Commitment")
+    # Support both heading styles
+    description = _section(text, "About This Role") or _section(text, "Overview")
+    if not description:
+        raise ValueError(f"No '## About This Role' section found in {path}")
 
-    # Reconstruct description in the same format as the original seed data
-    if overview and why:
-        description = f"{overview}\n\n**Why this role matters:** {why}"
-    elif overview:
-        description = overview
-    else:
-        raise ValueError(f"No ## Overview section found in {path}")
-
-    # Normalise requirements: strip any leading/trailing blank lines
-    requirements = requirements_raw if requirements_raw else None
-
-    # Normalise time commitment: strip footnote parens from display text
-    time_commitment = time_commitment or None
+    requirements_raw = (
+        _section(text, "Who Would Be a Good Fit?")
+        or _section(text, "Requirements")
+    )
+    time_commitment = _section(text, "Time Commitment") or None
 
     return {
         "title": title,
         "slug": _slug_from_title(title),
         "description": description,
-        "requirements": requirements,
+        "requirements": requirements_raw or None,
         "time_commitment": time_commitment,
     }
 
