@@ -375,157 +375,73 @@ async def seed_chapter_leads() -> None:
 
 _VOLUNTEER_ROLES = [
     dict(
-        title="Chapter Lead",
-        slug="chapter-lead",
-        description=(
-            "Chapter Leads are the heart of the Ai Salon's global presence. You'll build "
-            "and nurture a local AI community, organizing monthly salons that bring together "
-            "diverse voices to explore AI's impact on society.\n\n"
-            "**Why this role matters:** Each chapter is a local hub where people from all "
-            "backgrounds come together to understand AI — not just technologists, but "
-            "policymakers, artists, educators, and curious citizens. As a Chapter Lead, "
-            "you shape these conversations and help your city become part of a global "
-            "movement for thoughtful AI discourse."
-        ),
-        requirements=(
-            "- Passion for AI and its societal implications\n"
-            "- Experience organizing events or building communities\n"
-            "- Strong communication and facilitation skills\n"
-            "- Ability to recruit and coordinate local hosts\n"
-            "- Based in a city without an existing Ai Salon chapter"
-        ),
-        time_commitment="6-10 hours/month",
-        display_order=0,
-    ),
-    dict(
-        title="Salon Host",
-        slug="salon-host",
-        description=(
-            "Salon Hosts facilitate individual salon discussions, creating a welcoming space "
-            "where participants feel comfortable sharing ideas and challenging assumptions "
-            "about AI.\n\n"
-            "**Why this role matters:** The quality of a salon depends on its facilitation. "
-            "Great hosts draw out quiet voices, keep discussions productive, and ensure every "
-            "participant leaves having learned something new. You're the person who makes the "
-            "magic happen in the room."
-        ),
-        requirements=(
-            "- Comfort facilitating group discussions (8-30 people)\n"
-            "- Interest in AI topics across technical and social dimensions\n"
-            "- Good listening skills and ability to synthesize ideas\n"
-            "- Located in a city with an existing Ai Salon chapter"
-        ),
-        time_commitment="4-6 hours/month",
-        display_order=1,
-    ),
-    dict(
-        title="Content Writer",
-        slug="content-writer",
-        description=(
-            "Content Writers transform salon discussions into compelling articles that extend "
-            "the conversation beyond the room. Using our AI-assisted pipeline, you'll craft "
-            "narratives that capture key insights while making complex AI topics accessible.\n\n"
-            "**Why this role matters:** Most salon conversations are ephemeral — brilliant "
-            "insights shared in the room vanish when people go home. Our writers preserve and "
-            "amplify these ideas, creating a growing library of community-generated thought "
-            "leadership on AI."
-        ),
-        requirements=(
-            "- Strong writing skills with ability to distill complex topics\n"
-            "- Interest in AI policy, ethics, technology, or culture\n"
-            "- Comfort working with AI-assisted writing tools\n"
-            "- Ability to meet publishing deadlines"
-        ),
-        time_commitment="3-5 hours/month",
-        display_order=2,
-    ),
-    dict(
         title="Marketing & Social Lead",
         slug="marketing-social-lead",
         description=(
             "Shape the public-facing voice of The Ai Salon across Substack, LinkedIn, and "
-            "Instagram/X. You'll own content strategy, social media management, and audience "
-            "growth — turning salon conversations into a broader cultural presence.\n\n"
-            "**Why this role matters:** The Ai Salon's ideas deserve to travel far beyond the "
-            "room. As Marketing & Social Lead you'll craft the narratives that introduce new "
-            "audiences to our community, build thought-leadership credibility, and drive "
-            "attendance growth through compelling content."
+            "Instagram/X. You'll own our content strategy — turning salon conversations into "
+            "thought-leadership pieces, social posts, and newsletter content that grows our "
+            "audience and introduces new people to the community. This is a creative, "
+            "high-ownership role where your work reaches thousands."
         ),
         requirements=(
-            "- Experience with content strategy and social media management\n"
-            "- Strong copywriting skills across long-form (Substack) and short-form (LinkedIn, X)\n"
-            "- Ability to build and execute a content calendar\n"
-            "- Comfort with growth experiments and analytics\n"
-            "- Interest in AI topics and current discourse"
+            "You're probably someone who genuinely loves both writing and building audiences "
+            "online. Maybe you've run a newsletter, managed a brand's social presence, or "
+            "created content that earned real engagement — and you found it satisfying rather "
+            "than exhausting. You follow AI discourse closely and have opinions about it. "
+            "You're comfortable working independently, setting your own content calendar, and "
+            "experimenting with what resonates. A background in content strategy, journalism, "
+            "or marketing helps, but what matters most is that you can write well across "
+            "formats and care about the ideas you're sharing."
         ),
-        time_commitment="5-8 hours/week",
-        display_order=3,
+        time_commitment="2-4 hours/week",
+        display_order=0,
     ),
     dict(
-        title="Community Lead",
-        slug="community-lead",
+        title="Online Community Manager",
+        slug="online-community-manager",
         description=(
-            "Cultivate belonging within the SF chapter while designing scalable systems for "
-            "other chapters. You'll deepen member connections, foster WhatsApp engagement, and "
-            "ensure attendees become active contributors to the community.\n\n"
-            "**Why this role matters:** A salon is more than an event — it's a community. "
-            "The Community Lead turns one-time attendees into invested members by creating "
-            "rituals, feedback loops, and connection points that keep people engaged between "
-            "events and across chapters."
+            "Keep the Ai Salon community alive and connected between events. You'll manage "
+            "our online channels — WhatsApp groups, Discord, and others — fostering member "
+            "conversations, welcoming new members, and designing the small moments of "
+            "connection that turn one-time attendees into an ongoing community. You'll also "
+            "help surface members who might want to get more involved as volunteers or hosts."
         ),
         requirements=(
-            "- Experience building or managing communities (online or in-person)\n"
-            "- Strong interpersonal skills and ability to foster inclusive spaces\n"
-            "- Interest in designing scalable community playbooks\n"
-            "- Comfort facilitating feedback surveys and engagement experiments\n"
-            "- Passion for AI's societal impact"
+            "This role suits someone who finds community-building genuinely energizing — the "
+            "kind of person who naturally makes introductions, checks in on people, and knows "
+            "when a group conversation needs a nudge. You probably have some experience "
+            "managing an online community or group, even informally. You're organized enough "
+            "to stay on top of multiple channels but warm and human in how you show up. You "
+            "don't need to be a deep AI expert — genuine curiosity and a desire to help "
+            "people connect is what matters most here."
         ),
-        time_commitment="4-6 hours/week",
-        display_order=4,
-    ),
-    dict(
-        title="Event Coordinator",
-        slug="event-coordinator",
-        description=(
-            "Event Coordinators plan and execute special events — from cross-chapter symposia "
-            "to partnerships with other organizations — that expand the Ai Salon's reach "
-            "and impact.\n\n"
-            "**Why this role matters:** Beyond regular monthly salons, special events create "
-            "landmark moments for our community. Whether it's a multi-city AI symposium or "
-            "a collaboration with a university, these events push the boundaries of what our "
-            "community can accomplish together."
-        ),
-        requirements=(
-            "- Event planning experience (virtual and/or in-person)\n"
-            "- Strong organizational and project management skills\n"
-            "- Ability to coordinate across time zones and teams\n"
-            "- Creative thinking for event formats and programming"
-        ),
-        time_commitment="5-10 hours/month (varies by event cycle)",
-        display_order=5,
+        time_commitment="2-4 hours/week",
+        display_order=1,
     ),
     dict(
         title="Insights Lead",
         slug="insights-lead",
         description=(
-            "Mine and organize insights from 2+ years of AI Salon events. You'll shape "
-            "transcripts and summaries into thematic reports, briefs, and thought leadership "
-            "— working toward an Annual AI Salon Index Report.\n\n"
-            "**Why this role matters:** The Ai Salon has accumulated a rich archive of "
-            "cross-city, cross-discipline conversations about AI. The Insights Lead turns "
-            "that raw material into structured knowledge products that inform our community, "
-            "attract new audiences, and establish the Ai Salon as a source of original "
-            "research on public AI discourse."
+            "Mine and organize insights from 2+ years of AI Salon discussions across cities "
+            "and disciplines. Working with transcripts and summaries from our events, you'll "
+            "identify recurring themes, track how public AI discourse is evolving, and shape "
+            "that material into structured knowledge products — reports, briefings, and "
+            "thought-leadership pieces — culminating in an Annual AI Salon Index Report."
         ),
         requirements=(
-            "- Strong analytical and writing skills\n"
-            "- Experience synthesizing qualitative data into structured reports\n"
-            "- Interest in AI policy, ethics, technology, or culture\n"
-            "- Ability to identify cross-cutting themes across diverse discussions\n"
-            "- Comfort working with transcripts and AI-assisted analysis tools"
+            "You're drawn to this if you love finding patterns in a pile of qualitative "
+            "material and turning them into something coherent and useful. Maybe you've done "
+            "research synthesis, policy analysis, journalism, or academic writing — anything "
+            "where the craft is making sense of complex, messy information and communicating "
+            "it clearly. You're interested in AI not just as a technical topic but as a "
+            "social and cultural phenomenon. Working with AI-assisted tools for analysis and "
+            "writing feels natural, not intimidating. If you've ever wished someone would "
+            "just sit down and make sense of all the AI conversation happening globally, you "
+            "might be the person to do it."
         ),
-        time_commitment="4-6 hours/week",
-        display_order=6,
+        time_commitment="2-4 hours/week",
+        display_order=2,
     ),
 ]
 

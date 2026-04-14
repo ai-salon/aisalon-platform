@@ -47,6 +47,7 @@ export default function VolunteerRolesPage() {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [hideInactive, setHideInactive] = useState(true);
 
   // Form state
   const [formTitle, setFormTitle] = useState("");
@@ -134,6 +135,9 @@ export default function VolunteerRolesPage() {
     fetchRoles();
   };
 
+  const visibleRoles = hideInactive ? roles.filter((r) => r.is_active) : roles;
+  const inactiveCount = roles.filter((r) => !r.is_active).length;
+
   if (loading) return <div style={{ padding: 40, color: "#696969" }}>Loading...</div>;
 
   return (
@@ -142,16 +146,37 @@ export default function VolunteerRolesPage() {
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Volunteer Roles</h1>
           <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
-            {roles.length} role{roles.length !== 1 ? "s" : ""} configured
+            {visibleRoles.length} role{visibleRoles.length !== 1 ? "s" : ""} shown
+            {hideInactive && inactiveCount > 0 && (
+              <span style={{ marginLeft: 6 }}>
+                · <button
+                    onClick={() => setHideInactive(false)}
+                    style={{ background: "none", border: "none", padding: 0, color: "#56a1d2", cursor: "pointer", fontSize: 14, fontWeight: 400 }}
+                  >
+                    {inactiveCount} inactive hidden
+                  </button>
+              </span>
+            )}
           </p>
         </div>
-        <button
-          onClick={() => { resetForm(); setShowCreate(true); }}
-          className="btn-primary"
-          style={{ fontSize: 13, padding: "8px 20px" }}
-        >
-          <i className="fa fa-plus" style={{ marginRight: 6 }} /> Add Role
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "#696969", cursor: "pointer", userSelect: "none" }}>
+            <input
+              type="checkbox"
+              checked={hideInactive}
+              onChange={(e) => setHideInactive(e.target.checked)}
+              style={{ cursor: "pointer" }}
+            />
+            Hide inactive
+          </label>
+          <button
+            onClick={() => { resetForm(); setShowCreate(true); }}
+            className="btn-primary"
+            style={{ fontSize: 13, padding: "8px 20px" }}
+          >
+            <i className="fa fa-plus" style={{ marginRight: 6 }} /> Add Role
+          </button>
+        </div>
       </div>
 
       {/* Create/Edit form */}
@@ -201,10 +226,12 @@ export default function VolunteerRolesPage() {
       )}
 
       {/* Roles table */}
-      {roles.length === 0 ? (
+      {visibleRoles.length === 0 ? (
         <div style={{ background: "#fff", borderRadius: 8, padding: "60px 24px", textAlign: "center", color: "#696969", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
           <i className="fa fa-briefcase" style={{ fontSize: 32, color: "#d1d5db", marginBottom: 12 }} />
-          <p style={{ fontSize: 14, margin: 0 }}>No roles yet. Create your first volunteer role.</p>
+          <p style={{ fontSize: 14, margin: 0 }}>
+            {roles.length === 0 ? "No roles yet. Create your first volunteer role." : "All roles are inactive."}
+          </p>
         </div>
       ) : (
         <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
@@ -219,7 +246,7 @@ export default function VolunteerRolesPage() {
               </tr>
             </thead>
             <tbody>
-              {roles.map((role) => (
+              {visibleRoles.map((role) => (
                 <tr key={role.id} style={{ borderBottom: "1px solid #f8f6ec" }}>
                   <td style={{ padding: "14px 20px" }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{role.title}</div>

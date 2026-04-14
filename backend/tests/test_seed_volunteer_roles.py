@@ -9,18 +9,9 @@ from app.models.volunteer import VolunteerRole
 
 
 EXPECTED_SLUGS = [
-    "chapter-lead",
-    "salon-host",
-    "content-writer",
     "marketing-social-lead",
-    "community-lead",
-    "event-coordinator",
+    "online-community-manager",
     "insights-lead",
-]
-
-REMOVED_SLUGS = [
-    "social-media-manager",
-    "community-manager",
 ]
 
 
@@ -30,14 +21,8 @@ def test_seed_data_contains_expected_slugs():
         assert expected in slugs, f"Missing expected role: {expected}"
 
 
-def test_seed_data_does_not_contain_removed_slugs():
-    slugs = [r["slug"] for r in _VOLUNTEER_ROLES]
-    for removed in REMOVED_SLUGS:
-        assert removed not in slugs, f"Removed role still present: {removed}"
-
-
 def test_seed_data_has_correct_count():
-    assert len(_VOLUNTEER_ROLES) == 7
+    assert len(_VOLUNTEER_ROLES) == 3
 
 
 def test_all_roles_have_required_fields():
@@ -52,22 +37,27 @@ def test_display_orders_are_unique():
     assert len(orders) == len(set(orders)), "Duplicate display_order values"
 
 
+def test_all_roles_time_commitment():
+    for role in _VOLUNTEER_ROLES:
+        assert role["time_commitment"] == "2-4 hours/week", (
+            f"Role {role['slug']} has unexpected time_commitment: {role['time_commitment']}"
+        )
+
+
 def test_marketing_social_lead_content():
     role = next(r for r in _VOLUNTEER_ROLES if r["slug"] == "marketing-social-lead")
-    assert role["time_commitment"] == "5-8 hours/week"
     assert "LinkedIn" in role["description"]
     assert "Substack" in role["description"]
 
 
-def test_community_lead_content():
-    role = next(r for r in _VOLUNTEER_ROLES if r["slug"] == "community-lead")
-    assert role["time_commitment"] == "4-6 hours/week"
-    assert "WhatsApp" in role["description"] or "community" in role["description"].lower()
+def test_online_community_manager_content():
+    role = next(r for r in _VOLUNTEER_ROLES if r["slug"] == "online-community-manager")
+    assert "community" in role["description"].lower()
+    assert "Discord" in role["description"] or "WhatsApp" in role["description"]
 
 
 def test_insights_lead_content():
     role = next(r for r in _VOLUNTEER_ROLES if r["slug"] == "insights-lead")
-    assert role["time_commitment"] == "4-6 hours/week"
     assert "insights" in role["description"].lower() or "reports" in role["description"].lower()
 
 
@@ -79,7 +69,7 @@ async def test_seed_volunteer_roles_creates_all(db_engine):
         result = await session.execute(select(VolunteerRole))
         roles = result.scalars().all()
     slugs = [r.slug for r in roles]
-    assert len(slugs) == 7
+    assert len(slugs) == 3
     for expected in EXPECTED_SLUGS:
         assert expected in slugs
 
@@ -92,4 +82,4 @@ async def test_seed_volunteer_roles_is_idempotent(db_engine):
     async with TestSession() as session:
         result = await session.execute(select(VolunteerRole))
         roles = result.scalars().all()
-    assert len(roles) == 7
+    assert len(roles) == 3
