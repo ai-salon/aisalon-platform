@@ -34,6 +34,7 @@ import httpx
 
 SERVERS = {
     "dev": "http://localhost:8000",
+    "railway-dev": "https://backend-development-1a03.up.railway.app",
     "prod": "https://aisalon-platform-production.up.railway.app",
 }
 
@@ -151,7 +152,7 @@ def main():
     parser.add_argument("files", type=Path, nargs="+", help="One or more role .md files")
     parser.add_argument(
         "--env",
-        choices=["dev", "prod"],
+        choices=["dev", "railway-dev", "prod"],
         default="dev",
         help="Target environment (default: dev)",
     )
