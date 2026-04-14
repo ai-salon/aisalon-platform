@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -61,12 +62,14 @@ export default function UsersPage() {
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
       setError(body.detail ?? "Failed to create user.");
+      toast.error(body.detail ?? "Failed to create user");
       return;
     }
     const created = await r.json();
     setUsers((prev) => [...prev, created]);
     setShowForm(false);
     setForm({ ...EMPTY_FORM, chapter_id: chapters[0]?.id ?? "" });
+    toast.success("User created");
   }
 
   async function handleDelete(user: UserData) {
@@ -77,6 +80,9 @@ export default function UsersPage() {
     });
     if (r.ok) {
       setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      toast.success("User deleted");
+    } else {
+      toast.error("Failed to delete user");
     }
   }
 
@@ -89,6 +95,9 @@ export default function UsersPage() {
     if (r.ok) {
       const updated = await r.json();
       setUsers((prev) => prev.map((u) => (u.id === user.id ? updated : u)));
+      toast.success(updated.is_active ? "User activated" : "User deactivated");
+    } else {
+      toast.error("Failed to update user");
     }
   }
 

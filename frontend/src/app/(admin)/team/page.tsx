@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -137,13 +138,16 @@ export default function TeamPage() {
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
       setError(body.detail ?? "Failed to save.");
+      toast.error(body.detail ?? "Failed to save team member");
       return;
     }
     const saved = await r.json();
     if (editingId) {
       setMembers((prev) => prev.map((m) => (m.id === editingId ? saved : m)));
+      toast.success("Team member updated");
     } else {
       setMembers((prev) => [...prev, saved]);
+      toast.success("Team member added");
     }
     setPhotoFile(null);
     setPhotoPreview("");
@@ -156,7 +160,12 @@ export default function TeamPage() {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (r.ok) setMembers((prev) => prev.filter((m) => m.id !== id));
+    if (r.ok) {
+      setMembers((prev) => prev.filter((m) => m.id !== id));
+      toast.success("Team member removed");
+    } else {
+      toast.error("Failed to remove team member");
+    }
   }
 
   if (status === "loading") return null;

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
+import { toast } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -149,11 +150,14 @@ export default function ArticleEditor({
           body: JSON.stringify({ title, content_md: content, substack_url: substackUrl }),
         });
         if (r.ok) {
+          toast.success("Article saved");
           setSaveLabel("Saved ✓");
         } else {
+          toast.error("Failed to save article");
           setSaveLabel("Error");
         }
       } catch {
+        toast.error("Failed to save article");
         setSaveLabel("Error");
       }
       setSaving(false);
@@ -165,13 +169,20 @@ export default function ArticleEditor({
   const publishArticle = useCallback(async () => {
     setPublishingArticle(true);
     try {
-      await fetch(`${API_URL}/admin/articles/${initial.id}`, {
+      const r = await fetch(`${API_URL}/admin/articles/${initial.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: "published" }),
       });
-      setArticleStatus("published");
-    } catch { /* ignore */ }
+      if (r.ok) {
+        setArticleStatus("published");
+        toast.success("Article marked as done");
+      } else {
+        toast.error("Failed to update article status");
+      }
+    } catch {
+      toast.error("Failed to update article status");
+    }
     setPublishingArticle(false);
   }, [initial.id, token]);
 

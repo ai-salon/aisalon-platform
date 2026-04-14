@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
+import { toast } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const PROVIDERS = ["assemblyai", "google"] as const;
@@ -98,18 +99,25 @@ function SystemSettingSection({
     setSaving(false);
     if (!r.ok) {
       setError("Failed to save.");
+      toast.error("Failed to save setting");
       return;
     }
+    toast.success("Setting saved");
     setValue("");
     setEditingKey(null);
     onRefresh();
   }
 
   async function handleDelete(key: string) {
-    await fetch(`${API_URL}/admin/system-settings/${key}`, {
+    const r = await fetch(`${API_URL}/admin/system-settings/${key}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
+    if (r.ok) {
+      toast.success("Setting removed");
+    } else {
+      toast.error("Failed to remove setting");
+    }
     onRefresh();
   }
 
@@ -292,8 +300,10 @@ export default function SettingsPage() {
     setSaving(false);
     if (!r.ok) {
       setError("Failed to save key.");
+      toast.error("Failed to save API key");
       return;
     }
+    toast.success("API key saved");
     setValue("");
     setEditing(null);
     const updated = await fetch(`${API_URL}/admin/api-keys`, {
@@ -309,6 +319,9 @@ export default function SettingsPage() {
     });
     if (r.ok) {
       setKeys((prev) => prev.filter((k) => k.provider !== provider));
+      toast.success("API key removed");
+    } else {
+      toast.error("Failed to remove API key");
     }
   }
 
