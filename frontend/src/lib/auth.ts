@@ -1,7 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// API_URL is a server-only env var (read at runtime); falls back to the
+// build-time NEXT_PUBLIC_API_URL for local dev.
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
