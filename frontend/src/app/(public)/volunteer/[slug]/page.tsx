@@ -3,8 +3,12 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+const ABOUT_AI_SALON = `The Ai Salon is a global community of curious, thoughtful people gathered around one question: what does AI mean for humanity? Founded in San Francisco, we host small, intimate discussion groups in cities around the world — bringing together engineers, ethicists, artists, policymakers, and everyday citizens to explore AI's sociological, economic, cultural, and philosophical implications. We believe these conversations are too important to leave to technologists alone. The Salon is powered entirely by volunteers who share our commitment to rigorous, human-centered inquiry.`;
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -138,31 +142,48 @@ export default function VolunteerRoleDetailPage() {
       {/* ── CONTENT ── */}
       <section style={{ background: "#f8f6ec", padding: "64px 30px" }}>
         <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          {/* Description */}
-          <div style={{ background: "#fff", borderRadius: 10, padding: "40px 44px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginBottom: 32 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginTop: 0, marginBottom: 16 }}>About This Role</h2>
-            <div style={{ fontSize: 15, color: "#444", lineHeight: 1.8 }}>
-              {role.description.split("\n").map((line, i) => {
-                if (line.startsWith("**") && line.endsWith("**")) {
-                  return <p key={i} style={{ fontWeight: 700, color: "#111", marginBottom: 4 }}>{line.replace(/\*\*/g, "")}</p>;
-                }
-                if (line.trim() === "") return <br key={i} />;
-                return <p key={i} style={{ margin: "0 0 12px" }}>{line.replace(/\*\*/g, "")}</p>;
-              })}
-            </div>
+
+          {/* About the Ai Salon */}
+          <div style={{ background: "#fff", borderRadius: 10, padding: "32px 44px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginBottom: 24 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af", marginTop: 0, marginBottom: 12 }}>
+              About the Ai Salon
+            </p>
+            <p style={{ fontSize: 15, color: "#444", lineHeight: 1.8, margin: 0 }}>
+              {ABOUT_AI_SALON}
+            </p>
           </div>
 
-          {/* Requirements */}
-          {role.requirements && (
-            <div style={{ background: "#fff", borderRadius: 10, padding: "40px 44px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginBottom: 32 }}>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginTop: 0, marginBottom: 16 }}>What We&apos;re Looking For</h2>
-              <ul style={{ fontSize: 15, color: "#444", lineHeight: 1.8, paddingLeft: 20, margin: 0 }}>
-                {role.requirements.split("\n").filter(Boolean).map((req, i) => (
-                  <li key={i} style={{ marginBottom: 8 }}>{req.replace(/^-\s*/, "")}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {/* Role content — rendered as markdown */}
+          <div style={{ background: "#fff", borderRadius: 10, padding: "40px 44px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", marginBottom: 32 }}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => (
+                  <p style={{ fontSize: 15, color: "#444", lineHeight: 1.8, margin: "0 0 14px" }}>{children}</p>
+                ),
+                h2: ({ children }) => (
+                  <h2 style={{ fontSize: 19, fontWeight: 700, color: "#111", margin: "28px 0 10px" }}>{children}</h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111", margin: "20px 0 8px" }}>{children}</h3>
+                ),
+                ul: ({ children }) => (
+                  <ul style={{ paddingLeft: 20, margin: "8px 0 16px", color: "#444" }}>{children}</ul>
+                ),
+                li: ({ children }) => (
+                  <li style={{ fontSize: 15, lineHeight: 1.8, marginBottom: 6 }}>{children}</li>
+                ),
+                strong: ({ children }) => (
+                  <strong style={{ fontWeight: 700, color: "#111" }}>{children}</strong>
+                ),
+                a: ({ href, children }) => (
+                  <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2", textDecoration: "none", fontWeight: 600 }}>{children}</a>
+                ),
+              }}
+            >
+              {role.description}
+            </ReactMarkdown>
+          </div>
 
           {/* CTA / Form */}
           {submitted ? (

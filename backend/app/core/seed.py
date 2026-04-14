@@ -378,22 +378,23 @@ _VOLUNTEER_ROLES = [
         title="Marketing & Social Lead",
         slug="marketing-social-lead",
         description=(
-            "Shape the public-facing voice of The Ai Salon across Substack, LinkedIn, and "
-            "Instagram/X. You'll own our content strategy — turning salon conversations into "
-            "thought-leadership pieces, social posts, and newsletter content that grows our "
-            "audience and introduces new people to the community. This is a creative, "
-            "high-ownership role where your work reaches thousands."
-        ),
-        requirements=(
+            "Shape the public-facing voice of The Ai Salon across our Substack newsletter, "
+            "LinkedIn, and Instagram/X. You'll own our content strategy — turning salon "
+            "conversations into thought-leadership pieces, social posts, and newsletter "
+            "content that grows our audience and introduces new people to the community.\n\n"
+            "## Who would be a good fit?\n\n"
             "You're probably someone who genuinely loves both writing and building audiences "
             "online. Maybe you've run a newsletter, managed a brand's social presence, or "
             "created content that earned real engagement — and you found it satisfying rather "
-            "than exhausting. You follow AI discourse closely and have opinions about it. "
-            "You're comfortable working independently, setting your own content calendar, and "
-            "experimenting with what resonates. A background in content strategy, journalism, "
-            "or marketing helps, but what matters most is that you can write well across "
-            "formats and care about the ideas you're sharing."
+            "than exhausting. You follow AI discourse closely and have opinions about it.\n\n"
+            "**What you'll be doing:**\n"
+            "- Write and schedule regular posts across LinkedIn and Instagram/X\n"
+            "- Produce newsletter pieces for our Substack that distill salon insights for a broader audience\n"
+            "- Build and maintain a rolling content calendar\n"
+            "- Repurpose salon transcripts and articles into social-friendly formats\n"
+            "- Track engagement and run experiments to grow our audience"
         ),
+        requirements=None,
         time_commitment="2-4 hours/week",
         display_order=0,
     ),
@@ -402,20 +403,24 @@ _VOLUNTEER_ROLES = [
         slug="online-community-manager",
         description=(
             "Keep the Ai Salon community alive and connected between events. You'll manage "
-            "our online channels — WhatsApp groups, Discord, and others — fostering member "
-            "conversations, welcoming new members, and designing the small moments of "
-            "connection that turn one-time attendees into an ongoing community. You'll also "
-            "help surface members who might want to get more involved as volunteers or hosts."
-        ),
-        requirements=(
+            "our online channels — including our WhatsApp groups and Discord server — "
+            "fostering member conversations, welcoming new members, and creating the moments "
+            "of connection that turn one-time attendees into an ongoing community.\n\n"
+            "## Who would be a good fit?\n\n"
             "This role suits someone who finds community-building genuinely energizing — the "
             "kind of person who naturally makes introductions, checks in on people, and knows "
             "when a group conversation needs a nudge. You probably have some experience "
-            "managing an online community or group, even informally. You're organized enough "
-            "to stay on top of multiple channels but warm and human in how you show up. You "
-            "don't need to be a deep AI expert — genuine curiosity and a desire to help "
-            "people connect is what matters most here."
+            "managing an online community or group, even informally. You don't need to be a "
+            "deep AI expert — genuine curiosity and a desire to help people connect is what "
+            "matters most.\n\n"
+            "**What you'll be doing:**\n"
+            "- Moderate and animate our WhatsApp groups and Discord server\n"
+            "- Welcome new members and help them find their place in the community\n"
+            "- Spot and surface interesting conversations worth amplifying\n"
+            "- Keep regional and global members connected between events\n"
+            "- Run occasional community pulse checks or informal surveys"
         ),
+        requirements=None,
         time_commitment="2-4 hours/week",
         display_order=1,
     ),
@@ -426,20 +431,22 @@ _VOLUNTEER_ROLES = [
             "Mine and organize insights from 2+ years of AI Salon discussions across cities "
             "and disciplines. Working with transcripts and summaries from our events, you'll "
             "identify recurring themes, track how public AI discourse is evolving, and shape "
-            "that material into structured knowledge products — reports, briefings, and "
-            "thought-leadership pieces — culminating in an Annual AI Salon Index Report."
-        ),
-        requirements=(
+            "that material into structured reports — published on our Substack and shared "
+            "with our community — culminating in an Annual AI Salon Index Report.\n\n"
+            "## Who would be a good fit?\n\n"
             "You're drawn to this if you love finding patterns in a pile of qualitative "
             "material and turning them into something coherent and useful. Maybe you've done "
             "research synthesis, policy analysis, journalism, or academic writing — anything "
-            "where the craft is making sense of complex, messy information and communicating "
-            "it clearly. You're interested in AI not just as a technical topic but as a "
-            "social and cultural phenomenon. Working with AI-assisted tools for analysis and "
-            "writing feels natural, not intimidating. If you've ever wished someone would "
-            "just sit down and make sense of all the AI conversation happening globally, you "
-            "might be the person to do it."
+            "where the craft is making sense of complex, messy information. You're interested "
+            "in AI not just as a technical topic but as a social and cultural phenomenon.\n\n"
+            "**What you'll be doing:**\n"
+            "- Review transcripts and summaries from past and upcoming salon events\n"
+            "- Identify cross-cutting themes across cities, disciplines, and time\n"
+            "- Write thematic reports and briefings published on our Substack\n"
+            "- Lead production of the Annual AI Salon Index Report\n"
+            "- Work with AI-assisted tools to surface patterns across our archive"
         ),
+        requirements=None,
         time_commitment="2-4 hours/week",
         display_order=2,
     ),

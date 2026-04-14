@@ -6,14 +6,17 @@ Reads a role markdown from knowledge-base/06-Volunteer-Roles/ and upserts it
 via the admin API (creates if the slug is new, updates if it already exists).
 
 Usage:
-    # Dev server (default)
-    poetry run python scripts/push_volunteer_role.py ../../knowledge-base/06-Volunteer-Roles/Chapter-Lead.md
+    # Push a single role to dev (default)
+    AISALON_EMAIL=admin@aisalon.xyz AISALON_PASSWORD=salonconvo \\
+        poetry run python scripts/push_volunteer_role.py ../../knowledge-base/06-Volunteer-Roles/Marketing-Social-Lead.md
+
+    # Wipe all existing roles then push all three
+    AISALON_EMAIL=admin@aisalon.xyz AISALON_PASSWORD=salonconvo \\
+        poetry run python scripts/push_volunteer_role.py \\
+        ../../knowledge-base/06-Volunteer-Roles/*.md --wipe
 
     # Production
-    poetry run python scripts/push_volunteer_role.py ../../knowledge-base/06-Volunteer-Roles/Chapter-Lead.md --env prod
-
-    # Custom URL
-    poetry run python scripts/push_volunteer_role.py path/to/Role.md --url https://my-server.example.com
+    poetry run python scripts/push_volunteer_role.py path/to/Role.md --env prod
 
 Auth (provide one way):
     AISALON_EMAIL and AISALON_PASSWORD env vars  (recommended)
@@ -45,36 +48,37 @@ def _section(text: str, heading: str) -> str:
 
 def _slug_from_title(title: str) -> str:
     slug = title.lower()
-    slug = re.sub(r"[&]", "", slug)          # drop ampersands
-    slug = re.sub(r"[^a-z0-9]+", "-", slug)  # non-alphanum → hyphen
+    slug = re.sub(r"[&]", "", slug)
+    slug = re.sub(r"[^a-z0-9]+", "-", slug)
     return slug.strip("-")
 
 
 def parse_role_markdown(path: Path) -> dict:
     text = path.read_text()
 
-    # Title from first # heading
     title_match = re.search(r"^# (.+)$", text, re.MULTILINE)
     if not title_match:
         raise ValueError(f"No top-level heading found in {path}")
     title = title_match.group(1).strip()
 
-    # Support both heading styles
-    description = _section(text, "About This Role") or _section(text, "Overview")
-    if not description:
+    about = _section(text, "About This Role") or _section(text, "Overview")
+    if not about:
         raise ValueError(f"No '## About This Role' section found in {path}")
 
-    requirements_raw = (
-        _section(text, "Who Would Be a Good Fit?")
-        or _section(text, "Requirements")
-    )
+    who = _section(text, "Who Would Be a Good Fit?") or _section(text, "Requirements")
     time_commitment = _section(text, "Time Commitment") or None
+
+    # Combine into one markdown block for the description field
+    if who:
+        description = f"{about}\n\n## Who would be a good fit?\n\n{who}"
+    else:
+        description = about
 
     return {
         "title": title,
         "slug": _slug_from_title(title),
         "description": description,
-        "requirements": requirements_raw or None,
+        "requirements": None,   # folded into description
         "time_commitment": time_commitment,
     }
 
@@ -88,21 +92,43 @@ def login(client: httpx.Client, email: str, password: str) -> str:
     return resp.json()["access_token"]
 
 
-def get_existing_role(client: httpx.Client, slug: str) -> dict | None:
-    """Check if a role with this slug already exists via the public endpoint."""
-    resp = client.get(f"/volunteer-roles/{slug}")
-    if resp.status_code == 200:
-        return resp.json()
-    if resp.status_code == 404:
-        return None
+def list_all_roles(client: httpx.Client, token: str) -> list[dict]:
+    """List all roles (including inactive) via the admin endpoint."""
+    resp = client.get(
+        "/admin/volunteer-roles",
+        headers={"Authorization": f"Bearer {token}"},
+    )
     resp.raise_for_status()
+    return resp.json()
+
+
+def wipe_all_roles(client: httpx.Client, token: str) -> None:
+    """Hard-delete all volunteer roles via the admin API."""
+    roles = list_all_roles(client, token)
+    if not roles:
+        print("  No existing roles to wipe.")
+        return
+    for role in roles:
+        resp = client.delete(
+            f"/admin/volunteer-roles/{role['id']}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        if resp.status_code not in (200, 204):
+            print(f"  Warning: could not delete {role['slug']} ({resp.status_code})")
+        else:
+            print(f"  Deleted: {role['title']}")
+
+
+def get_existing_role_by_slug(client: httpx.Client, token: str, slug: str) -> dict | None:
+    """Find a role by slug using the admin endpoint (includes inactive roles)."""
+    roles = list_all_roles(client, token)
+    return next((r for r in roles if r["slug"] == slug), None)
 
 
 def create_role(client: httpx.Client, token: str, payload: dict, display_order: int) -> dict:
-    payload = {**payload, "display_order": display_order}
     resp = client.post(
         "/admin/volunteer-roles",
-        json=payload,
+        json={**payload, "display_order": display_order},
         headers={"Authorization": f"Bearer {token}"},
     )
     resp.raise_for_status()
@@ -112,7 +138,7 @@ def create_role(client: httpx.Client, token: str, payload: dict, display_order: 
 def update_role(client: httpx.Client, token: str, role_id: str, payload: dict) -> dict:
     resp = client.patch(
         f"/admin/volunteer-roles/{role_id}",
-        json=payload,
+        json={**payload, "is_active": True},
         headers={"Authorization": f"Bearer {token}"},
     )
     resp.raise_for_status()
@@ -122,8 +148,8 @@ def update_role(client: httpx.Client, token: str, role_id: str, payload: dict) -
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="Push a volunteer role markdown to the platform.")
-    parser.add_argument("file", type=Path, help="Path to the role .md file")
+    parser = argparse.ArgumentParser(description="Push volunteer role markdown files to the platform.")
+    parser.add_argument("files", type=Path, nargs="+", help="One or more role .md files")
     parser.add_argument(
         "--env",
         choices=["dev", "prod"],
@@ -134,10 +160,15 @@ def main():
     parser.add_argument("--email", help="Admin email (or set AISALON_EMAIL)")
     parser.add_argument("--password", help="Admin password (or set AISALON_PASSWORD)")
     parser.add_argument(
-        "--display-order",
+        "--wipe",
+        action="store_true",
+        help="Delete all existing volunteer roles before pushing",
+    )
+    parser.add_argument(
+        "--display-order-start",
         type=int,
         default=0,
-        help="display_order for new roles (ignored on update, default: 0)",
+        help="display_order for the first new role; increments per file (default: 0)",
     )
     args = parser.parse_args()
 
@@ -151,32 +182,38 @@ def main():
             "or pass --email / --password."
         )
 
-    if not args.file.exists():
-        sys.exit(f"File not found: {args.file}")
+    for f in args.files:
+        if not f.exists():
+            sys.exit(f"File not found: {f}")
 
-    # Parse markdown
-    print(f"Parsing {args.file.name}...")
-    role_data = parse_role_markdown(args.file)
-    print(f"  title: {role_data['title']}")
-    print(f"  slug:  {role_data['slug']}")
-    print(f"  time:  {role_data['time_commitment']}")
+    # Parse all files first so we fail fast on bad markdown
+    parsed = []
+    for f in args.files:
+        print(f"Parsing {f.name}...")
+        role = parse_role_markdown(f)
+        print(f"  title: {role['title']}  slug: {role['slug']}  time: {role['time_commitment']}")
+        parsed.append(role)
 
     with httpx.Client(base_url=base_url, timeout=15) as client:
-        # Authenticate
         print(f"\nAuthenticating against {base_url}...")
         token = login(client, email, password)
         print("  OK")
 
-        # Upsert
-        existing = get_existing_role(client, role_data["slug"])
-        if existing:
-            print(f"\nRole '{role_data['slug']}' exists (id={existing['id']}) — updating...")
-            result = update_role(client, token, existing["id"], role_data)
-            print(f"  Updated: {result['title']} (id={result['id']})")
-        else:
-            print(f"\nRole '{role_data['slug']}' not found — creating...")
-            result = create_role(client, token, role_data, args.display_order)
-            print(f"  Created: {result['title']} (id={result['id']})")
+        if args.wipe:
+            print("\nWiping all existing volunteer roles...")
+            wipe_all_roles(client, token)
+
+        for i, role_data in enumerate(parsed):
+            display_order = args.display_order_start + i
+            existing = get_existing_role_by_slug(client, token, role_data["slug"])
+            if existing:
+                print(f"\nRole '{role_data['slug']}' exists — updating...")
+                result = update_role(client, token, existing["id"], role_data)
+                print(f"  Updated: {result['title']} (id={result['id']})")
+            else:
+                print(f"\nRole '{role_data['slug']}' not found — creating (order={display_order})...")
+                result = create_role(client, token, role_data, display_order)
+                print(f"  Created: {result['title']} (id={result['id']})")
 
     print("\nDone.")
 
