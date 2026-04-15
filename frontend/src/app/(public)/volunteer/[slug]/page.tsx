@@ -168,10 +168,10 @@ export default function VolunteerRoleDetailPage() {
                   <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111", margin: "20px 0 8px" }}>{children}</h3>
                 ),
                 ul: ({ children }) => (
-                  <ul style={{ paddingLeft: 20, margin: "8px 0 16px", color: "#444" }}>{children}</ul>
+                  <ul style={{ listStyleType: "disc", paddingLeft: 24, margin: "8px 0 16px", color: "#444" }}>{children}</ul>
                 ),
                 li: ({ children }) => (
-                  <li style={{ fontSize: 15, lineHeight: 1.8, marginBottom: 6 }}>{children}</li>
+                  <li style={{ fontSize: 15, lineHeight: 1.7, marginBottom: 3 }}>{children}</li>
                 ),
                 strong: ({ children }) => (
                   <strong style={{ fontWeight: 700, color: "#111" }}>{children}</strong>
