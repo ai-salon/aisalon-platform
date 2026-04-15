@@ -39,6 +39,9 @@ type Role = {
   description: string;
   requirements: string | null;
   time_commitment: string | null;
+  chapter_id: string | null;
+  chapter_code: string | null;
+  chapter_name: string | null;
 };
 
 export default function VolunteerRoleDetailPage() {
@@ -125,15 +128,29 @@ export default function VolunteerRoleDetailPage() {
               <i className="fa fa-arrow-left" style={{ marginRight: 6 }} /> All Roles
             </Link>
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 20 }} />
-            <h1 style={{ fontSize: 44, fontWeight: 800, color: "#111", margin: "0 0 12px", lineHeight: 1.15 }}>
+            <h1 style={{ fontSize: 44, fontWeight: 800, color: "#111", margin: "0 0 14px", lineHeight: 1.15 }}>
               {role.title}
             </h1>
-            {role.time_commitment && (
-              <div style={{ fontSize: 16, color: "#56a1d2", fontWeight: 600, marginBottom: 16 }}>
-                <i className="fa fa-clock-o" style={{ marginRight: 8 }} />
-                {role.time_commitment}
-              </div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+              <span style={{
+                fontSize: 11,
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: 0.8,
+                color: "#fff",
+                background: role.chapter_code ? "#d2b356" : "#9ca3af",
+                padding: "3px 8px",
+                borderRadius: 4,
+              }}>
+                {role.chapter_name ?? "Global"}
+              </span>
+              {role.time_commitment && (
+                <span style={{ fontSize: 16, color: "#56a1d2", fontWeight: 600 }}>
+                  <i className="fa fa-clock-o" style={{ marginRight: 8 }} />
+                  {role.time_commitment}
+                </span>
+              )}
+            </div>
             <div style={{ width: 40, height: 4, background: "#d2b356" }} />
           </div>
         </div>

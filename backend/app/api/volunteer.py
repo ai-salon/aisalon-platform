@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.models.chapter import Chapter
 from app.models.user import User, UserRole
 from app.models.volunteer import VolunteerRole, VolunteerApplication, ApplicationStatus
 
@@ -38,6 +39,8 @@ class VolunteerRolePublic(BaseModel):
     requirements: str | None
     time_commitment: str | None
     chapter_id: str | None
+    chapter_code: str | None = None
+    chapter_name: str | None = None
     display_order: int
 
     model_config = {"from_attributes": True}
@@ -96,6 +99,8 @@ class VolunteerRoleResponse(BaseModel):
     requirements: str | None
     time_commitment: str | None
     chapter_id: str | None
+    chapter_code: str | None = None
+    chapter_name: str | None = None
     is_active: bool
     display_order: int
     application_count: int = 0
@@ -129,28 +134,80 @@ class VolunteerApplicationUpdate(BaseModel):
     admin_notes: str | None = None
 
 
+# ── Response builders ────────────────────────────────────────────────────────
+
+def _role_public(role: VolunteerRole) -> VolunteerRolePublic:
+    ch = role.chapter
+    return VolunteerRolePublic(
+        id=role.id,
+        title=role.title,
+        slug=role.slug,
+        description=role.description,
+        requirements=role.requirements,
+        time_commitment=role.time_commitment,
+        chapter_id=role.chapter_id,
+        chapter_code=ch.code if ch else None,
+        chapter_name=ch.name if ch else None,
+        display_order=role.display_order,
+    )
+
+
+def _role_response(role: VolunteerRole, application_count: int = 0) -> VolunteerRoleResponse:
+    ch = role.chapter
+    return VolunteerRoleResponse(
+        id=role.id,
+        title=role.title,
+        slug=role.slug,
+        description=role.description,
+        requirements=role.requirements,
+        time_commitment=role.time_commitment,
+        chapter_id=role.chapter_id,
+        chapter_code=ch.code if ch else None,
+        chapter_name=ch.name if ch else None,
+        is_active=role.is_active,
+        display_order=role.display_order,
+        application_count=application_count,
+    )
+
+
 # ── Public Endpoints ─────────────────────────────────────────────────────────
 
 @router.get("/volunteer-roles", response_model=list[VolunteerRolePublic])
-async def list_volunteer_roles(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
+async def list_volunteer_roles(
+    chapter_code: str | None = None,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
         select(VolunteerRole)
+        .options(selectinload(VolunteerRole.chapter))
         .where(VolunteerRole.is_active.is_(True))
-        .order_by(VolunteerRole.display_order, VolunteerRole.title)
     )
-    return result.scalars().all()
+    if chapter_code:
+        # Show global roles + roles for the requested chapter
+        chapter_result = await db.execute(
+            select(Chapter).where(Chapter.code == chapter_code)
+        )
+        chapter = chapter_result.scalar_one_or_none()
+        chapter_id = chapter.id if chapter else None
+        stmt = stmt.where(
+            (VolunteerRole.chapter_id == chapter_id) | (VolunteerRole.chapter_id.is_(None))
+        )
+    stmt = stmt.order_by(VolunteerRole.display_order, VolunteerRole.title)
+    result = await db.execute(stmt)
+    return [_role_public(r) for r in result.scalars().all()]
 
 
 @router.get("/volunteer-roles/{slug}", response_model=VolunteerRolePublic)
 async def get_volunteer_role(slug: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(VolunteerRole)
+        .options(selectinload(VolunteerRole.chapter))
         .where(VolunteerRole.slug == slug, VolunteerRole.is_active.is_(True))
     )
     role = result.scalar_one_or_none()
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
-    return role
+    return _role_public(role)
 
 
 @router.post(
@@ -198,7 +255,7 @@ async def admin_list_roles(
     _require_lead_or_above(current_user)
     ch = _chapter_filter(current_user)
 
-    stmt = select(VolunteerRole)
+    stmt = select(VolunteerRole).options(selectinload(VolunteerRole.chapter))
     if ch:
         stmt = stmt.where(
             (VolunteerRole.chapter_id == ch) | (VolunteerRole.chapter_id.is_(None))
@@ -222,12 +279,7 @@ async def admin_list_roles(
     else:
         counts = {}
 
-    out = []
-    for r in roles:
-        data = VolunteerRoleResponse.model_validate(r)
-        data.application_count = counts.get(r.id, 0)
-        out.append(data)
-    return out
+    return [_role_response(r, counts.get(r.id, 0)) for r in roles]
 
 
 @router.post(
@@ -244,8 +296,8 @@ async def admin_create_role(
     role = VolunteerRole(**body.model_dump())
     db.add(role)
     await db.commit()
-    await db.refresh(role)
-    return VolunteerRoleResponse.model_validate(role)
+    await db.refresh(role, attribute_names=["chapter"])
+    return _role_response(role)
 
 
 @router.patch("/admin/volunteer-roles/{role_id}", response_model=VolunteerRoleResponse)
@@ -264,8 +316,8 @@ async def admin_update_role(
     for key, val in body.model_dump(exclude_none=True).items():
         setattr(role, key, val)
     await db.commit()
-    await db.refresh(role)
-    return VolunteerRoleResponse.model_validate(role)
+    await db.refresh(role, attribute_names=["chapter"])
+    return _role_response(role)
 
 
 @router.delete("/admin/volunteer-roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)

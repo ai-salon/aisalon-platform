@@ -3,6 +3,10 @@ import enum
 from sqlalchemy import String, Text, Integer, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from app.models.base import Base, TimestampMixin
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.chapter import Chapter
 
 
 class ApplicationStatus(str, enum.Enum):
@@ -25,6 +29,9 @@ class VolunteerRole(Base, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    chapter: Mapped["Chapter | None"] = relationship(
+        "Chapter", foreign_keys=[chapter_id], lazy="select"
+    )
     applications: Mapped[list["VolunteerApplication"]] = relationship(
         "VolunteerApplication", back_populates="role", lazy="select"
     )

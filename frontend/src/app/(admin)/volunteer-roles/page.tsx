@@ -14,6 +14,8 @@ type VolunteerRole = {
   requirements: string | null;
   time_commitment: string | null;
   chapter_id: string | null;
+  chapter_code: string | null;
+  chapter_name: string | null;
   is_active: boolean;
   display_order: number;
   application_count: number;
@@ -238,7 +240,7 @@ export default function VolunteerRolesPage() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
-                {["Role", "Time", "Applications", "Status", "Actions"].map((h) => (
+                {["Role", "Location", "Time", "Applications", "Status", "Actions"].map((h) => (
                   <th key={h} style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}>
                     {h}
                   </th>
@@ -251,6 +253,16 @@ export default function VolunteerRolesPage() {
                   <td style={{ padding: "14px 20px" }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{role.title}</div>
                     <div style={{ fontSize: 12, color: "#9ca3af" }}>/{role.slug}</div>
+                  </td>
+                  <td style={{ padding: "14px 20px" }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8,
+                      color: "#fff",
+                      background: role.chapter_code ? "#d2b356" : "#9ca3af",
+                      padding: "2px 7px", borderRadius: 4,
+                    }}>
+                      {role.chapter_name ?? "Global"}
+                    </span>
                   </td>
                   <td style={{ padding: "14px 20px", fontSize: 14, color: "#696969" }}>
                     {role.time_commitment ?? "—"}
