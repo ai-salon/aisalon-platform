@@ -46,8 +46,8 @@ export default function ArticlesPage() {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     } as RequestInit)
-      .then((r) => r.json())
-      .then(setArticles)
+      .then((r) => (r.ok ? r.json() : Promise.resolve([])))
+      .then((data) => setArticles(Array.isArray(data) ? data : []))
       .catch(() => {});
   }
 

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import OnboardingBanner, { type OnboardingStep } from '@/components/OnboardingBanner'
+import GuideNudge from '@/components/GuideNudge'
 
 const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
   {
@@ -60,14 +61,20 @@ export default function ChapterLeadDashboard({
 
   return (
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '40px 28px' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800, color: '#111', marginBottom: 6 }}>
-        Welcome, {userName}
-      </h1>
-      {chapterName && (
-        <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 24 }}>{chapterName}</p>
-      )}
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ fontSize: 22, fontWeight: 400, color: '#111', margin: '0 0 4px' }}>
+          Welcome, {userName}
+        </p>
+        <p style={{ fontSize: 15, color: '#6b7280', margin: 0 }}>
+          Let&apos;s get you set up!
+        </p>
+        {chapterName && (
+          <p style={{ fontSize: 13, color: '#9ca3af', margin: '4px 0 0' }}>{chapterName}</p>
+        )}
+      </div>
 
       <OnboardingBanner steps={CHAPTER_LEAD_STEPS} completedSteps={completedSteps} />
+      {completedSteps.every(Boolean) && <GuideNudge />}
 
       {/* Stats row */}
       <div

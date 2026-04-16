@@ -26,6 +26,9 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetSaving, setResetSaving] = useState(false);
 
   const token = (session as any)?.accessToken;
   const userRole = (session?.user as any)?.role;
@@ -91,6 +94,24 @@ export default function UsersPage() {
       toast.success("User deleted");
     } else {
       toast.error("Failed to delete user");
+    }
+  }
+
+  async function handleResetPassword(userId: string) {
+    if (!resetPassword.trim()) return;
+    setResetSaving(true);
+    const r = await fetch(`${API_URL}/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ password: resetPassword }),
+    });
+    setResetSaving(false);
+    if (r.ok) {
+      toast.success("Password updated");
+      setResetUserId(null);
+      setResetPassword("");
+    } else {
+      toast.error("Failed to update password");
     }
   }
 
@@ -221,61 +242,104 @@ export default function UsersPage() {
           </thead>
           <tbody>
             {users.map((u, i) => (
-              <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 500, color: "#111" }}>{u.email}</td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.username ?? "—"}</td>
-                <td style={{ padding: "14px 20px" }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12, textTransform: "capitalize",
-                    background: u.role === "superadmin" ? "#fef9c3" : u.role === "host" ? "#f0fdf4" : "#eff6ff",
-                    color: u.role === "superadmin" ? "#a16207" : u.role === "host" ? "#16a34a" : "#56a1d2",
-                  }}>
-                    {u.role.replace("_", " ")}
-                  </span>
-                </td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#d2b356", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
-                  {chapterName(u.chapter_id)}
-                </td>
-                <td style={{ padding: "14px 20px" }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 12,
-                    background: u.is_active ? "#dcfce7" : "#f3f4f6",
-                    color: u.is_active ? "#16a34a" : "#9ca3af",
-                  }}>
-                    {u.is_active ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
-                  {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : "Never"}
-                </td>
-                <td style={{ padding: "14px 20px", fontSize: 13, color: "#111", fontWeight: 600 }}>
-                  {u.login_count_30d}
-                </td>
-                <td style={{ padding: "14px 20px", textAlign: "right", whiteSpace: "nowrap" }}>
-                  <button
-                    onClick={() => toggleActive(u)}
-                    style={{
-                      fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
-                      border: `1.5px solid ${u.is_active ? "#fca5a5" : "#86efac"}`,
-                      color: u.is_active ? "#ef4444" : "#16a34a",
-                      marginRight: 6,
-                    }}
-                  >
-                    {u.is_active ? "Deactivate" : "Activate"}
-                  </button>
-                  <button
-                    onClick={() => handleDelete(u)}
-                    title="Delete user"
-                    style={{
-                      fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
-                      border: "1.5px solid #fca5a5",
-                      color: "#ef4444",
-                    }}
-                  >
-                    <i className="fa fa-trash-o" />
-                  </button>
-                </td>
-              </tr>
+              <>
+                <tr key={u.id} style={{ borderBottom: resetUserId === u.id ? "none" : i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
+                  <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 500, color: "#111" }}>{u.email}</td>
+                  <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.username ?? "—"}</td>
+                  <td style={{ padding: "14px 20px" }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12, textTransform: "capitalize",
+                      background: u.role === "superadmin" ? "#fef9c3" : u.role === "host" ? "#f0fdf4" : "#eff6ff",
+                      color: u.role === "superadmin" ? "#a16207" : u.role === "host" ? "#16a34a" : "#56a1d2",
+                    }}>
+                      {u.role.replace("_", " ")}
+                    </span>
+                  </td>
+                  <td style={{ padding: "14px 20px", fontSize: 13, color: "#d2b356", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
+                    {chapterName(u.chapter_id)}
+                  </td>
+                  <td style={{ padding: "14px 20px" }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 12,
+                      background: u.is_active ? "#dcfce7" : "#f3f4f6",
+                      color: u.is_active ? "#16a34a" : "#9ca3af",
+                    }}>
+                      {u.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
+                    {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : "Never"}
+                  </td>
+                  <td style={{ padding: "14px 20px", fontSize: 13, color: "#111", fontWeight: 600 }}>
+                    {u.login_count_30d}
+                  </td>
+                  <td style={{ padding: "14px 20px", textAlign: "right", whiteSpace: "nowrap" }}>
+                    <button
+                      onClick={() => { setResetUserId(resetUserId === u.id ? null : u.id); setResetPassword(""); }}
+                      title="Reset password"
+                      style={{
+                        fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
+                        border: `1.5px solid ${resetUserId === u.id ? "#56a1d2" : "#d1d5db"}`,
+                        color: resetUserId === u.id ? "#56a1d2" : "#6b7280",
+                        marginRight: 6,
+                      }}
+                    >
+                      <i className="fa fa-key" />
+                    </button>
+                    <button
+                      onClick={() => toggleActive(u)}
+                      style={{
+                        fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
+                        border: `1.5px solid ${u.is_active ? "#fca5a5" : "#86efac"}`,
+                        color: u.is_active ? "#ef4444" : "#16a34a",
+                        marginRight: 6,
+                      }}
+                    >
+                      {u.is_active ? "Deactivate" : "Activate"}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(u)}
+                      title="Delete user"
+                      style={{
+                        fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
+                        border: "1.5px solid #fca5a5",
+                        color: "#ef4444",
+                      }}
+                    >
+                      <i className="fa fa-trash-o" />
+                    </button>
+                  </td>
+                </tr>
+                {resetUserId === u.id && (
+                  <tr key={`${u.id}-reset`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
+                    <td colSpan={8} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280" }}>New password for {u.email}:</span>
+                        <input
+                          type="password"
+                          value={resetPassword}
+                          onChange={(e) => setResetPassword(e.target.value)}
+                          placeholder="Enter new password"
+                          style={{ padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5, width: 220 }}
+                        />
+                        <button
+                          onClick={() => handleResetPassword(u.id)}
+                          disabled={resetSaving || !resetPassword.trim()}
+                          style={{ padding: "6px 14px", fontSize: 12, fontWeight: 700, background: "#56a1d2", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer" }}
+                        >
+                          {resetSaving ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          onClick={() => { setResetUserId(null); setResetPassword(""); }}
+                          style={{ padding: "6px 10px", fontSize: 12, background: "transparent", border: "1.5px solid #d1d5db", borderRadius: 5, cursor: "pointer", color: "#696969" }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>
             ))}
           </tbody>
         </table>

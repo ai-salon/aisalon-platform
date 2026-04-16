@@ -46,22 +46,36 @@ export default function OnboardingBanner({ steps, completedSteps }: OnboardingBa
         </div>
         <div style={{ fontSize: 13, color: '#555' }}>{step.description}</div>
       </div>
-      <Link
-        href={step.ctaHref}
-        style={{
-          padding: '8px 18px',
-          background: '#56a1d2',
-          color: '#fff',
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 700,
-          textDecoration: 'none',
-          whiteSpace: 'nowrap',
-          flexShrink: 0,
-        }}
-      >
-        {step.ctaLabel}
-      </Link>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+        <Link
+          href={step.ctaHref}
+          style={{
+            padding: '8px 18px',
+            background: '#56a1d2',
+            color: '#fff',
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 700,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {step.ctaLabel}
+        </Link>
+        <Link
+          href="/guide"
+          style={{
+            fontSize: 12,
+            color: '#56a1d2',
+            textDecoration: 'none',
+            fontWeight: 500,
+            opacity: 0.75,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Read the full guide →
+        </Link>
+      </div>
     </div>
   )
 }

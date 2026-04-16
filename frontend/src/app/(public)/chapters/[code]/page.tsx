@@ -18,10 +18,13 @@ type Chapter = {
 };
 
 async function getChapter(code: string): Promise<Chapter | null> {
-  const r = await fetch(`${API_URL}/chapters/${code}`, { cache: "no-store" });
-  if (r.status === 404) return null;
-  if (!r.ok) throw new Error("Failed to fetch chapter");
-  return r.json();
+  try {
+    const r = await fetch(`${API_URL}/chapters/${code}`, { cache: "no-store" });
+    if (!r.ok) return null;
+    return r.json();
+  } catch {
+    return null;
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {

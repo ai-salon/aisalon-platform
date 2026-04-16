@@ -634,7 +634,10 @@ async def update_user(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    for field, value in body.model_dump(exclude_none=True).items():
+    data = body.model_dump(exclude_none=True)
+    if "password" in data:
+        data["hashed_password"] = hash_password(data.pop("password"))
+    for field, value in data.items():
         setattr(user, field, value)
     await db.commit()
     await db.refresh(user)

@@ -146,6 +146,7 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
     role: str | None = None
     chapter_id: str | None = None
+    password: str | None = None
 
 
 class UserResponse(BaseModel):

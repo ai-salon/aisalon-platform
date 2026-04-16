@@ -2,6 +2,8 @@ import { auth } from "@/lib/auth";
 import SignOutButton from "./SignOutButton";
 import AdminNav from "./AdminNav";
 
+export const dynamic = "force-dynamic";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 async function getChapterName(token: string, chapterId: string): Promise<string | undefined> {
@@ -24,6 +26,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const userRole: string = (session?.user as { role?: string } | undefined)?.role ?? "";
   const isSuperadmin = userRole === "superadmin";
   const isHost = userRole === "host";
+  const isChapterLead = userRole === "chapter_lead";
   const userChapterId: string | undefined = (session?.user as { chapterId?: string } | undefined)?.chapterId;
   const token: string | undefined = (session as { accessToken?: string } | null)?.accessToken;
 
@@ -34,11 +37,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: "fa-th-large" },
+    { href: "/guide", label: "Guide", icon: "fa-book" },
     { href: "/upload", label: "Upload Conversations", icon: "fa-upload" },
     { href: "/articles", label: "Articles", icon: "fa-file-text-o" },
     ...(!isHost ? [{ href: "/community", label: "Community", icon: "fa-bar-chart" }] : []),
     ...(!isHost ? [{ href: "/social", label: "Social Media", icon: "fa-share-alt" }] : []),
-    ...(!isHost ? [{ href: "/chapters", label: "Chapters", icon: "fa-map-marker" }] : []),
+    ...(isSuperadmin ? [{ href: "/chapters", label: "Chapters", icon: "fa-map-marker" }] : []),
+    ...(isChapterLead ? [{ href: "/chapters", label: "My Chapter", icon: "fa-map-marker" }] : []),
     ...(!isHost ? [{ href: "/team", label: "Team", icon: "fa-users" }] : []),
     ...(isSuperadmin ? [{ href: "/users", label: "Users", icon: "fa-user-circle-o" }] : []),
     ...(!isHost ? [{ href: "/volunteer-roles", label: "Volunteer Roles", icon: "fa-hand-paper-o" }] : []),
