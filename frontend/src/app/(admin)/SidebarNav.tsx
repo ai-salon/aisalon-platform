@@ -78,7 +78,7 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
       </div>
 
       {/* Nav items */}
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 16px', flex: 1 }}>
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '0 16px' }}>
         {navItems.map(({ href, label, icon }) => {
           const isActive = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
@@ -108,12 +108,11 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
             </Link>
           )
         })}
+        {/* Sign out — inline after nav items with a small gap */}
+        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+          <SignOutButton />
+        </div>
       </nav>
-
-      {/* Sign out */}
-      <div style={{ padding: '0 16px', borderTop: '1px solid rgba(0,0,0,0.06)', paddingTop: 12 }}>
-        <SignOutButton />
-      </div>
     </div>
   )
 }
