@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any
 from pydantic import BaseModel
 from app.models.api_key import APIKeyProvider
@@ -130,6 +130,13 @@ class ArticleUpdate(BaseModel):
     content_md: str | None = None
     substack_url: str | None = None
     status: ArticleStatus | None = None
+
+
+class ArticleCreate(BaseModel):
+    title: str
+    substack_url: str
+    published_date: date | None = None
+    chapter_id: str | None = None
 
 
 # ── Users ──────────────────────────────────────────────────────────────────────
