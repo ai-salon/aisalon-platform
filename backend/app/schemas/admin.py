@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Any
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from app.models.api_key import APIKeyProvider
 from app.models.job import JobStatus
 from app.models.article import ArticleStatus
@@ -138,6 +138,13 @@ class ArticleCreate(BaseModel):
     published_date: date | None = None
     chapter_id: str | None = None
 
+    @field_validator("substack_url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("substack_url must be a valid HTTP or HTTPS URL")
+        return v
+
 
 # ── Users ──────────────────────────────────────────────────────────────────────
 
@@ -219,11 +226,3 @@ class SystemSettingRequest(BaseModel):
 class SystemSettingResponse(BaseModel):
     key: str
     has_value: bool
-
-
-    platform: str
-    content: str
-    status: str
-    created_at: datetime
-
-    model_config = {"from_attributes": True}

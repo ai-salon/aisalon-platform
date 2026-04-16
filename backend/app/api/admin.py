@@ -341,6 +341,9 @@ async def create_article(
     if current_user.role == UserRole.superadmin:
         if not body.chapter_id:
             raise HTTPException(status_code=422, detail="chapter_id is required for superadmins")
+        chapter = await db.get(Chapter, body.chapter_id)
+        if not chapter:
+            raise HTTPException(status_code=422, detail="Chapter not found")
         chapter_id = body.chapter_id
     else:
         if not current_user.chapter_id:

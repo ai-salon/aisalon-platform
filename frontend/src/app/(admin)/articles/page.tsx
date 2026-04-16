@@ -29,7 +29,6 @@ export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [tab, setTab] = useState<Tab>("articles");
   const [deleting, setDeleting] = useState<string | null>(null);
-  const [isSuperadmin, setIsSuperadmin] = useState(false);
   const [chapters, setChapters] = useState<{ id: string; name: string }[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ title: "", substackUrl: "", publishedDate: "", chapterId: "" });
@@ -37,6 +36,7 @@ export default function ArticlesPage() {
   const [modalError, setModalError] = useState<string | null>(null);
 
   const token = (session as any)?.accessToken;
+  const isSuperadmin = (session as any)?.user?.role === "superadmin";
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -52,9 +52,6 @@ export default function ArticlesPage() {
           setChapters(data.map((c) => ({ id: c.id, name: c.name })));
         }
       })
-      .catch(() => {});
-    fetch(`${API_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => { if (r.ok) setIsSuperadmin(true); })
       .catch(() => {});
   }, [token]);
 
