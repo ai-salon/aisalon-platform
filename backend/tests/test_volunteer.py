@@ -289,7 +289,7 @@ async def test_admin_update_application_status(
 
 # ── RBAC: Chapter Lead Scoping ───────────────────────────────────────────────
 
-async def test_lead_sees_global_and_own_chapter_roles(
+async def test_lead_sees_only_own_chapter_roles(
     client: AsyncClient, db_session, sf_chapter, lead_headers,
 ):
     await _create_role(db_session, slug="global-role", chapter_id=None)
@@ -298,5 +298,5 @@ async def test_lead_sees_global_and_own_chapter_roles(
     r = await client.get("/admin/volunteer-roles", headers=lead_headers)
     assert r.status_code == 200
     slugs = [x["slug"] for x in r.json()]
-    assert "global-role" in slugs
+    assert "global-role" not in slugs
     assert "sf-role" in slugs

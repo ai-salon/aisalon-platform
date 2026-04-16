@@ -183,15 +183,13 @@ async def list_volunteer_roles(
         .where(VolunteerRole.is_active.is_(True))
     )
     if chapter_code:
-        # Show global roles + roles for the requested chapter
+        # Show only roles tagged to this chapter
         chapter_result = await db.execute(
             select(Chapter).where(Chapter.code == chapter_code)
         )
         chapter = chapter_result.scalar_one_or_none()
         chapter_id = chapter.id if chapter else None
-        stmt = stmt.where(
-            (VolunteerRole.chapter_id == chapter_id) | (VolunteerRole.chapter_id.is_(None))
-        )
+        stmt = stmt.where(VolunteerRole.chapter_id == chapter_id)
     stmt = stmt.order_by(VolunteerRole.display_order, VolunteerRole.title)
     result = await db.execute(stmt)
     return [_role_public(r) for r in result.scalars().all()]
@@ -257,9 +255,7 @@ async def admin_list_roles(
 
     stmt = select(VolunteerRole).options(selectinload(VolunteerRole.chapter))
     if ch:
-        stmt = stmt.where(
-            (VolunteerRole.chapter_id == ch) | (VolunteerRole.chapter_id.is_(None))
-        )
+        stmt = stmt.where(VolunteerRole.chapter_id == ch)
     stmt = stmt.order_by(VolunteerRole.display_order, VolunteerRole.title)
     result = await db.execute(stmt)
     roles = result.scalars().all()
@@ -354,9 +350,7 @@ async def admin_list_applications(
         .options(selectinload(VolunteerApplication.role))
     )
     if ch:
-        stmt = stmt.where(
-            (VolunteerRole.chapter_id == ch) | (VolunteerRole.chapter_id.is_(None))
-        )
+        stmt = stmt.where(VolunteerRole.chapter_id == ch)
     if role_id:
         stmt = stmt.where(VolunteerApplication.role_id == role_id)
     if app_status:
