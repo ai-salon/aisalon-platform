@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import OnboardingBanner, { type OnboardingStep } from "@/components/OnboardingBanner";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -2054,18 +2055,68 @@ function TabBar<T extends string>({
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
+const HOST_STEPS: OnboardingStep[] = [
+  {
+    title: "Add your API keys",
+    description: "You need AssemblyAI and Google AI keys to process conversations.",
+    ctaLabel: "Go to Settings",
+    ctaHref: "/settings",
+  },
+  {
+    title: "Upload your first conversation",
+    description: "Record or import an audio file from your last Ai Salon event.",
+    ctaLabel: "Upload now",
+    ctaHref: "/upload",
+  },
+  {
+    title: "Review your generated article",
+    description: "Your conversation has been transcribed and turned into a draft article. Give it a read.",
+    ctaLabel: "View articles",
+    ctaHref: "/articles",
+  },
+];
+
+const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
+  {
+    title: "Add your API keys",
+    description: "You need AssemblyAI and Google AI keys to process conversations.",
+    ctaLabel: "Go to Settings",
+    ctaHref: "/settings",
+  },
+  {
+    title: "Upload your first conversation",
+    description: "Record or import audio from your last event.",
+    ctaLabel: "Upload now",
+    ctaHref: "/upload",
+  },
+  {
+    title: "Complete your chapter profile",
+    description: "Add a tagline and description so members can find you.",
+    ctaLabel: "Edit profile",
+    ctaHref: "/chapters",
+  },
+  {
+    title: "Add your team",
+    description: "Add co-founders and team members to your chapter page.",
+    ctaLabel: "Manage team",
+    ctaHref: "/team",
+  },
+];
+
 export default function WelcomeDashboard({
   userName,
   userEmail,
   userRole,
   userChapter,
   allChapters,
+  completedSteps,
 }: {
   userName: string;
   userEmail: string;
   userRole: string;
   userChapter?: { id: string; code: string; name: string };
   allChapters: { id: string; code: string; name: string }[];
+  completedSteps?: boolean[];
 }) {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken ?? "";
@@ -2075,8 +2126,8 @@ export default function WelcomeDashboard({
   const isSuperadmin = userRole === "superadmin";
 
   // Tab state per role
-  const [hostTab, setHostTab] = useState<"hosting" | "event-creator" | "team">("hosting");
-  const [leadTab, setLeadTab] = useState<"guide" | "event-creator" | "resources">("guide");
+  const [hostTab, setHostTab] = useState<"getting-started" | "event-creator" | "team">("getting-started");
+  const [leadTab, setLeadTab] = useState<"getting-started" | "event-creator" | "guide">("getting-started");
 
   return (
     <div style={{ maxWidth: 1140, margin: "0 auto", padding: "32px 28px" }}>
@@ -2152,15 +2203,20 @@ export default function WelcomeDashboard({
             <>
               <TabBar
                 tabs={[
-                  { id: "hosting" as const, label: "🏡 Hosting Guide" },
+                  { id: "getting-started" as const, label: "🚀 Getting Started" },
                   { id: "event-creator" as const, label: "🗓️ Event Creator" },
                   { id: "team" as const, label: "👥 Chapter Team" },
                 ]}
                 active={hostTab}
                 onChange={setHostTab}
               />
-              {hostTab === "hosting" && (
+              {hostTab === "getting-started" && (
                 <div>
+                  {completedSteps && !completedSteps.every(Boolean) && (
+                    <div style={{ marginBottom: 20 }}>
+                      <OnboardingBanner steps={HOST_STEPS} completedSteps={completedSteps} />
+                    </div>
+                  )}
                   <div style={{ marginBottom: 18 }}>
                     <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
                       🏡 Hosting Guide
@@ -2186,13 +2242,26 @@ export default function WelcomeDashboard({
             <>
               <TabBar
                 tabs={[
-                  { id: "guide" as const, label: "📖 Chapter Guide" },
+                  { id: "getting-started" as const, label: "🚀 Getting Started" },
                   { id: "event-creator" as const, label: "🗓️ Event Creator" },
-                  { id: "resources" as const, label: "📚 Resources" },
+                  { id: "guide" as const, label: "📖 Chapter Guide" },
                 ]}
                 active={leadTab}
                 onChange={setLeadTab}
               />
+              {leadTab === "getting-started" && (
+                <div>
+                  {completedSteps && !completedSteps.every(Boolean) && (
+                    <div style={{ marginBottom: 20 }}>
+                      <OnboardingBanner steps={CHAPTER_LEAD_STEPS} completedSteps={completedSteps} />
+                    </div>
+                  )}
+                  <ResourcesTab isChapterLead />
+                </div>
+              )}
+              {leadTab === "event-creator" && (
+                <EventCreator chapterName={userChapter.name} chapterCode={userChapter.code} />
+              )}
               {leadTab === "guide" && (
                 <ChapterGuideTab
                   chapterId={userChapter.id}
@@ -2200,10 +2269,6 @@ export default function WelcomeDashboard({
                   canEdit
                 />
               )}
-              {leadTab === "event-creator" && (
-                <EventCreator chapterName={userChapter.name} chapterCode={userChapter.code} />
-              )}
-              {leadTab === "resources" && <ResourcesTab isChapterLead />}
 
               {/* Stats + Activity below tabs */}
               <CommunityStats token={token} />
@@ -2216,20 +2281,20 @@ export default function WelcomeDashboard({
             <>
               <TabBar
                 tabs={[
-                  { id: "guide" as const, label: "📖 Chapter Guide" },
+                  { id: "getting-started" as const, label: "🚀 Getting Started" },
                   { id: "event-creator" as const, label: "🗓️ Event Creator" },
-                  { id: "resources" as const, label: "📚 Resources" },
+                  { id: "guide" as const, label: "📖 Chapter Guide" },
                 ]}
                 active={leadTab}
                 onChange={setLeadTab}
               />
-              {leadTab === "guide" && (
-                <SuperadminChapterGuide allChapters={allChapters} />
-              )}
+              {leadTab === "getting-started" && <ResourcesTab isChapterLead />}
               {leadTab === "event-creator" && (
                 <EventCreator />
               )}
-              {leadTab === "resources" && <ResourcesTab isChapterLead />}
+              {leadTab === "guide" && (
+                <SuperadminChapterGuide allChapters={allChapters} />
+              )}
 
               {/* Stats below tabs */}
               <CommunityStats token={token} />

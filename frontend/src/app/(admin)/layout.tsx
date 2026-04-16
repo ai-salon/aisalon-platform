@@ -37,7 +37,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: "fa-th-large" },
-    { href: "/guide", label: "Guide", icon: "fa-book" },
     { href: "/upload", label: "Upload Conversations", icon: "fa-upload" },
     { href: "/articles", label: "Articles", icon: "fa-file-text-o" },
     ...(!isHost ? [{ href: "/community", label: "Community", icon: "fa-bar-chart" }] : []),

@@ -1,8 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import HostDashboard from "./HostDashboard";
-import ChapterLeadDashboard from "./ChapterLeadDashboard";
-import SuperadminDashboard from "./SuperadminDashboard";
+import WelcomeDashboard from "./WelcomeDashboard";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -20,10 +18,10 @@ async function fetchJson<T>(url: string, token: string): Promise<T | null> {
 }
 
 interface ApiKey { provider: string; has_key: boolean }
-interface Job { id: string; input_filename: string; status: string; created_at: string; chapter_id?: string }
-interface Article { id: string; title: string; status: string; created_at: string; chapter_id?: string }
+interface Job { id: string; input_filename: string; status: string; created_at: string }
+interface Article { id: string; title: string; status: string; created_at: string }
 interface TeamMember { id: string; chapter_id: string }
-interface ChapterRecord { id: string; code: string; name: string; tagline?: string; description?: string; is_active?: boolean }
+interface ChapterRecord { id: string; code: string; name: string; tagline?: string; description?: string }
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -32,6 +30,7 @@ export default async function DashboardPage() {
   const token = (session as { accessToken?: string }).accessToken as string;
   const userRole: string = (session.user as { role?: string } | undefined)?.role ?? "chapter_lead";
   const userName: string = session.user?.name ?? "";
+  const userEmail: string = session.user?.email ?? "";
   const userChapterId: string | undefined = (session.user as { chapterId?: string } | undefined)?.chapterId;
 
   const [apiKeys, jobs, articles, team, chapters] = await Promise.all([
@@ -42,8 +41,8 @@ export default async function DashboardPage() {
     fetchJson<ChapterRecord[]>(`${API_URL}/chapters`, token),
   ]);
 
-  const hasAssemblyAiKey = Array.isArray(apiKeys)
-    ? apiKeys.some((k) => k.provider === "assemblyai" && k.has_key)
+  const hasApiKey = Array.isArray(apiKeys)
+    ? apiKeys.some((k) => k.has_key)
     : false;
 
   const jobList = Array.isArray(jobs) ? jobs : [];
@@ -57,72 +56,22 @@ export default async function DashboardPage() {
   }
 
   const chapterComplete = !!(userChapter?.tagline && userChapter?.description);
-  const chapterName = userChapter?.name;
 
+  let completedSteps: boolean[] | undefined;
   if (userRole === "host") {
-    const completedSteps: [boolean, boolean, boolean] = [
-      hasAssemblyAiKey,
-      jobList.length > 0,
-      articleList.length > 0,
-    ];
-    return (
-      <HostDashboard
-        userName={userName}
-        chapterName={chapterName}
-        completedSteps={completedSteps}
-        recentJobs={jobList.slice(0, 3)}
-      />
-    );
+    completedSteps = [hasApiKey, jobList.length > 0, articleList.length > 0];
+  } else if (userRole === "chapter_lead") {
+    completedSteps = [hasApiKey, jobList.length > 0, chapterComplete, teamList.length > 0];
   }
-
-  if (userRole === "chapter_lead") {
-    const completedSteps: [boolean, boolean, boolean, boolean] = [
-      hasAssemblyAiKey,
-      jobList.length > 0,
-      chapterComplete,
-      teamList.length > 0,
-    ];
-    const publishedCount = articleList.filter((a) => a.status === "published").length;
-    const draftCount = articleList.filter((a) => a.status === "draft").length;
-    return (
-      <ChapterLeadDashboard
-        userName={userName}
-        chapterName={chapterName}
-        completedSteps={completedSteps}
-        stats={{
-          articlesPublished: publishedCount,
-          articlesDraft: draftCount,
-          teamCount: teamList.length,
-        }}
-        recentArticles={articleList.slice(0, 3)}
-      />
-    );
-  }
-
-  // superadmin
-  const recentJobCount = jobList.filter((j) => {
-    const d = new Date(j.created_at);
-    return Date.now() - d.getTime() < 7 * 24 * 60 * 60 * 1000;
-  }).length;
-
-  const chaptersWithStats = chapterList.map((ch) => ({
-    id: ch.id,
-    name: ch.name,
-    code: ch.code,
-    is_active: ch.is_active ?? true,
-    articleCount: articleList.filter((a) => a.chapter_id === ch.id).length,
-    teamCount: teamList.filter((t) => t.chapter_id === ch.id).length,
-  }));
 
   return (
-    <SuperadminDashboard
+    <WelcomeDashboard
       userName={userName}
-      platformStats={{
-        totalChapters: chapterList.length,
-        totalUsers: 0,
-        recentJobs: recentJobCount,
-      }}
-      chapters={chaptersWithStats}
+      userEmail={userEmail}
+      userRole={userRole}
+      userChapter={userChapter ? { id: userChapter.id, code: userChapter.code, name: userChapter.name } : undefined}
+      allChapters={chapterList.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
+      completedSteps={completedSteps}
     />
   );
 }
