@@ -29,6 +29,12 @@ export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [tab, setTab] = useState<Tab>("articles");
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [chapters, setChapters] = useState<{ id: string; name: string }[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ title: "", substackUrl: "", publishedDate: "", chapterId: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const token = (session as any)?.accessToken;
 
@@ -39,6 +45,17 @@ export default function ArticlesPage() {
   useEffect(() => {
     if (!token) return;
     fetchArticles();
+    fetch(`${API_URL}/admin/chapters`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : Promise.resolve([])))
+      .then((data: { id: string; name: string }[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setChapters(data.map((c) => ({ id: c.id, name: c.name })));
+        }
+      })
+      .catch(() => {});
+    fetch(`${API_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => { if (r.ok) setIsSuperadmin(true); })
+      .catch(() => {});
   }, [token]);
 
   function fetchArticles() {
@@ -69,6 +86,36 @@ export default function ArticlesPage() {
     }
   }
 
+  async function handleLinkArticle(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setModalError(null);
+    try {
+      const body: Record<string, string> = {
+        title: form.title,
+        substack_url: form.substackUrl,
+      };
+      if (form.publishedDate) body.published_date = form.publishedDate;
+      if (isSuperadmin && form.chapterId) body.chapter_id = form.chapterId;
+      const r = await fetch(`${API_URL}/admin/articles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        setModalError(err?.detail ?? "Failed to link article.");
+        return;
+      }
+      const created = await r.json();
+      setArticles((prev) => [created, ...prev]);
+      setShowModal(false);
+      setForm({ title: "", substackUrl: "", publishedDate: "", chapterId: "" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (status === "loading") return null;
 
   const transcripts = articles.filter((a) => !!a.anonymized_transcript);
@@ -76,8 +123,23 @@ export default function ArticlesPage() {
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 30px" }}>
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Articles</h1>
+        <button
+          onClick={() => { setShowModal(true); setModalError(null); }}
+          style={{
+            background: "#56a1d2",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            padding: "9px 18px",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: "pointer",
+          }}
+        >
+          + Link Article
+        </button>
       </div>
 
       {/* Tab switcher */}
@@ -260,6 +322,123 @@ export default function ArticlesPage() {
               </Link>
             );
           })}
+        </div>
+      )}
+      {showModal && (
+        <div
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)",
+            display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
+          }}
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            style={{
+              background: "#fff", borderRadius: 12, padding: "32px 28px",
+              width: "100%", maxWidth: 480, boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111", margin: "0 0 20px" }}>
+              Link Existing Article
+            </h2>
+            <form onSubmit={handleLinkArticle} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
+                  Title *
+                </label>
+                <input
+                  required
+                  type="text"
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                  style={{
+                    width: "100%", padding: "8px 12px", borderRadius: 6,
+                    border: "1.5px solid #e5e7eb", fontSize: 14, boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
+                  Substack URL *
+                </label>
+                <input
+                  required
+                  type="url"
+                  value={form.substackUrl}
+                  onChange={(e) => setForm((f) => ({ ...f, substackUrl: e.target.value }))}
+                  placeholder="https://yourpublication.substack.com/p/..."
+                  style={{
+                    width: "100%", padding: "8px 12px", borderRadius: 6,
+                    border: "1.5px solid #e5e7eb", fontSize: 14, boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
+                  Publish Date
+                </label>
+                <input
+                  type="date"
+                  value={form.publishedDate}
+                  onChange={(e) => setForm((f) => ({ ...f, publishedDate: e.target.value }))}
+                  style={{
+                    width: "100%", padding: "8px 12px", borderRadius: 6,
+                    border: "1.5px solid #e5e7eb", fontSize: 14, boxSizing: "border-box",
+                  }}
+                />
+              </div>
+              {isSuperadmin && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
+                    Chapter *
+                  </label>
+                  <select
+                    required
+                    value={form.chapterId}
+                    onChange={(e) => setForm((f) => ({ ...f, chapterId: e.target.value }))}
+                    style={{
+                      width: "100%", padding: "8px 12px", borderRadius: 6,
+                      border: "1.5px solid #e5e7eb", fontSize: 14, boxSizing: "border-box",
+                      background: "#fff",
+                    }}
+                  >
+                    <option value="">Select a chapter…</option>
+                    {chapters.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {modalError && (
+                <p style={{ fontSize: 13, color: "#ef4444", margin: 0 }}>{modalError}</p>
+              )}
+              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  style={{
+                    background: "none", border: "1.5px solid #e5e7eb", borderRadius: 8,
+                    padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#696969",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  style={{
+                    background: submitting ? "#93c5e8" : "#56a1d2",
+                    color: "#fff", border: "none", borderRadius: 8,
+                    padding: "8px 18px", fontSize: 13, fontWeight: 700,
+                    cursor: submitting ? "default" : "pointer",
+                  }}
+                >
+                  {submitting ? "Linking…" : "Link Article"}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
