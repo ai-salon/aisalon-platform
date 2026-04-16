@@ -126,7 +126,13 @@ export default function ArticlesPage() {
       <div style={{ marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Articles</h1>
         <button
-          onClick={() => { setShowModal(true); setModalError(null); }}
+          type="button"
+          onClick={() => {
+            setShowModal(true);
+            setForm({ title: "", substackUrl: "", publishedDate: "", chapterId: "" });
+            setModalError(null);
+            setSubmitting(false);
+          }}
           style={{
             background: "#56a1d2",
             color: "#fff",
@@ -330,7 +336,12 @@ export default function ArticlesPage() {
             position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)",
             display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50,
           }}
-          onClick={() => setShowModal(false)}
+          onClick={() => {
+            setShowModal(false);
+            setForm({ title: "", substackUrl: "", publishedDate: "", chapterId: "" });
+            setModalError(null);
+            setSubmitting(false);
+          }}
         >
           <div
             style={{
@@ -344,10 +355,11 @@ export default function ArticlesPage() {
             </h2>
             <form onSubmit={handleLinkArticle} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
+                <label htmlFor="link-title" style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
                   Title *
                 </label>
                 <input
+                  id="link-title"
                   required
                   type="text"
                   value={form.title}
@@ -359,10 +371,11 @@ export default function ArticlesPage() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
+                <label htmlFor="link-substack-url" style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
                   Substack URL *
                 </label>
                 <input
+                  id="link-substack-url"
                   required
                   type="url"
                   value={form.substackUrl}
@@ -375,10 +388,11 @@ export default function ArticlesPage() {
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
+                <label htmlFor="link-published-date" style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
                   Publish Date
                 </label>
                 <input
+                  id="link-published-date"
                   type="date"
                   value={form.publishedDate}
                   onChange={(e) => setForm((f) => ({ ...f, publishedDate: e.target.value }))}
@@ -390,10 +404,11 @@ export default function ArticlesPage() {
               </div>
               {isSuperadmin && (
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
+                  <label htmlFor="link-chapter-id" style={{ fontSize: 12, fontWeight: 700, color: "#696969", display: "block", marginBottom: 4 }}>
                     Chapter *
                   </label>
                   <select
+                    id="link-chapter-id"
                     required
                     value={form.chapterId}
                     onChange={(e) => setForm((f) => ({ ...f, chapterId: e.target.value }))}
@@ -416,7 +431,12 @@ export default function ArticlesPage() {
               <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 4 }}>
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setForm({ title: "", substackUrl: "", publishedDate: "", chapterId: "" });
+                    setModalError(null);
+                    setSubmitting(false);
+                  }}
                   style={{
                     background: "none", border: "1.5px solid #e5e7eb", borderRadius: 8,
                     padding: "8px 18px", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#696969",
