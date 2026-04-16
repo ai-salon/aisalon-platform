@@ -2103,6 +2103,31 @@ const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
   },
 ];
 
+function GuideReadItem({ label, onOpen }: { label: string; onOpen: () => void }) {
+  const [read, setRead] = useState(false);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid #f0ebe0" }}>
+      <input
+        type="checkbox"
+        checked={read}
+        onChange={() => setRead(!read)}
+        style={{ accentColor: "#d2b356", cursor: "pointer", flexShrink: 0 }}
+      />
+      <span style={{ flex: 1, fontSize: 13, color: read ? "#aaa" : "#222", textDecoration: read ? "line-through" : "none", lineHeight: 1.5 }}>
+        {label}
+      </span>
+      {!read && (
+        <button
+          onClick={onOpen}
+          style={{ fontSize: 12, fontWeight: 700, color: "#56a1d2", background: "none", border: "none", cursor: "pointer", padding: "2px 8px", flexShrink: 0 }}
+        >
+          Open →
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function WelcomeDashboard({
   userName,
   userEmail,
@@ -2126,8 +2151,8 @@ export default function WelcomeDashboard({
   const isSuperadmin = userRole === "superadmin";
 
   // Tab state per role
-  const [hostTab, setHostTab] = useState<"getting-started" | "event-creator" | "team">("getting-started");
-  const [leadTab, setLeadTab] = useState<"getting-started" | "event-creator" | "guide">("getting-started");
+  const [hostTab, setHostTab] = useState<"getting-started" | "event-creator" | "hosting-guide">("getting-started");
+  const [leadTab, setLeadTab] = useState<"getting-started" | "event-creator" | "hosting-guide" | "chapter-lead-guide" | "guide">("getting-started");
 
   return (
     <div style={{ maxWidth: 1140, margin: "0 auto", padding: "32px 28px" }}>
@@ -2205,7 +2230,7 @@ export default function WelcomeDashboard({
                 tabs={[
                   { id: "getting-started" as const, label: "🚀 Getting Started" },
                   { id: "event-creator" as const, label: "🗓️ Event Creator" },
-                  { id: "team" as const, label: "👥 Chapter Team" },
+                  { id: "hosting-guide" as const, label: "🏡 Hosting Guide" },
                 ]}
                 active={hostTab}
                 onChange={setHostTab}
@@ -2217,22 +2242,28 @@ export default function WelcomeDashboard({
                       <OnboardingBanner steps={HOST_STEPS} completedSteps={completedSteps} />
                     </div>
                   )}
+                  <div style={{ background: "#fff", border: "1px solid #ede9d8", borderRadius: 10, padding: "18px 20px", marginTop: completedSteps ? 0 : 0 }}>
+                    <SectionLabel>Guide Checklist</SectionLabel>
+                    <GuideReadItem
+                      label="Read through the Hosting Guide"
+                      onOpen={() => setHostTab("hosting-guide")}
+                    />
+                  </div>
+                </div>
+              )}
+              {hostTab === "event-creator" && (
+                <EventCreator chapterName={userChapter?.name} chapterCode={userChapter?.code} />
+              )}
+              {hostTab === "hosting-guide" && (
+                <div>
                   <div style={{ marginBottom: 18 }}>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
-                      🏡 Hosting Guide
-                    </h2>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>🏡 Hosting Guide</h2>
                     <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
                       Everything you need to plan, run, and follow up on an Ai Salon.
                     </p>
                   </div>
                   <HostingGuide />
                 </div>
-              )}
-              {hostTab === "event-creator" && (
-                <EventCreator chapterName={userChapter?.name} chapterCode={userChapter?.code} />
-              )}
-              {hostTab === "team" && userChapter && (
-                <ChapterTeamTab chapterCode={userChapter.code} />
               )}
             </>
           )}
@@ -2244,6 +2275,8 @@ export default function WelcomeDashboard({
                 tabs={[
                   { id: "getting-started" as const, label: "🚀 Getting Started" },
                   { id: "event-creator" as const, label: "🗓️ Event Creator" },
+                  { id: "hosting-guide" as const, label: "🏡 Hosting Guide" },
+                  { id: "chapter-lead-guide" as const, label: "🗺️ Chapter Lead Guide" },
                   { id: "guide" as const, label: "📖 Chapter Guide" },
                 ]}
                 active={leadTab}
@@ -2256,11 +2289,43 @@ export default function WelcomeDashboard({
                       <OnboardingBanner steps={CHAPTER_LEAD_STEPS} completedSteps={completedSteps} />
                     </div>
                   )}
-                  <ResourcesTab isChapterLead />
+                  <div style={{ background: "#fff", border: "1px solid #ede9d8", borderRadius: 10, padding: "18px 20px" }}>
+                    <SectionLabel>Guide Checklist</SectionLabel>
+                    <GuideReadItem
+                      label="Read through the Hosting Guide"
+                      onOpen={() => setLeadTab("hosting-guide")}
+                    />
+                    <GuideReadItem
+                      label="Read through the Chapter Lead Guide"
+                      onOpen={() => setLeadTab("chapter-lead-guide")}
+                    />
+                  </div>
                 </div>
               )}
               {leadTab === "event-creator" && (
                 <EventCreator chapterName={userChapter.name} chapterCode={userChapter.code} />
+              )}
+              {leadTab === "hosting-guide" && (
+                <div>
+                  <div style={{ marginBottom: 18 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>🏡 Hosting Guide</h2>
+                    <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+                      Everything you need to plan, run, and follow up on an Ai Salon.
+                    </p>
+                  </div>
+                  <HostingGuide />
+                </div>
+              )}
+              {leadTab === "chapter-lead-guide" && (
+                <div>
+                  <div style={{ marginBottom: 18 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>🗺️ Chapter Lead Guide</h2>
+                    <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+                      Building and growing your local Ai Salon chapter.
+                    </p>
+                  </div>
+                  <ChapterLeadGuide />
+                </div>
               )}
               {leadTab === "guide" && (
                 <ChapterGuideTab
@@ -2283,14 +2348,50 @@ export default function WelcomeDashboard({
                 tabs={[
                   { id: "getting-started" as const, label: "🚀 Getting Started" },
                   { id: "event-creator" as const, label: "🗓️ Event Creator" },
+                  { id: "hosting-guide" as const, label: "🏡 Hosting Guide" },
+                  { id: "chapter-lead-guide" as const, label: "🗺️ Chapter Lead Guide" },
                   { id: "guide" as const, label: "📖 Chapter Guide" },
                 ]}
                 active={leadTab}
                 onChange={setLeadTab}
               />
-              {leadTab === "getting-started" && <ResourcesTab isChapterLead />}
-              {leadTab === "event-creator" && (
-                <EventCreator />
+              {leadTab === "getting-started" && (
+                <div>
+                  <div style={{ background: "#fff", border: "1px solid #ede9d8", borderRadius: 10, padding: "18px 20px" }}>
+                    <SectionLabel>Guide Checklist</SectionLabel>
+                    <GuideReadItem
+                      label="Read through the Hosting Guide"
+                      onOpen={() => setLeadTab("hosting-guide")}
+                    />
+                    <GuideReadItem
+                      label="Read through the Chapter Lead Guide"
+                      onOpen={() => setLeadTab("chapter-lead-guide")}
+                    />
+                  </div>
+                </div>
+              )}
+              {leadTab === "event-creator" && <EventCreator />}
+              {leadTab === "hosting-guide" && (
+                <div>
+                  <div style={{ marginBottom: 18 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>🏡 Hosting Guide</h2>
+                    <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+                      Everything you need to plan, run, and follow up on an Ai Salon.
+                    </p>
+                  </div>
+                  <HostingGuide />
+                </div>
+              )}
+              {leadTab === "chapter-lead-guide" && (
+                <div>
+                  <div style={{ marginBottom: 18 }}>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>🗺️ Chapter Lead Guide</h2>
+                    <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+                      Building and growing your local Ai Salon chapter.
+                    </p>
+                  </div>
+                  <ChapterLeadGuide />
+                </div>
               )}
               {leadTab === "guide" && (
                 <SuperadminChapterGuide allChapters={allChapters} />
