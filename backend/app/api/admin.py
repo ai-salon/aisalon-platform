@@ -23,7 +23,7 @@ from app.core.security import hash_password
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
     JobResponse,
-    ArticleResponse, ArticleUpdate,
+    ArticleResponse, ArticleUpdate, ArticleCreate,
     ChapterUpdate, ChapterResponse,
     TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
     UserCreate, UserUpdate, UserResponse,
@@ -327,6 +327,33 @@ async def get_job(
 
 
 # ── Articles ──────────────────────────────────────────────────────────────────
+
+@router.post("/articles", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
+async def create_article(
+    body: ArticleCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if current_user.role == UserRole.superadmin:
+        if not body.chapter_id:
+            raise HTTPException(status_code=422, detail="chapter_id is required for superadmins")
+        chapter_id = body.chapter_id
+    else:
+        chapter_id = current_user.chapter_id
+
+    article = Article(
+        chapter_id=chapter_id,
+        title=body.title,
+        content_md="",
+        substack_url=body.substack_url,
+        scheduled_publish_date=body.published_date,
+        status=ArticleStatus.published,
+    )
+    db.add(article)
+    await db.commit()
+    await db.refresh(article)
+    return article
+
 
 @router.get("/articles", response_model=list[ArticleResponse])
 async def list_articles(

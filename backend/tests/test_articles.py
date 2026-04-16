@@ -113,6 +113,108 @@ class TestUpdateArticle:
         assert "# Test" in r.json()["content_md"]  # content unchanged
 
 
+class TestCreateArticle:
+    async def test_chapter_lead_creates_article(
+        self, client: AsyncClient, lead_headers, sf_chapter
+    ):
+        r = await client.post(
+            "/admin/articles",
+            json={"title": "My Substack Post", "substack_url": "https://sub.stack/p/my-post"},
+            headers=lead_headers,
+        )
+        assert r.status_code == 201
+        data = r.json()
+        assert data["title"] == "My Substack Post"
+        assert data["substack_url"] == "https://sub.stack/p/my-post"
+        assert data["status"] == "published"
+        assert data["job_id"] is None
+        assert data["chapter_id"] == sf_chapter.id
+
+    async def test_chapter_lead_chapter_id_ignored(
+        self, client: AsyncClient, lead_headers, db_session, sf_chapter
+    ):
+        """chapter_id in body is ignored for non-superadmin; their own chapter is always used."""
+        other = await _make_other_chapter(db_session)
+        r = await client.post(
+            "/admin/articles",
+            json={
+                "title": "Ignored Chapter",
+                "substack_url": "https://sub.stack/p/ignored",
+                "chapter_id": other.id,
+            },
+            headers=lead_headers,
+        )
+        assert r.status_code == 201
+        assert r.json()["chapter_id"] == sf_chapter.id
+
+    async def test_superadmin_creates_for_chapter(
+        self, client: AsyncClient, admin_headers, sf_chapter
+    ):
+        r = await client.post(
+            "/admin/articles",
+            json={
+                "title": "Admin Post",
+                "substack_url": "https://sub.stack/p/admin",
+                "chapter_id": sf_chapter.id,
+            },
+            headers=admin_headers,
+        )
+        assert r.status_code == 201
+        assert r.json()["chapter_id"] == sf_chapter.id
+
+    async def test_superadmin_requires_chapter_id(
+        self, client: AsyncClient, admin_headers
+    ):
+        r = await client.post(
+            "/admin/articles",
+            json={"title": "No Chapter", "substack_url": "https://sub.stack/p/no-chapter"},
+            headers=admin_headers,
+        )
+        assert r.status_code == 422
+
+    async def test_published_date_stored(
+        self, client: AsyncClient, lead_headers, sf_chapter
+    ):
+        r = await client.post(
+            "/admin/articles",
+            json={
+                "title": "Dated Post",
+                "substack_url": "https://sub.stack/p/dated",
+                "published_date": "2024-03-15",
+            },
+            headers=lead_headers,
+        )
+        assert r.status_code == 201
+        assert r.json()["scheduled_publish_date"] == "2024-03-15"
+
+    async def test_requires_auth(self, client: AsyncClient):
+        r = await client.post(
+            "/admin/articles",
+            json={"title": "x", "substack_url": "https://sub.stack/p/x"},
+        )
+        assert r.status_code == 401
+
+    async def test_missing_title_rejected(
+        self, client: AsyncClient, lead_headers
+    ):
+        r = await client.post(
+            "/admin/articles",
+            json={"substack_url": "https://sub.stack/p/x"},
+            headers=lead_headers,
+        )
+        assert r.status_code == 422
+
+    async def test_missing_substack_url_rejected(
+        self, client: AsyncClient, lead_headers
+    ):
+        r = await client.post(
+            "/admin/articles",
+            json={"title": "No URL"},
+            headers=lead_headers,
+        )
+        assert r.status_code == 422
+
+
 # Helper
 from app.models.chapter import Chapter
 

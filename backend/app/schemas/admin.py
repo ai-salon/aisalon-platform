@@ -117,7 +117,7 @@ class ArticleResponse(BaseModel):
     chapter_id: str
     job_id: str | None
     meta: Any | None
-    scheduled_publish_date: str | None = None
+    scheduled_publish_date: date | None = None
     substack_draft_id: str | None = None
     created_at: datetime
     updated_at: datetime
