@@ -334,11 +334,17 @@ async def create_article(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    allowed = {UserRole.superadmin, UserRole.chapter_lead, UserRole.host}
+    if current_user.role not in allowed:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
     if current_user.role == UserRole.superadmin:
         if not body.chapter_id:
             raise HTTPException(status_code=422, detail="chapter_id is required for superadmins")
         chapter_id = body.chapter_id
     else:
+        if not current_user.chapter_id:
+            raise HTTPException(status_code=422, detail="User has no chapter assigned")
         chapter_id = current_user.chapter_id
 
     article = Article(

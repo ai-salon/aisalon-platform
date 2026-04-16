@@ -4,6 +4,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.article import Article, ArticleStatus
+from app.models.chapter import Chapter
 
 
 async def _seed_article(session: AsyncSession, chapter_id: str, title: str = "Test Article") -> Article:
@@ -17,6 +18,16 @@ async def _seed_article(session: AsyncSession, chapter_id: str, title: str = "Te
     await session.commit()
     await session.refresh(article)
     return article
+
+
+async def _make_other_chapter(session: AsyncSession) -> Chapter:
+    ch = Chapter(code="berlin", name="Berlin", title="t", description="d",
+                 tagline="t", about="a", event_link="e", calendar_embed="c",
+                 events_description="e", status="active")
+    session.add(ch)
+    await session.commit()
+    await session.refresh(ch)
+    return ch
 
 
 class TestListArticles:
@@ -214,15 +225,30 @@ class TestCreateArticle:
         )
         assert r.status_code == 422
 
+    async def test_host_creates_article(
+        self, client: AsyncClient, host_headers, sf_chapter
+    ):
+        r = await client.post(
+            "/admin/articles",
+            json={"title": "Host Post", "substack_url": "https://sub.stack/p/host-post"},
+            headers=host_headers,
+        )
+        assert r.status_code == 201
+        assert r.json()["chapter_id"] == sf_chapter.id
+        assert r.json()["status"] == "published"
 
-# Helper
-from app.models.chapter import Chapter
-
-async def _make_other_chapter(session: AsyncSession) -> Chapter:
-    ch = Chapter(code="berlin", name="Berlin", title="t", description="d",
-                 tagline="t", about="a", event_link="e", calendar_embed="c",
-                 events_description="e", status="active")
-    session.add(ch)
-    await session.commit()
-    await session.refresh(ch)
-    return ch
+    async def test_host_chapter_id_ignored(
+        self, client: AsyncClient, host_headers, db_session, sf_chapter
+    ):
+        other = await _make_other_chapter(db_session)
+        r = await client.post(
+            "/admin/articles",
+            json={
+                "title": "Host Ignored Chapter",
+                "substack_url": "https://sub.stack/p/host-ignored",
+                "chapter_id": other.id,
+            },
+            headers=host_headers,
+        )
+        assert r.status_code == 201
+        assert r.json()["chapter_id"] == sf_chapter.id
