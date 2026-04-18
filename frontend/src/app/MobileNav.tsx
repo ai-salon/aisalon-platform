@@ -79,7 +79,6 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
               {chapters.map((ch) => (
                 <NavLink key={ch.code} href={`/chapters/${ch.code}`} icon="fa-map-marker">{ch.name}</NavLink>
               ))}
-              <NavLink href="/host" icon="fa-plus-circle">Start a Chapter</NavLink>
             </NavSection>
 
             <NavSection label="Get Involved">

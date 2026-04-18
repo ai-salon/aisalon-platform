@@ -154,9 +154,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   {chapters.map((ch) => (
                     <li key={ch.code}><Link href={`/chapters/${ch.code}`}>{ch.name}</Link></li>
                   ))}
-                  <li style={{ borderTop: "1px solid rgba(0,0,0,0.08)", marginTop: 4, paddingTop: 4 }}>
-                    <Link href="/host">Start a Chapter</Link>
-                  </li>
                 </ul>
               </li>
               <li className="dropdown">
