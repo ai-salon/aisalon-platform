@@ -30,7 +30,7 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Ai Salon – Shaping AI through conversation and community",
+  title: "Ai Salon – The Global AI Commons",
   description:
     "The Ai Salon is a global community bringing together scientists, founders, builders, and the curious to shape the future of AI through meaningful conversation.",
 };
@@ -189,7 +189,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     gap: 4,
                   }}
                 >
-                  Get Involved <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
+                  Host or Join a Chapter <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
                 </Link>
                 <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
                   <li><Link href="/start">Run a Salon</Link></li>

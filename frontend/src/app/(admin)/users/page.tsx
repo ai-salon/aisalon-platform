@@ -11,6 +11,8 @@ type UserData = {
   id: string; email: string; username: string | null; role: string;
   chapter_id: string | null; is_active: boolean;
   last_login_at: string | null; login_count_30d: number;
+  has_api_key: boolean; has_uploaded: boolean; has_article: boolean;
+  has_read_hosting_guide: boolean; has_read_lead_guide: boolean;
 };
 type Chapter = { id: string; name: string; code: string };
 
@@ -235,7 +237,7 @@ export default function UsersPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
-              {["Email", "Username", "Role", "Chapter", "Status", "Last Login", "Logins (30d)", ""].map((h) => (
+              {["Email", "Username", "Role", "Chapter", "Status", "Onboarding", "Last Login", "Logins (30d)", ""].map((h) => (
                 <th key={h} style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}>{h}</th>
               ))}
             </tr>
@@ -266,6 +268,31 @@ export default function UsersPage() {
                     }}>
                       {u.is_active ? "Active" : "Inactive"}
                     </span>
+                  </td>
+                  <td style={{ padding: "14px 20px" }}>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {[
+                        { done: u.has_api_key, icon: "fa-key", tip: "API key configured" },
+                        { done: u.has_uploaded, icon: "fa-upload", tip: "Uploaded a conversation" },
+                        { done: u.has_article, icon: "fa-file-text-o", tip: "Article generated" },
+                        ...(u.role !== "superadmin" ? [{ done: u.has_read_hosting_guide, icon: "fa-book", tip: "Read the Hosting Guide" }] : []),
+                        ...(u.role === "chapter_lead" ? [{ done: u.has_read_lead_guide, icon: "fa-map-o", tip: "Read the Chapter Lead Guide" }] : []),
+                      ].map(({ done, icon, tip }) => (
+                        <span
+                          key={icon}
+                          title={tip}
+                          style={{
+                            width: 24, height: 24, borderRadius: "50%", display: "flex",
+                            alignItems: "center", justifyContent: "center",
+                            background: done ? "#dcfce7" : "#f3f4f6",
+                            color: done ? "#16a34a" : "#9ca3af",
+                            fontSize: 10,
+                          }}
+                        >
+                          <i className={`fa ${icon}`} aria-hidden="true" />
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
                     {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : "Never"}
@@ -312,7 +339,7 @@ export default function UsersPage() {
                 </tr>
                 {resetUserId === u.id && (
                   <tr key={`${u.id}-reset`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                    <td colSpan={8} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
+                    <td colSpan={9} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280" }}>New password for {u.email}:</span>
                         <input

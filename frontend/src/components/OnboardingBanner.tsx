@@ -6,7 +6,7 @@ export interface OnboardingStep {
   title: string
   description: string
   ctaLabel: string
-  ctaHref: string
+  ctaHref?: string
 }
 
 interface OnboardingBannerProps {
@@ -47,34 +47,27 @@ export default function OnboardingBanner({ steps, completedSteps }: OnboardingBa
         <div style={{ fontSize: 13, color: '#555' }}>{step.description}</div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
-        <Link
-          href={step.ctaHref}
-          style={{
-            padding: '8px 18px',
-            background: '#56a1d2',
-            color: '#fff',
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 700,
-            textDecoration: 'none',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {step.ctaLabel}
-        </Link>
-        <Link
-          href="/guide"
-          style={{
-            fontSize: 12,
-            color: '#56a1d2',
-            textDecoration: 'none',
-            fontWeight: 500,
-            opacity: 0.75,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          Read the full guide →
-        </Link>
+        {step.ctaHref ? (
+          <Link
+            href={step.ctaHref}
+            style={{
+              padding: '8px 18px',
+              background: '#56a1d2',
+              color: '#fff',
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: 700,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {step.ctaLabel}
+          </Link>
+        ) : (
+          <span style={{ fontSize: 12, color: '#56a1d2', fontWeight: 600, opacity: 0.8 }}>
+            See checklist below ↓
+          </span>
+        )}
       </div>
     </div>
   )
