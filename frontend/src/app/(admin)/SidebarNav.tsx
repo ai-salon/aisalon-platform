@@ -39,9 +39,9 @@ function buildNav(userRole: string): NavEntry[] {
 
   const teamChildren: NavItem[] = [
     { href: '/team', label: 'Team Members', icon: 'fa-users' },
-    ...(!isHost ? [{ href: '/volunteer-roles', label: 'Volunteer Roles', icon: 'fa-hand-paper-o' }] : []),
-    ...(!isHost ? [{ href: '/volunteer-applications', label: 'Applications', icon: 'fa-envelope-open-o' }] : []),
     ...(!isHost ? [{ href: '/hosting-interest', label: 'Host Interest', icon: 'fa-star' }] : []),
+    ...(!isHost ? [{ href: '/volunteer-roles', label: 'Volunteer Roles', icon: 'fa-hand-paper-o' }] : []),
+    ...(!isHost ? [{ href: '/volunteer-applications', label: 'Volunteer Applications', icon: 'fa-envelope-open-o' }] : []),
   ]
 
   return [
