@@ -335,8 +335,12 @@ async def seed_chapters() -> None:
                         TeamMember.name == member_data["name"],
                     )
                 )
-                if not exists.scalar_one_or_none():
+                existing = exists.scalar_one_or_none()
+                if not existing:
                     db.add(TeamMember(chapter_id=chapter.id, **member_data))
+                elif existing.role != member_data["role"]:
+                    existing.role = member_data["role"]
+                    logger.info("Updated role for %s: %s", existing.name, existing.role)
 
             # Restore team so this function is safe to call multiple times
             ch_data["team"] = team
