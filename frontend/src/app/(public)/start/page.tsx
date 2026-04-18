@@ -192,11 +192,14 @@ export default function StartPage() {
       )}
 
       {/* Footer CTA */}
-      <section style={{ padding: "40px 24px", textAlign: "center" }}>
-        <p style={{ color: "#888", fontSize: 15, marginBottom: 8 }}>
+      <section style={{ padding: "48px 24px", textAlign: "center", background: "#f8f6ec" }}>
+        <p style={{ color: "#444", fontSize: 17, fontWeight: 500, marginBottom: 20 }}>
           Want to connect with other hosts or become an official chapter?
         </p>
-        <Link href="/host" style={{ color: "#56a1d2", fontWeight: 600, fontSize: 15 }}>
+        <Link
+          href="/host"
+          style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#56a1d2", color: "white", padding: "13px 32px", borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: "none" }}
+        >
           Learn more about hosting →
         </Link>
       </section>
