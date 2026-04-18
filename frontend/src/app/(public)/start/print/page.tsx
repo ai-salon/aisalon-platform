@@ -170,28 +170,51 @@ export default async function PrintPage() {
           </div>
         )}
 
-        {/* Footer with QR code */}
-        <div style={{ marginTop: 24, paddingTop: 12, borderTop: "2px solid #56a1d2", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#111", marginBottom: 3 }}>
-              Want to get more involved?
-            </div>
-            <div style={{ fontSize: 11, color: "#555", marginBottom: 2 }}>
-              Scan to learn about hosting an official Ai Salon chapter.
-            </div>
-            <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>aisalon.xyz/host</div>
-            <div style={{ fontSize: 11, color: "#555" }}>
-              Record your conversation? Submit at aisalon.xyz/community_upload
+        {/* Footer — two CTAs side by side */}
+        <div style={{ marginTop: 24, paddingTop: 12, borderTop: "2px solid #56a1d2", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+
+          {/* Left: Host / chapter */}
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=https%3A%2F%2Ffrontend-development-535c.up.railway.app%2Fhost&format=png&margin=2"
+              alt="QR code: aisalon.xyz/host"
+              width={72}
+              height={72}
+              style={{ display: "block", flexShrink: 0 }}
+            />
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#111", marginBottom: 2 }}>
+                Want to get more involved?
+              </div>
+              <div style={{ fontSize: 10, color: "#555", lineHeight: 1.4 }}>
+                Scan to learn about hosting an official Ai Salon chapter.
+              </div>
+              <div style={{ fontSize: 10, color: "#888", marginTop: 2 }}>aisalon.xyz/host</div>
             </div>
           </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=https%3A%2F%2Ffrontend-development-535c.up.railway.app%2Fhost&format=png&margin=2"
-            alt="QR code: aisalon.xyz/host"
-            width={80}
-            height={80}
-            style={{ display: "block" }}
-          />
+
+          {/* Right: Record your conversation */}
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", borderLeft: "1px solid #e5e5e5", paddingLeft: 16 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://api.qrserver.com/v1/create-qr-code/?size=72x72&data=https%3A%2F%2Ffrontend-development-535c.up.railway.app%2Fcommunity_upload&format=png&margin=2"
+              alt="QR code: aisalon.xyz/community_upload"
+              width={72}
+              height={72}
+              style={{ display: "block", flexShrink: 0 }}
+            />
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#111", marginBottom: 2 }}>
+                Record your conversation?
+              </div>
+              <div style={{ fontSize: 10, color: "#555", lineHeight: 1.4 }}>
+                Scan to submit your recording to our community knowledge base.
+              </div>
+              <div style={{ fontSize: 10, color: "#888", marginTop: 2 }}>aisalon.xyz/community_upload</div>
+            </div>
+          </div>
+
         </div>
 
       </div>

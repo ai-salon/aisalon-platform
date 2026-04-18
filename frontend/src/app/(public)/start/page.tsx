@@ -191,14 +191,14 @@ export default function StartPage() {
         </section>
       )}
 
-      {/* Recording note */}
+      {/* Recording CTA */}
       <section style={{ padding: "0 24px 32px", textAlign: "center" }}>
-        <p style={{ fontSize: 15, color: "#888" }}>
-          Want to capture what was said?{" "}
-          <Link href="/community_upload" style={{ color: "#56a1d2", fontWeight: 600 }}>
-            Record your conversation and submit it to our community archive →
-          </Link>
+        <p style={{ fontSize: 16, fontWeight: 500, color: "#333", marginBottom: 8 }}>
+          Connect <em>your</em> conversation to the global conversation.
         </p>
+        <Link href="/community_upload" style={{ color: "#56a1d2", fontWeight: 600, fontSize: 15 }}>
+          🎙️ Record your conversation and submit it to our community archive →
+        </Link>
       </section>
 
       {/* Footer CTA */}
