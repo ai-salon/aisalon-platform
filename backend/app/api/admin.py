@@ -26,7 +26,7 @@ from app.schemas.admin import (
     ArticleResponse, ArticleUpdate, ArticleCreate,
     ChapterUpdate, ChapterResponse,
     TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
-    UserCreate, UserUpdate, UserResponse,
+    UserCreate, UserUpdate, UserResponse, GuideReadRequest,
     InviteCreate, InviteResponse,
     ChapterStats, CommunityStatsResponse,
     SystemSettingRequest, SystemSettingResponse,
@@ -622,12 +622,51 @@ async def list_users(
     )
     login_counts = {row.user_id: row.cnt for row in counts_result}
 
+    api_key_result = await db.execute(select(UserAPIKey.user_id).distinct())
+    users_with_keys = {row.user_id for row in api_key_result}
+
+    job_result = await db.execute(select(Job.user_id).distinct())
+    users_with_jobs = {row.user_id for row in job_result}
+
+    article_result = await db.execute(select(Article.user_id).distinct())
+    users_with_articles = {row.user_id for row in article_result}
+
     responses = []
     for u in users:
         r = UserResponse.model_validate(u)
         r.login_count_30d = login_counts.get(u.id, 0)
+        r.has_api_key = u.id in users_with_keys
+        r.has_uploaded = u.id in users_with_jobs
+        r.has_article = u.id in users_with_articles
+        r.has_read_hosting_guide = u.hosting_guide_read_at is not None
+        r.has_read_lead_guide = u.lead_guide_read_at is not None
         responses.append(r)
     return responses
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    r = UserResponse.model_validate(current_user)
+    r.has_read_hosting_guide = current_user.hosting_guide_read_at is not None
+    r.has_read_lead_guide = current_user.lead_guide_read_at is not None
+    return r
+
+
+@router.post("/me/guide-read", status_code=status.HTTP_204_NO_CONTENT)
+async def mark_guide_read(
+    body: GuideReadRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if body.guide == "hosting" and current_user.hosting_guide_read_at is None:
+        current_user.hosting_guide_read_at = datetime.now(timezone.utc)
+        await db.commit()
+    elif body.guide == "lead" and current_user.lead_guide_read_at is None:
+        current_user.lead_guide_read_at = datetime.now(timezone.utc)
+        await db.commit()
 
 
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

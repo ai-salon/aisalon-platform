@@ -22,6 +22,7 @@ interface Job { id: string; input_filename: string; status: string; created_at: 
 interface Article { id: string; title: string; status: string; created_at: string }
 interface TeamMember { id: string; chapter_id: string }
 interface ChapterRecord { id: string; code: string; name: string; tagline?: string; description?: string }
+interface MeResponse { has_read_hosting_guide: boolean; has_read_lead_guide: boolean }
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -33,12 +34,13 @@ export default async function DashboardPage() {
   const userEmail: string = session.user?.email ?? "";
   const userChapterId: string | undefined = (session.user as { chapterId?: string } | undefined)?.chapterId;
 
-  const [apiKeys, jobs, articles, team, chapters] = await Promise.all([
+  const [apiKeys, jobs, articles, team, chapters, me] = await Promise.all([
     fetchJson<ApiKey[]>(`${API_URL}/admin/api-keys`, token),
     fetchJson<Job[]>(`${API_URL}/admin/jobs`, token),
     fetchJson<Article[]>(`${API_URL}/admin/articles`, token),
     fetchJson<TeamMember[]>(`${API_URL}/admin/team`, token),
     fetchJson<ChapterRecord[]>(`${API_URL}/chapters`, token),
+    fetchJson<MeResponse>(`${API_URL}/admin/me`, token),
   ]);
 
   const hasApiKey = Array.isArray(apiKeys)
@@ -49,6 +51,8 @@ export default async function DashboardPage() {
   const articleList = Array.isArray(articles) ? articles : [];
   const teamList = Array.isArray(team) ? team : [];
   const chapterList = Array.isArray(chapters) ? chapters : [];
+  const hasReadHostingGuide = me?.has_read_hosting_guide ?? false;
+  const hasReadLeadGuide = me?.has_read_lead_guide ?? false;
 
   let userChapter: ChapterRecord | undefined;
   if (userChapterId) {
@@ -59,9 +63,9 @@ export default async function DashboardPage() {
 
   let completedSteps: boolean[] | undefined;
   if (userRole === "host") {
-    completedSteps = [hasApiKey, jobList.length > 0, articleList.length > 0];
+    completedSteps = [hasApiKey, jobList.length > 0, articleList.length > 0, hasReadHostingGuide];
   } else if (userRole === "chapter_lead") {
-    completedSteps = [hasApiKey, jobList.length > 0, chapterComplete, teamList.length > 0];
+    completedSteps = [hasApiKey, jobList.length > 0, chapterComplete, teamList.length > 0, hasReadHostingGuide, hasReadLeadGuide];
   }
 
   return (
@@ -72,6 +76,8 @@ export default async function DashboardPage() {
       userChapter={userChapter ? { id: userChapter.id, code: userChapter.code, name: userChapter.name } : undefined}
       allChapters={chapterList.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
       completedSteps={completedSteps}
+      hasReadHostingGuide={hasReadHostingGuide}
+      hasReadLeadGuide={hasReadLeadGuide}
     />
   );
 }

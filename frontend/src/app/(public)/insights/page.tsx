@@ -64,6 +64,7 @@ export default async function InsightsPage() {
                 rel="noopener noreferrer"
                 className="btn-primary"
                 style={{ display: "inline-block" }}
+                data-umami-event="insights-visit-archive"
               >
                 Visit The Ai Salon Archive
               </a>
@@ -77,6 +78,8 @@ export default async function InsightsPage() {
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ textDecoration: "none" }}
+                  data-umami-event="article-card-click"
+                  data-umami-event-title={a.title}
                 >
                   <article
                     style={{

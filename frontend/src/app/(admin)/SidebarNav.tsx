@@ -10,6 +10,7 @@ interface NavItem {
   href: string
   label: string
   icon: string
+  external?: boolean
 }
 
 interface NavGroup {
@@ -48,6 +49,12 @@ function buildNav(userRole: string): NavEntry[] {
     { href: '/community', label: 'Community Analytics', icon: 'fa-bar-chart' },
     { href: '/users', label: 'Users', icon: 'fa-user-circle-o' },
     { href: '/community-uploads', label: 'Community Uploads', icon: 'fa-cloud-upload' },
+    {
+      href: process.env.NEXT_PUBLIC_UMAMI_URL ?? 'https://analytics.aisalon.xyz',
+      label: 'Web Analytics',
+      icon: 'fa-line-chart',
+      external: true,
+    },
   ]
 
   return [
@@ -105,31 +112,41 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
 
       {open && (
         <div style={{ paddingLeft: 14 }}>
-          {items.map(({ href, label: childLabel, icon: childIcon }) => {
-            const isActive = pathname === href || pathname.startsWith(href)
+          {items.map(({ href, label: childLabel, icon: childIcon, external }) => {
+            const isActive = !external && (pathname === href || pathname.startsWith(href))
+            const sharedStyle = {
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 14px',
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: isActive ? 600 : 400,
+              color: isActive ? '#fff' : '#555',
+              background: isActive ? '#56a1d2' : 'transparent',
+              textDecoration: 'none',
+              transition: 'background 0.15s',
+            }
+            const iconStyle = {
+              width: 14,
+              textAlign: 'center' as const,
+              color: isActive ? '#fff' : '#56a1d2',
+              fontSize: 12,
+            }
+
+            if (external) {
+              return (
+                <a key={href} href={href} target="_blank" rel="noopener noreferrer" style={sharedStyle}>
+                  <i className={`fa ${childIcon}`} style={iconStyle} aria-hidden="true" />
+                  {childLabel}
+                  <i className="fa fa-external-link" style={{ fontSize: 10, marginLeft: 'auto', color: '#9ca3af' }} aria-hidden="true" />
+                </a>
+              )
+            }
+
             return (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '8px 14px',
-                  borderRadius: 6,
-                  fontSize: 13,
-                  fontWeight: isActive ? 600 : 400,
-                  color: isActive ? '#fff' : '#555',
-                  background: isActive ? '#56a1d2' : 'transparent',
-                  textDecoration: 'none',
-                  transition: 'background 0.15s',
-                }}
-              >
-                <i
-                  className={`fa ${childIcon}`}
-                  style={{ width: 14, textAlign: 'center', color: isActive ? '#fff' : '#56a1d2', fontSize: 12 }}
-                  aria-hidden="true"
-                />
+              <Link key={href} href={href} style={sharedStyle}>
+                <i className={`fa ${childIcon}`} style={iconStyle} aria-hidden="true" />
                 {childLabel}
               </Link>
             )

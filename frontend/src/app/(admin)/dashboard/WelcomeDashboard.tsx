@@ -2074,6 +2074,12 @@ const HOST_STEPS: OnboardingStep[] = [
     ctaLabel: "View articles",
     ctaHref: "/articles",
   },
+  {
+    title: "Read the Hosting Guide",
+    description: "Learn how to plan, run, and follow up on an Ai Salon event.",
+    ctaLabel: "Open guide",
+    ctaHref: undefined,
+  },
 ];
 
 const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
@@ -2101,16 +2107,28 @@ const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
     ctaLabel: "Manage team",
     ctaHref: "/team",
   },
+  {
+    title: "Read the Hosting Guide",
+    description: "Learn how to plan, run, and follow up on an Ai Salon event.",
+    ctaLabel: "Open guide",
+    ctaHref: undefined,
+  },
+  {
+    title: "Read the Chapter Lead Guide",
+    description: "Learn how to build and grow your local Ai Salon chapter.",
+    ctaLabel: "Open guide",
+    ctaHref: undefined,
+  },
 ];
 
-function GuideReadItem({ label, onOpen }: { label: string; onOpen: () => void }) {
-  const [read, setRead] = useState(false);
+function GuideReadItem({ label, defaultRead, onOpen, onMarkRead }: { label: string; defaultRead?: boolean; onOpen: () => void; onMarkRead: () => void }) {
+  const [read, setRead] = useState(defaultRead ?? false);
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: "1px solid #f0ebe0" }}>
       <input
         type="checkbox"
         checked={read}
-        onChange={() => setRead(!read)}
+        onChange={() => { if (!read) { setRead(true); onMarkRead(); } }}
         style={{ accentColor: "#d2b356", cursor: "pointer", flexShrink: 0 }}
       />
       <span style={{ flex: 1, fontSize: 13, color: read ? "#aaa" : "#222", textDecoration: read ? "line-through" : "none", lineHeight: 1.5 }}>
@@ -2118,7 +2136,7 @@ function GuideReadItem({ label, onOpen }: { label: string; onOpen: () => void })
       </span>
       {!read && (
         <button
-          onClick={onOpen}
+          onClick={() => { setRead(true); onMarkRead(); onOpen(); }}
           style={{ fontSize: 12, fontWeight: 700, color: "#56a1d2", background: "none", border: "none", cursor: "pointer", padding: "2px 8px", flexShrink: 0 }}
         >
           Open →
@@ -2135,6 +2153,8 @@ export default function WelcomeDashboard({
   userChapter,
   allChapters,
   completedSteps,
+  hasReadHostingGuide,
+  hasReadLeadGuide,
 }: {
   userName: string;
   userEmail: string;
@@ -2142,9 +2162,20 @@ export default function WelcomeDashboard({
   userChapter?: { id: string; code: string; name: string };
   allChapters: { id: string; code: string; name: string }[];
   completedSteps?: boolean[];
+  hasReadHostingGuide?: boolean;
+  hasReadLeadGuide?: boolean;
 }) {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken ?? "";
+
+  async function markGuideRead(guide: "hosting" | "lead") {
+    if (!token) return;
+    await fetch(`${API_URL}/admin/me/guide-read`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ guide }),
+    });
+  }
 
   const isHost = userRole === "host";
   const isChapterLead = userRole === "chapter_lead";
@@ -2246,7 +2277,9 @@ export default function WelcomeDashboard({
                     <SectionLabel>Guide Checklist</SectionLabel>
                     <GuideReadItem
                       label="Read through the Hosting Guide"
+                      defaultRead={hasReadHostingGuide}
                       onOpen={() => setHostTab("hosting-guide")}
+                      onMarkRead={() => markGuideRead("hosting")}
                     />
                   </div>
                 </div>
@@ -2293,11 +2326,15 @@ export default function WelcomeDashboard({
                     <SectionLabel>Guide Checklist</SectionLabel>
                     <GuideReadItem
                       label="Read through the Hosting Guide"
+                      defaultRead={hasReadHostingGuide}
                       onOpen={() => setLeadTab("hosting-guide")}
+                      onMarkRead={() => markGuideRead("hosting")}
                     />
                     <GuideReadItem
                       label="Read through the Chapter Lead Guide"
+                      defaultRead={hasReadLeadGuide}
                       onOpen={() => setLeadTab("chapter-lead-guide")}
+                      onMarkRead={() => markGuideRead("lead")}
                     />
                   </div>
                 </div>
@@ -2361,11 +2398,15 @@ export default function WelcomeDashboard({
                     <SectionLabel>Guide Checklist</SectionLabel>
                     <GuideReadItem
                       label="Read through the Hosting Guide"
+                      defaultRead={hasReadHostingGuide}
                       onOpen={() => setLeadTab("hosting-guide")}
+                      onMarkRead={() => markGuideRead("hosting")}
                     />
                     <GuideReadItem
                       label="Read through the Chapter Lead Guide"
+                      defaultRead={hasReadLeadGuide}
                       onOpen={() => setLeadTab("chapter-lead-guide")}
+                      onMarkRead={() => markGuideRead("lead")}
                     />
                   </div>
                 </div>

@@ -109,7 +109,7 @@ export default function HomePage() {
             {/* Gold rule */}
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
 
-            <h1>Shaping AI through conversation and community</h1>
+            <h1>The Global AI Commons</h1>
             <h2>AI will impact everyone – everyone should impact AI</h2>
 
             {/* Gold rule */}
@@ -121,6 +121,7 @@ export default function HomePage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-outline"
+                data-umami-event="hero-join-event"
               >
                 JOIN AN EVENT
               </a>
@@ -129,6 +130,7 @@ export default function HomePage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-outline"
+                data-umami-event="hero-explore-insights"
               >
                 EXPLORE OUR INSIGHTS
               </a>
@@ -145,7 +147,7 @@ export default function HomePage() {
             <div style={{ flex: "0 0 300px", minWidth: 240 }}>
               <span className="section-label">About</span>
               <h2 className="section-title">
-                Creating conversation around the impact of AI
+                Shaping AI through conversation and community
               </h2>
               <p className="section-subtitle">
                 The Ai Salon is a global community founded in San Francisco to create
@@ -231,12 +233,9 @@ export default function HomePage() {
 
             {/* Right */}
             <div style={{ flex: "1 1 300px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 32 }}>
-                <Link href="/host" className="chapter-button">
-                  <i className="fa fa-plus-circle" aria-hidden="true" /> Start a Chapter
-                </Link>
-                <Link href="/host" className="chapter-button">
-                  <i className="fa fa-plus-circle" aria-hidden="true" /> Become a Host in an Existing Chapter
+              <div style={{ marginBottom: 32 }}>
+                <Link href="/host" className="chapter-button" data-umami-event="chapters-host-or-join">
+                  <i className="fa fa-plus-circle" aria-hidden="true" /> Host or Join a Chapter
                 </Link>
               </div>
 
@@ -260,6 +259,7 @@ export default function HomePage() {
                         key={ch.id}
                         href={`/chapters/${ch.code}`}
                         className="chapter-card"
+                        onClick={() => window.umami?.track('chapter-card-click', { chapter: ch.code })}
                       >
                         <i className="fa fa-map-marker" aria-hidden="true" />
                         <span>{ch.name}</span>
@@ -346,6 +346,7 @@ export default function HomePage() {
                 rel="noopener noreferrer"
                 className="btn-primary"
                 style={{ display: "inline-block" }}
+                data-umami-event="events-view-all"
               >
                 View All Events
               </a>
@@ -376,6 +377,7 @@ export default function HomePage() {
                 rel="noopener noreferrer"
                 className="btn-primary"
                 style={{ display: "inline-block" }}
+                data-umami-event="newsletter-subscribe"
               >
                 SUBSCRIBE
               </a>
@@ -409,6 +411,7 @@ export default function HomePage() {
                   rel="noopener noreferrer"
                   className="btn-primary"
                   style={{ display: "inline-block" }}
+                  data-umami-event="newsletter-read-substack"
                 >
                   Read on Substack
                 </a>

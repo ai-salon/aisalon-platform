@@ -172,8 +172,17 @@ class UserResponse(BaseModel):
     is_active: bool
     last_login_at: datetime | None = None
     login_count_30d: int = 0
+    has_api_key: bool = False
+    has_uploaded: bool = False
+    has_article: bool = False
+    has_read_hosting_guide: bool = False
+    has_read_lead_guide: bool = False
 
     model_config = {"from_attributes": True}
+
+
+class GuideReadRequest(BaseModel):
+    guide: str  # "hosting" | "lead"
 
 
 # ── Invites ────────────────────────────────────────────────────────────────────

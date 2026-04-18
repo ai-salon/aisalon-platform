@@ -101,6 +101,7 @@ export default function HostPage() {
       });
       if (!res.ok) throw new Error("Something went wrong. Please try again.");
       setSubmitted(true);
+      window.umami?.track('host-interest-submitted', { type: interestType });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -110,33 +111,18 @@ export default function HostPage() {
 
   return (
     <div>
-      {/* ── HERO — matches main page style ── */}
-      <section id="banner" style={{ minHeight: "calc(50vh - 71px)" }}>
-        <div className="banner-image" />
-        <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 30px", position: "relative", zIndex: 2 }}>
-          <div style={{ paddingTop: 72, paddingBottom: 60 }}>
-            <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 24 }} />
-            <h1 style={{ fontSize: 48, fontWeight: 800, color: "#111", margin: "0 0 16px", lineHeight: 1.15 }}>
-              Bring the Ai Salon<br />to Your City
+      {/* ── TWO INFO CARDS ── */}
+      <section style={{ background: "#f8f6ec", padding: "48px 30px" }}>
+        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+
+          <div style={{ marginBottom: 40 }}>
+            <h1 style={{ fontSize: 36, fontWeight: 800, color: "#111", margin: "0 0 10px" }}>
+              Join the Ai Salon Commons
             </h1>
-            <p style={{ fontSize: 20, color: "#696969", lineHeight: 1.6, margin: "0 0 32px", maxWidth: 520 }}>
+            <p style={{ fontSize: 17, color: "#696969", lineHeight: 1.6, maxWidth: 600, margin: 0 }}>
               We&apos;re growing globally. Whether you want to start a new chapter
               or become a host in an existing city, we&apos;d love to hear from you.
             </p>
-            <div style={{ width: 40, height: 4, background: "#d2b356" }} />
-          </div>
-        </div>
-      </section>
-
-      {/* ── TWO INFO CARDS ── */}
-      <section style={{ background: "#f8f6ec", padding: "72px 30px" }}>
-        <div style={{ maxWidth: 960, margin: "0 auto" }}>
-
-          <div style={{ textAlign: "center", marginBottom: 52 }}>
-            <span className="section-label">Get Involved</span>
-            <h2 className="section-title" style={{ display: "inline-block" }}>
-              Join the Ai Salon Network
-            </h2>
           </div>
 
           <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 64 }}>
@@ -182,15 +168,16 @@ export default function HostPage() {
               {/* Interest type toggle */}
               <div className="host-toggle-buttons" style={{ display: "flex", gap: 12, marginBottom: 32, flexWrap: "wrap" }}>
                 {[
-                  { value: "start_chapter", label: "Start a Chapter", icon: "fa-plus-circle" },
-                  { value: "host_existing", label: "Host in an Existing Chapter", icon: "fa-users" },
-                ].map(({ value, label, icon }) => {
+                  { value: "start_chapter", label: "Start a Chapter", icon: "fa-plus-circle", event: "host-toggle-start-chapter" },
+                  { value: "host_existing", label: "Host in an Existing Chapter", icon: "fa-users", event: "host-toggle-host-existing" },
+                ].map(({ value, label, icon, event }) => {
                   const active = interestType === value;
                   return (
                     <button
                       key={value}
                       type="button"
                       onClick={() => setInterestType(value as any)}
+                      data-umami-event={event}
                       style={{
                         flex: "1 1 200px",
                         padding: "14px 20px",
