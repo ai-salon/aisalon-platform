@@ -189,12 +189,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     gap: 4,
                   }}
                 >
-                  Host or Join a Chapter <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
+                  Get Involved <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
                 </Link>
                 <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
                   <li><Link href="/start">Run a Salon</Link></li>
                   <li><Link href="/volunteer">Volunteer</Link></li>
-                  <li><Link href="/host">Host a Chapter</Link></li>
+                  <li><Link href="/host">Host or Join a Chapter</Link></li>
                 </ul>
               </li>
             </ul>

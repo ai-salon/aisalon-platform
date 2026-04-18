@@ -83,10 +83,10 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
               <NavLink href="/host" icon="fa-plus-circle">Start a Chapter</NavLink>
             </NavSection>
 
-            <NavSection label="Host or Join a Chapter">
+            <NavSection label="Get Involved">
               <NavLink href="/start" icon="fa-play-circle">Run a Salon</NavLink>
               <NavLink href="/volunteer" icon="fa-hand-paper-o">Volunteer</NavLink>
-              <NavLink href="/host" icon="fa-users">Host a Chapter</NavLink>
+              <NavLink href="/host" icon="fa-users">Host or Join a Chapter</NavLink>
             </NavSection>
           </div>
 

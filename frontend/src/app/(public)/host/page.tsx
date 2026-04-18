@@ -128,8 +128,10 @@ export default function HostPage() {
           <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 64 }}>
             {/* Card 1 */}
             <div style={{ flex: "1 1 380px", background: "#fff", borderRadius: 10, padding: "36px 32px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", borderTop: "4px solid #56a1d2" }}>
-              <i className="fa fa-plus-circle" style={{ fontSize: 32, color: "#56a1d2", marginBottom: 16, display: "block" }} />
-              <h3 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 12 }}>Start a Chapter</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                <i className="fa fa-plus-circle" style={{ fontSize: 32, color: "#56a1d2" }} />
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: "#111", margin: 0 }}>Start a Chapter</h3>
+              </div>
               <p style={{ fontSize: 15, color: "#696969", lineHeight: 1.7, margin: 0 }}>
                 Launch an Ai Salon chapter in your city. You&apos;ll work with our global team to
                 organize events, build community, and join a network of chapter leads exploring
@@ -138,8 +140,10 @@ export default function HostPage() {
             </div>
             {/* Card 2 */}
             <div style={{ flex: "1 1 380px", background: "#fff", borderRadius: 10, padding: "36px 32px", boxShadow: "0 2px 12px rgba(0,0,0,0.07)", borderTop: "4px solid #d2b356" }}>
-              <i className="fa fa-users" style={{ fontSize: 32, color: "#d2b356", marginBottom: 16, display: "block" }} />
-              <h3 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 12 }}>Host in an Existing Chapter</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                <i className="fa fa-users" style={{ fontSize: 32, color: "#d2b356" }} />
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: "#111", margin: 0 }}>Host in an Existing Chapter</h3>
+              </div>
               <p style={{ fontSize: 15, color: "#696969", lineHeight: 1.7, margin: 0 }}>
                 Already in a city with an Ai Salon chapter? Become a host and help expand our
                 reach. Hosts co-organize events, facilitate conversations, and help grow the
