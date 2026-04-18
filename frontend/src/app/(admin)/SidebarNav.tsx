@@ -47,6 +47,7 @@ function buildNav(userRole: string): NavEntry[] {
   const adminChildren: NavItem[] = [
     { href: '/community', label: 'Community Analytics', icon: 'fa-bar-chart' },
     { href: '/users', label: 'Users', icon: 'fa-user-circle-o' },
+    { href: '/community-uploads', label: 'Community Uploads', icon: 'fa-cloud-upload' },
   ]
 
   return [
@@ -58,7 +59,6 @@ function buildNav(userRole: string): NavEntry[] {
     ...(!isHost ? [{ group: true as const, label: 'Team', icon: 'fa-users', children: teamChildren }] : []),
     ...(isSuperadmin ? [{ group: true as const, label: 'Admin', icon: 'fa-shield', children: adminChildren }] : []),
     ...(!isHost ? [{ href: '/topics', label: 'Topics', icon: 'fa-lightbulb-o' }] : []),
-    ...(!isHost ? [{ href: '/community-uploads', label: 'Community Uploads', icon: 'fa-cloud-upload' }] : []),
     { href: '/settings', label: 'Settings', icon: 'fa-cog' },
   ]
 }
