@@ -51,6 +51,8 @@ class VolunteerApplyRequest(BaseModel):
     email: str
     city: str
     linkedin_url: str | None = None
+    resume_url: str | None = None
+    website_url: str | None = None
     why_interested: str
     relevant_experience: str
     availability: str
@@ -116,6 +118,8 @@ class VolunteerApplicationResponse(BaseModel):
     email: str
     city: str
     linkedin_url: str | None
+    resume_url: str | None
+    website_url: str | None
     why_interested: str
     relevant_experience: str
     availability: str
@@ -232,6 +236,8 @@ async def apply_for_role(
         email=body.email,
         city=body.city,
         linkedin_url=body.linkedin_url,
+        resume_url=body.resume_url,
+        website_url=body.website_url,
         why_interested=body.why_interested,
         relevant_experience=body.relevant_experience,
         availability=body.availability,

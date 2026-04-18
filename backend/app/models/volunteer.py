@@ -46,6 +46,8 @@ class VolunteerApplication(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(String(256), nullable=False)
     city: Mapped[str] = mapped_column(String(256), nullable=False)
     linkedin_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    resume_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    website_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     why_interested: Mapped[str] = mapped_column(Text, nullable=False)
     relevant_experience: Mapped[str] = mapped_column(Text, nullable=False)
     availability: Mapped[str] = mapped_column(String(64), nullable=False)

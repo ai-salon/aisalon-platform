@@ -287,6 +287,40 @@ async def test_admin_update_application_status(
     assert r.json()["reviewed_at"] is not None
 
 
+# ── Professional Links ───────────────────────────────────────────────────────
+
+async def test_apply_with_professional_links(client: AsyncClient, db_session):
+    await _create_role(db_session, slug="links-role")
+    payload = {
+        **APPLY_PAYLOAD,
+        "linkedin_url": "https://linkedin.com/in/jane",
+        "resume_url": "https://docs.google.com/resume",
+        "website_url": "https://jane.dev",
+    }
+    r = await client.post("/volunteer-roles/links-role/apply", json=payload)
+    assert r.status_code == 201
+    assert r.json()["status"] == "pending"
+
+
+async def test_apply_links_stored_and_returned_in_admin_view(
+    client: AsyncClient, db_session, admin_headers
+):
+    await _create_role(db_session, slug="links-admin")
+    payload = {
+        **APPLY_PAYLOAD,
+        "resume_url": "https://docs.google.com/resume",
+        "website_url": "https://jane.dev",
+    }
+    apply_r = await client.post("/volunteer-roles/links-admin/apply", json=payload)
+    app_id = apply_r.json()["id"]
+
+    r = await client.get(f"/admin/volunteer-applications/{app_id}", headers=admin_headers)
+    assert r.status_code == 200
+    assert r.json()["resume_url"] == "https://docs.google.com/resume"
+    assert r.json()["website_url"] == "https://jane.dev"
+    assert r.json()["linkedin_url"] is None
+
+
 # ── RBAC: Chapter Lead Scoping ───────────────────────────────────────────────
 
 async def test_lead_sees_only_own_chapter_roles(
