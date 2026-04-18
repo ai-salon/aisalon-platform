@@ -29,6 +29,17 @@ export default function StartPage() {
       .catch(() => {});
   }, []);
 
+  const handlePrint = () => {
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;";
+    iframe.src = "/start/print";
+    document.body.appendChild(iframe);
+    iframe.onload = () => {
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 60000);
+    };
+  };
+
   return (
     <div>
       {/* Page header */}
@@ -42,14 +53,13 @@ export default function StartPage() {
               A small-group conversation where curious people explore a topic together. No expertise required.
             </p>
           </div>
-          <a
-            href="/start/print?autoprint=1"
-            target="_blank"
-            style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#56a1d2", fontSize: 14, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+          <button
+            onClick={handlePrint}
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#56a1d2", color: "white", border: "none", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}
           >
             <i className="fa fa-print" aria-hidden="true" />
             Print Facilitation Guide
-          </a>
+          </button>
         </div>
       </section>
 
