@@ -1,6 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import PrintButton from "./PrintButton";
+import AutoPrint from "./AutoPrint";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -37,6 +39,8 @@ export default async function PrintPage() {
           .print-page { max-width: 760px; margin: 24px auto; background: white; padding: 36px 44px; box-shadow: 0 2px 16px rgba(0,0,0,0.12); }
         }
       `}</style>
+
+      <Suspense><AutoPrint /></Suspense>
 
       {/* Print button bar — screen only */}
       <div className="no-print" style={{ background: "#56a1d2", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -130,7 +134,7 @@ export default async function PrintPage() {
                 Go around: each person shares their name and what they want to explore today.
               </p>
               <p style={{ fontSize: 11, color: "#7a5c00", background: "#fffbf0", border: "1px solid #d2b356", borderRadius: 4, padding: "6px 8px", margin: 0, lineHeight: 1.4 }}>
-                <strong>Don&apos;t rush this.</strong> What comes up in introductions tells you what&apos;s on people&apos;s minds.
+                <strong>Go first and model what you want to see.</strong> Take a moment to genuinely describe what you&apos;re curious about — it gives others permission to do the same. What comes up tells you what&apos;s on people&apos;s minds.
               </p>
             </div>
 

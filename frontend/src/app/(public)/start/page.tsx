@@ -31,41 +31,26 @@ export default function StartPage() {
 
   return (
     <div>
-      {/* Hero */}
-      <section
-        style={{
-          background: "linear-gradient(135deg, #56a1d2 0%, #4a8bc2 100%)",
-          color: "white",
-          textAlign: "center",
-          padding: "56px 24px 44px",
-        }}
-      >
-        <h1 style={{ fontSize: 36, fontWeight: 700, marginBottom: 12 }}>
-          Host Your Own Ai Salon
-        </h1>
-        <p style={{ fontSize: 17, maxWidth: 580, margin: "0 auto 28px", opacity: 0.95 }}>
-          A small-group conversation where curious people explore a topic together. No expertise required.
-        </p>
-        <a
-          href="/start/print"
-          target="_blank"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            background: "rgba(255,255,255,0.15)",
-            border: "1px solid rgba(255,255,255,0.4)",
-            color: "white",
-            padding: "9px 18px",
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 600,
-            textDecoration: "none",
-          }}
-        >
-          <i className="fa fa-print" aria-hidden="true" />
-          Print Facilitation Guide
-        </a>
+      {/* Page header */}
+      <section style={{ maxWidth: 900, margin: "0 auto", padding: "48px 24px 0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 10, color: "#111" }}>
+              Host Your Own Ai Salon
+            </h1>
+            <p style={{ fontSize: 17, color: "#555", maxWidth: 580, lineHeight: 1.6, margin: 0 }}>
+              A small-group conversation where curious people explore a topic together. No expertise required.
+            </p>
+          </div>
+          <a
+            href="/start/print?autoprint=1"
+            target="_blank"
+            style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#56a1d2", fontSize: 14, fontWeight: 600, textDecoration: "none", whiteSpace: "nowrap" }}
+          >
+            <i className="fa fa-print" aria-hidden="true" />
+            Print Facilitation Guide
+          </a>
+        </div>
       </section>
 
       {/* How to Run One */}
@@ -130,7 +115,7 @@ export default function StartPage() {
                 Go around: each person shares their name and what they want to explore today.
               </p>
               <p style={{ fontSize: 13, color: "#7a5c00", background: "#fffbf0", border: "1px solid #d2b356", borderRadius: 4, padding: "8px 10px", margin: 0, lineHeight: 1.5 }}>
-                <strong>Don&apos;t rush this.</strong> What comes up here tells you what&apos;s on people&apos;s minds.
+                <strong>Go first and model what you want to see.</strong> Take a moment to genuinely describe what you&apos;re curious about — it gives others permission to do the same. What comes up tells you what&apos;s on people&apos;s minds.
               </p>
             </div>
 
