@@ -72,7 +72,6 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
             </NavSection>
 
             <NavSection label="Explore">
-              <NavLink href="/#events" icon="fa-calendar">Events</NavLink>
               <NavLink href="/insights" icon="fa-newspaper-o">Insights</NavLink>
             </NavSection>
 
@@ -84,6 +83,7 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
             </NavSection>
 
             <NavSection label="Get Involved">
+              <NavLink href="https://lu.ma/Ai-salon" icon="fa-calendar" external>Attend an Event</NavLink>
               <NavLink href="/start" icon="fa-play-circle">Run a Salon</NavLink>
               <NavLink href="/volunteer" icon="fa-hand-paper-o">Volunteer</NavLink>
               <NavLink href="/host" icon="fa-users">Host or Join a Chapter</NavLink>
