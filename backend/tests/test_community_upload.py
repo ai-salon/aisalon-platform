@@ -1,6 +1,7 @@
 """Tests for community upload API (public upload + admin queue)."""
 import io
 import struct
+from unittest.mock import AsyncMock, patch
 
 from httpx import AsyncClient
 
@@ -129,6 +130,18 @@ async def test_upload_rejects_non_audio(client: AsyncClient, db_session):
         "/community/upload",
         files={"file": ("document.txt", io.BytesIO(b"hello world"), "text/plain")},
         data={"city": "London", "topic_text": "Some topic"},
+    )
+    assert r.status_code == 400
+
+
+async def test_upload_rejects_oversized_file(client: AsyncClient, db_session):
+    topic = await _create_topic(db_session)
+    # Simulate a 151 MB Content-Length header
+    r = await client.post(
+        "/community/upload",
+        files={"file": ("big.wav", io.BytesIO(_wav_header()), "audio/wav")},
+        data={"topic_id": topic.id, "city": "Largeville"},
+        headers={"content-length": str(151 * 1024 * 1024)},
     )
     assert r.status_code == 400
 

@@ -96,6 +96,10 @@ async def community_upload(
     if not topic_id and not (topic_text and topic_text.strip()):
         raise HTTPException(status_code=422, detail="topic_id or topic_text is required")
 
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=400, detail="File too large (max 150 MB)")
+
     data = await file.read()
     if not _is_audio(data):
         raise HTTPException(status_code=400, detail="Only audio files are accepted")
