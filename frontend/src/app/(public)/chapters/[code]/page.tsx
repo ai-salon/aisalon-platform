@@ -210,15 +210,15 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
             </h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 48 }}>
               {sortedMembers.map((m) => (
-                <div key={m.id} style={{ textAlign: "left" }}>
+                <div key={m.id} style={{ textAlign: "center" }}>
                   {/* Photo */}
                   <div
                     style={{
-                      width: 130,
-                      height: 130,
+                      width: 195,
+                      height: 195,
                       borderRadius: "50%",
                       background: "#f0ebe0",
-                      marginBottom: 20,
+                      margin: "0 auto 20px",
                       overflow: "hidden",
                       display: "flex",
                       alignItems: "center",
@@ -229,11 +229,11 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
-                      <i className="fa fa-user" style={{ fontSize: 48, color: "#d2b356" }} aria-hidden="true" />
+                      <i className="fa fa-user" style={{ fontSize: 64, color: "#d2b356" }} aria-hidden="true" />
                     )}
                   </div>
                   {/* Name + LinkedIn */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
                     <h4 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: 0 }}>{m.name}</h4>
                     {m.linkedin && (
                       <a href={m.linkedin} target="_blank" rel="noreferrer" aria-label={`${m.name} on LinkedIn`} style={{ color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>
