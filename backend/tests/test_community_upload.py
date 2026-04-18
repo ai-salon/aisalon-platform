@@ -1,8 +1,6 @@
 """Tests for community upload API (public upload + admin queue)."""
 import io
 import struct
-from unittest.mock import AsyncMock, patch
-
 from httpx import AsyncClient
 
 from app.models.community_upload import CommunityUpload, UploadStatus
