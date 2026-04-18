@@ -10,6 +10,8 @@ interface Upload {
   name: string | null;
   email: string | null;
   topic_id: string | null;
+  topic_text: string | null;
+  city: string;
   audio_path: string;
   notes: string | null;
   status: string;
@@ -105,8 +107,13 @@ export default function AdminCommunityUploadsPage() {
                   <div>
                     <div style={{ fontWeight: 600, marginBottom: 4 }}>{u.name || "Anonymous"}</div>
                     <div style={{ fontSize: 13, color: "#888" }}>
-                      {u.email || "No email"} &middot; {new Date(u.created_at).toLocaleDateString()}
+                      {u.email || "No email"} &middot; {u.city} &middot; {new Date(u.created_at).toLocaleDateString()}
                     </div>
+                    {(u.topic_text || u.topic_id) && (
+                      <div style={{ fontSize: 13, color: "#56a1d2", marginTop: 4 }}>
+                        Topic: {u.topic_text || u.topic_id}
+                      </div>
+                    )}
                     {u.notes && <div style={{ marginTop: 8, fontSize: 14, color: "#555", lineHeight: 1.5 }}>{u.notes}</div>}
                   </div>
                   <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: s.bg, color: s.color }}>
