@@ -55,6 +55,8 @@ export default function VolunteerRoleDetailPage() {
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [resumeUrl, setResumeUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [whyInterested, setWhyInterested] = useState("");
   const [relevantExperience, setRelevantExperience] = useState("");
   const [availability, setAvailability] = useState("");
@@ -88,6 +90,8 @@ export default function VolunteerRoleDetailPage() {
           email,
           city,
           linkedin_url: linkedinUrl || null,
+          resume_url: resumeUrl || null,
+          website_url: websiteUrl || null,
           why_interested: whyInterested,
           relevant_experience: relevantExperience,
           availability,
@@ -121,14 +125,13 @@ export default function VolunteerRoleDetailPage() {
     <div>
       {/* ── HERO ── */}
       <section id="banner" style={{ minHeight: "calc(40vh - 71px)" }}>
-        <div className="banner-image" />
         <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 30px", position: "relative", zIndex: 2 }}>
           <div style={{ paddingTop: 60, paddingBottom: 48 }}>
             <Link href="/volunteer" style={{ fontSize: 14, color: "#56a1d2", textDecoration: "none", marginBottom: 16, display: "inline-block" }}>
               <i className="fa fa-arrow-left" style={{ marginRight: 6 }} /> All Roles
             </Link>
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 20 }} />
-            <h1 style={{ fontSize: 44, fontWeight: 800, color: "#111", margin: "0 0 14px", lineHeight: 1.15 }}>
+            <h1 style={{ fontSize: 44, fontWeight: 800, color: "#111", margin: "0 0 14px", lineHeight: 1.15, textAlign: "center" }}>
               {role.title}
             </h1>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -246,6 +249,14 @@ export default function VolunteerRoleDetailPage() {
                 <div style={{ marginBottom: 20 }}>
                   <label style={labelStyle} htmlFor="linkedin">LinkedIn <span style={{ fontWeight: 400, textTransform: "none", fontSize: 12 }}>(optional)</span></label>
                   <input id="linkedin" type="url" value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} placeholder="https://linkedin.com/in/..." style={inputStyle} />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={labelStyle} htmlFor="resume">Resume URL <span style={{ fontWeight: 400, textTransform: "none", fontSize: 12 }}>(optional)</span></label>
+                  <input id="resume" type="url" value={resumeUrl} onChange={e => setResumeUrl(e.target.value)} placeholder="Google Doc, Dropbox, etc." style={inputStyle} />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={labelStyle} htmlFor="website">Personal Website <span style={{ fontWeight: 400, textTransform: "none", fontSize: 12 }}>(optional)</span></label>
+                  <input id="website" type="url" value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="https://yoursite.com" style={inputStyle} />
                 </div>
               </div>
 
