@@ -66,15 +66,14 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
           {/* Nav sections */}
           <div style={{ flex: 1 }}>
             <NavSection label="About">
+              <NavLink href="/#about" icon="fa-info-circle">About Us</NavLink>
               <NavLink href="/#values" icon="fa-heart">Values</NavLink>
-              <NavLink href="/#chapters" icon="fa-globe">Chapters</NavLink>
               <NavLink href="/#team" icon="fa-users">Team</NavLink>
             </NavSection>
 
-            <NavSection label="Our Work">
-              <NavLink href="https://lu.ma/Ai-salon" icon="fa-calendar" external>Events</NavLink>
-              <NavLink href="https://aisalon.substack.com" icon="fa-newspaper-o" external>Insights</NavLink>
-              <NavLink href="/volunteer" icon="fa-hand-paper-o">Volunteer</NavLink>
+            <NavSection label="Explore">
+              <NavLink href="/#events" icon="fa-calendar">Events</NavLink>
+              <NavLink href="/insights" icon="fa-newspaper-o">Insights</NavLink>
             </NavSection>
 
             <NavSection label="Chapters">
@@ -84,9 +83,14 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
               <NavLink href="/host" icon="fa-plus-circle">Start a Chapter</NavLink>
             </NavSection>
 
+            <NavSection label="Get Involved">
+              <NavLink href="/start" icon="fa-play-circle">Run a Salon</NavLink>
+              <NavLink href="/volunteer" icon="fa-hand-paper-o">Volunteer</NavLink>
+              <NavLink href="/host" icon="fa-users">Host a Chapter</NavLink>
+            </NavSection>
           </div>
 
-          {/* CTA buttons at bottom */}
+          {/* CTA button at bottom */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24 }}>
             <a
               href="https://lu.ma/Ai-salon"
@@ -96,15 +100,6 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
               style={{ textAlign: "center", display: "block" }}
             >
               Join an Event
-            </a>
-            <a
-              href="https://aisalon.substack.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="nav-button"
-              style={{ textAlign: "center", display: "block" }}
-            >
-              Explore Our Insights
             </a>
           </div>
         </div>

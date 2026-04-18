@@ -70,13 +70,24 @@ function IconBlock({ icon, title, body }: { icon: string; title: string; body: R
 /* ─────────────────────────────────────────
    Page
 ───────────────────────────────────────── */
+type Member = {
+  id: string; name: string; role: string;
+  description: string | null; profile_image_url: string;
+  linkedin: string | null; is_cofounder: boolean; display_order: number;
+};
+
 export default function HomePage() {
   const [chapters, setChapters] = useState<{ id: string; name: string; code: string; tagline: string; status: string }[]>([]);
+  const [team, setTeam] = useState<Member[]>([]);
 
   useEffect(() => {
     fetch(`${API_URL}/chapters`)
       .then((r) => r.json())
       .then(setChapters)
+      .catch(() => {});
+    fetch(`${API_URL}/team`)
+      .then((r) => r.json())
+      .then(setTeam)
       .catch(() => {});
   }, []);
 
@@ -406,6 +417,55 @@ export default function HomePage() {
           </div>
         </Row>
       </section>
+
+      {/* ── TEAM ── */}
+      {team.length > 0 && (
+        <section id="team" style={{ background: "#f8f6ec" }}>
+          <Row>
+            <div style={{ textAlign: "center", marginBottom: 48 }}>
+              <span className="section-label">The Team</span>
+              <h2 className="section-title">The People Behind the Ai Salon</h2>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 24 }}>
+              {team.map((m) => (
+                <div key={m.id} className="team-member-card">
+                  <div
+                    style={{
+                      width: 90,
+                      height: 90,
+                      borderRadius: "50%",
+                      background: "#fff",
+                      margin: "0 auto 16px",
+                      overflow: "hidden",
+                      border: "3px solid #d2b356",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {m.profile_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <i className="fa fa-user" style={{ fontSize: 36, color: "#d2b356" }} aria-hidden="true" />
+                    )}
+                  </div>
+                  <h4 style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 4px" }}>{m.name}</h4>
+                  <p style={{ fontSize: 13, color: "#56a1d2", fontWeight: 600, margin: "0 0 8px" }}>{m.role}</p>
+                  {m.description && (
+                    <p style={{ fontSize: 13, color: "#696969", lineHeight: 1.5, margin: "0 0 8px" }}>{m.description}</p>
+                  )}
+                  {m.linkedin && (
+                    <a href={m.linkedin} target="_blank" rel="noreferrer" aria-label={`${m.name} on LinkedIn`} style={{ color: "#696969", fontSize: 18 }}>
+                      <i className="fa fa-linkedin-square" aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Row>
+        </section>
+      )}
 
     </>
   );

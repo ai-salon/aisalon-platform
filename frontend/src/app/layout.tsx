@@ -115,11 +115,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </Link>
                 <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
                   <li><Link href="/#values">Values</Link></li>
-                  <li><Link href="/#chapters">Chapters</Link></li>
                   <li><Link href="/#team">Team</Link></li>
                 </ul>
               </li>
-              <li className="dropdown">
+              <li>
                 <Link
                   href="/#events"
                   style={{
@@ -130,16 +129,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                     color: "#111",
                     display: "flex",
                     alignItems: "center",
-                    gap: 4,
                   }}
                 >
-                  Our Work <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
+                  Events
                 </Link>
-                <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
-                  <li><Link href="/#events">Events</Link></li>
-                  <li><Link href="/insights">Insights</Link></li>
-                  <li><Link href="/volunteer">Volunteer</Link></li>
-                </ul>
+              </li>
+              <li>
+                <Link
+                  href="/insights"
+                  style={{
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    color: "#111",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  Insights
+                </Link>
               </li>
               <li className="dropdown">
                 <Link
@@ -166,6 +175,28 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   </li>
                 </ul>
               </li>
+              <li className="dropdown">
+                <Link
+                  href="/start"
+                  style={{
+                    padding: "8px 14px",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    color: "#111",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                  }}
+                >
+                  Get Involved <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
+                </Link>
+                <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
+                  <li><Link href="/start">Run a Salon</Link></li>
+                  <li><Link href="/volunteer">Volunteer</Link></li>
+                  <li><Link href="/host">Host a Chapter</Link></li>
+                </ul>
+              </li>
             </ul>
 
             {/* Nav buttons — hidden on mobile */}
@@ -177,14 +208,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 className="nav-button"
               >
                 Join an event
-              </a>
-              <a
-                href="https://aisalon.substack.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="nav-button"
-              >
-                Explore our insights
               </a>
             </div>
 
