@@ -233,7 +233,9 @@ export default function HostPage() {
                     <p style={{ fontSize: 13, marginTop: 6, marginBottom: 0, color: matchedChapter ? "#56a1d2" : "#696969" }}>
                       {matchedChapter
                         ? `Host with the ${matchedChapter.name} chapter`
-                        : `Start the ${city.trim()} chapter`}
+                        : interestType === "host_existing"
+                          ? `We don't have a chapter in ${city.trim()} yet`
+                          : `Start the ${city.trim()} chapter`}
                     </p>
                   )}
                 </div>
