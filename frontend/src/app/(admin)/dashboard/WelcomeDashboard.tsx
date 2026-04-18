@@ -1598,8 +1598,8 @@ function CommunityStats({ token }: { token: string }) {
     fetch(`${API_URL}/admin/community-stats`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then(setStats)
+      .then((r) => (r.ok ? r.json() : Promise.resolve(null)))
+      .then((data) => { if (data?.totals) setStats(data); })
       .catch(() => {});
   }, [token]);
 
@@ -1654,8 +1654,8 @@ function RecentActivity({ token, chapterCode }: { token: string; chapterCode: st
   useEffect(() => {
     if (!token) return;
     fetch(`${API_URL}/admin/articles`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((a) => setArticles(a.slice(0, 4)))
+      .then((r) => (r.ok ? r.json() : Promise.resolve([])))
+      .then((data) => setArticles(Array.isArray(data) ? data.slice(0, 4) : []))
       .catch(() => {});
   }, [token]);
 
