@@ -101,6 +101,7 @@ export default function HostPage() {
       });
       if (!res.ok) throw new Error("Something went wrong. Please try again.");
       setSubmitted(true);
+      window.umami?.track('host-interest-submitted', { type: interestType });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -167,15 +168,16 @@ export default function HostPage() {
               {/* Interest type toggle */}
               <div className="host-toggle-buttons" style={{ display: "flex", gap: 12, marginBottom: 32, flexWrap: "wrap" }}>
                 {[
-                  { value: "start_chapter", label: "Start a Chapter", icon: "fa-plus-circle" },
-                  { value: "host_existing", label: "Host in an Existing Chapter", icon: "fa-users" },
-                ].map(({ value, label, icon }) => {
+                  { value: "start_chapter", label: "Start a Chapter", icon: "fa-plus-circle", event: "host-toggle-start-chapter" },
+                  { value: "host_existing", label: "Host in an Existing Chapter", icon: "fa-users", event: "host-toggle-host-existing" },
+                ].map(({ value, label, icon, event }) => {
                   const active = interestType === value;
                   return (
                     <button
                       key={value}
                       type="button"
                       onClick={() => setInterestType(value as any)}
+                      data-umami-event={event}
                       style={{
                         flex: "1 1 200px",
                         padding: "14px 20px",
