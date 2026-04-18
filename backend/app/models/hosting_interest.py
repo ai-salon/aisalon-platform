@@ -26,3 +26,5 @@ class HostingInterest(Base, TimestampMixin):
     why_hosting: Mapped[str | None] = mapped_column(Text, nullable=True)
     hosting_frequency: Mapped[str | None] = mapped_column(String(64), nullable=True)
     space_options: Mapped[str | None] = mapped_column(Text, nullable=True)
+    leadership_experience: Mapped[str | None] = mapped_column(Text, nullable=True)
+    support_network: Mapped[str | None] = mapped_column(Text, nullable=True)

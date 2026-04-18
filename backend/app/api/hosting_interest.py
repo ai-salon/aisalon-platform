@@ -22,6 +22,8 @@ class HostingInterestCreate(BaseModel):
     why_hosting: str | None = None
     hosting_frequency: str | None = None
     space_options: str | None = None
+    leadership_experience: str | None = None
+    support_network: str | None = None
 
 
 class HostingInterestResponse(BaseModel):
@@ -38,6 +40,8 @@ class HostingInterestResponse(BaseModel):
     why_hosting: str | None
     hosting_frequency: str | None
     space_options: str | None
+    leadership_experience: str | None
+    support_network: str | None
 
     model_config = {"from_attributes": True}
 
@@ -64,6 +68,8 @@ async def create_hosting_interest(
         why_hosting=body.why_hosting,
         hosting_frequency=body.hosting_frequency,
         space_options=body.space_options,
+        leadership_experience=body.leadership_experience,
+        support_network=body.support_network,
     )
     db.add(record)
     await db.commit()
