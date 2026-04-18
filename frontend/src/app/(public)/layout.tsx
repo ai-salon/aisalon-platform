@@ -1,6 +1,15 @@
+import Script from 'next/script'
+
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
+      {process.env.NEXT_PUBLIC_UMAMI_URL && process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
+        <Script
+          src={`${process.env.NEXT_PUBLIC_UMAMI_URL}/script.js`}
+          data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
+          strategy="afterInteractive"
+        />
+      )}
       {children}
       <footer className="footer-public" id="public-footer">
         <div
