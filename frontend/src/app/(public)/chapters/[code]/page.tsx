@@ -51,7 +51,12 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
   const chapter = await getChapter(code);
   if (!chapter) notFound();
 
-  const rolePriority = (r: string) => r === "Chapter Lead" ? 0 : r === "Co-Founder" ? 2 : 1;
+  const rolePriority = (r: string) => {
+    if (r === "Founder, Executive Director") return 0;
+    if (r.startsWith("Co-Founder")) return 1;
+    if (r.includes("Chapter Lead")) return 2;
+    return 3;
+  };
   const sortedMembers = [...chapter.team_members].sort((a, b) => {
     const rCmp = rolePriority(a.role) - rolePriority(b.role);
     return rCmp !== 0 ? rCmp : a.name.localeCompare(b.name);
@@ -198,23 +203,23 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
 
       {/* ── TEAM ── */}
       {sortedMembers.length > 0 && (
-        <section style={{ background: "#f8f6ec", padding: "72px 30px" }}>
+        <section style={{ background: "#fff", padding: "80px 30px" }}>
           <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-            <h2 className="section-title" style={{ marginBottom: 48 }}>
-              The People Behind the {chapter.name} Ai Salon
+            <h2 style={{ fontSize: 36, fontWeight: 800, color: "#111", textAlign: "center", margin: "0 0 56px" }}>
+              Leadership
             </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 24 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 48 }}>
               {sortedMembers.map((m) => (
-                <div key={m.id} className="team-member-card">
+                <div key={m.id} style={{ textAlign: "left" }}>
+                  {/* Photo */}
                   <div
                     style={{
-                      width: 90,
-                      height: 90,
+                      width: 130,
+                      height: 130,
                       borderRadius: "50%",
-                      background: "#f8f6ec",
-                      margin: "0 auto 16px",
+                      background: "#f0ebe0",
+                      marginBottom: 20,
                       overflow: "hidden",
-                      border: "3px solid #d2b356",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -224,18 +229,25 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
-                      <i className="fa fa-user" style={{ fontSize: 36, color: "#d2b356" }} aria-hidden="true" />
+                      <i className="fa fa-user" style={{ fontSize: 48, color: "#d2b356" }} aria-hidden="true" />
                     )}
                   </div>
-                  <h4 style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 4px" }}>{m.name}</h4>
-                  <p style={{ fontSize: 13, color: "#56a1d2", fontWeight: 600, margin: "0 0 8px" }}>{m.role}</p>
+                  {/* Name + LinkedIn */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <h4 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: 0 }}>{m.name}</h4>
+                    {m.linkedin && (
+                      <a href={m.linkedin} target="_blank" rel="noreferrer" aria-label={`${m.name} on LinkedIn`} style={{ color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>
+                        <i className="fa fa-linkedin-square" aria-hidden="true" />
+                      </a>
+                    )}
+                  </div>
+                  {/* Role */}
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#d2b356", margin: "0 0 10px" }}>
+                    {m.role}
+                  </p>
+                  {/* Description */}
                   {m.description && (
-                    <p style={{ fontSize: 13, color: "#696969", lineHeight: 1.5, margin: "0 0 8px" }}>{m.description}</p>
-                  )}
-                  {m.linkedin && (
-                    <a href={m.linkedin} target="_blank" rel="noreferrer" aria-label={`${m.name} on LinkedIn`} style={{ color: "#696969", fontSize: 18 }}>
-                      <i className="fa fa-linkedin-square" aria-hidden="true" />
-                    </a>
+                    <p style={{ fontSize: 13, color: "#555", lineHeight: 1.65, margin: 0 }}>{m.description}</p>
                   )}
                 </div>
               ))}

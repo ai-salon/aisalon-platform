@@ -17,7 +17,7 @@ _P = "/images/people"
 
 _IAN = dict(
     name="Ian Eisenberg",
-    role="Co-Founder",
+    role="Founder, Executive Director",
     description=(
         "Ian focuses on system-level interventions to make AI more effective and "
         "beneficial. Besides the salon, he leads Credo AI's AI Governance Research "
@@ -32,7 +32,7 @@ _IAN = dict(
 
 _CECILIA = dict(
     name="Cecilia Callas",
-    role="Co-Founder",
+    role="Co-Founder, Advisor",
     description=(
         "Cecilia Callas is an AI Ethicist, Responsible AI expert and writer based "
         "in San Francisco, CA. Her core focus is empowering the public with content, "
@@ -104,7 +104,7 @@ _CHAPTERS = [
         team=[
             dict(
                 name="Apurba Kundu",
-                role="Chapter Lead",
+                role="Berlin Chapter Lead",
                 description=(
                     "Apurba is a tech lawyer by training and currently a public policy "
                     "master's student navigating trustworthy AI governance."
@@ -115,7 +115,7 @@ _CHAPTERS = [
             ),
             dict(
                 name="Justin Shenk",
-                role="Chapter Lead",
+                role="Berlin Chapter Lead",
                 description="Justin is a software engineer hosting chats, still working on aligning his agents.",
                 profile_image_url=f"{_P}/justin_shenk.jpeg",
                 linkedin="https://www.linkedin.com/in/justinshenk/",
@@ -162,7 +162,7 @@ _CHAPTERS = [
         team=[
             dict(
                 name="Sharat Satyanarayana",
-                role="Chapter Lead",
+                role="Bangalore Chapter Lead",
                 description="",
                 profile_image_url=f"{_P}/sharat_satyanarayana.jpeg",
                 linkedin="https://www.linkedin.com/in/sharats/",
@@ -198,7 +198,7 @@ _CHAPTERS = [
         team=[
             dict(
                 name="Francis Sani",
-                role="Chapter Lead",
+                role="Lagos Chapter Lead",
                 description="",
                 profile_image_url=f"{_P}/francis_sani.jpeg",
                 linkedin="https://www.linkedin.com/in/francis-sani-o-83534ba9/",
@@ -226,7 +226,7 @@ _CHAPTERS = [
         team=[
             dict(
                 name="Mikhail Klassen",
-                role="Chapter Lead",
+                role="Vancouver Chapter Lead",
                 description=(
                     "Mikhail is an AI engineer, physicist, and entrepreneur passionate "
                     "about AI's impact on science and society. He specializes in AI for "
@@ -260,7 +260,7 @@ _CHAPTERS = [
         team=[
             dict(
                 name="Pascale Speck",
-                role="Chapter Lead",
+                role="Zurich Chapter Lead",
                 description="",
                 profile_image_url=f"{_P}/pascale_speck.jpeg",
                 linkedin="",
@@ -289,7 +289,7 @@ _CHAPTERS = [
         team=[
             dict(
                 name="Rupi Sureshkumar",
-                role="Chapter Lead",
+                role="New York City Chapter Lead",
                 description="",
                 profile_image_url=f"{_P}/rupi_sureshkumar.jpeg",
                 linkedin="https://www.linkedin.com/in/rupi-sureshkumar/",
