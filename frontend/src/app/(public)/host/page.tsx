@@ -55,6 +55,8 @@ export default function HostPage() {
   const [whyHosting, setWhyHosting] = useState("");
   const [hostingFrequency, setHostingFrequency] = useState("");
   const [spaceOptions, setSpaceOptions] = useState<string[]>([]);
+  const [leadershipExperience, setLeadershipExperience] = useState("");
+  const [supportNetwork, setSupportNetwork] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +99,8 @@ export default function HostPage() {
           why_hosting: whyHosting || null,
           hosting_frequency: hostingFrequency || null,
           space_options: spaceOptions.length > 0 ? spaceOptions.join(", ") : null,
+          leadership_experience: interestType === "start_chapter" ? (leadershipExperience || null) : null,
+          support_network: interestType === "start_chapter" ? (supportNetwork || null) : null,
         }),
       });
       if (!res.ok) throw new Error("Something went wrong. Please try again.");
@@ -108,6 +112,12 @@ export default function HostPage() {
       setSubmitting(false);
     }
   };
+
+  const matchedChapter = city.trim()
+    ? chapters.find(
+        (ch) => ch.name.toLowerCase() === city.trim().toLowerCase()
+      )
+    : null;
 
   return (
     <div>
@@ -219,6 +229,13 @@ export default function HostPage() {
                 <div style={{ marginBottom: 20, gridColumn: interestType === "host_existing" ? "1" : "1 / -1" }}>
                   <label style={labelStyle} htmlFor="city">City <span style={{ color: "#dc2626" }}>*</span></label>
                   <input id="city" type="text" required value={city} onChange={e => setCity(e.target.value)} placeholder="San Francisco, London…" style={inputStyle} />
+                  {city.trim() && (
+                    <p style={{ fontSize: 13, marginTop: 6, marginBottom: 0, color: matchedChapter ? "#56a1d2" : "#696969" }}>
+                      {matchedChapter
+                        ? `Host with the ${matchedChapter.name} chapter`
+                        : `Start the ${city.trim()} chapter`}
+                    </p>
+                  )}
                 </div>
                 {interestType === "host_existing" && (
                   <div style={{ marginBottom: 20 }}>
@@ -274,16 +291,51 @@ export default function HostPage() {
                 <label style={labelStyle} htmlFor="themes_interested">
                   What themes are you interested in exploring in your Ai Salons? <span style={{ color: "#dc2626" }}>*</span>
                 </label>
-                <input
+                <p style={hintStyle}>Share as many as you&apos;d like — they don&apos;t need to be fully formed ideas.</p>
+                <textarea
                   id="themes_interested"
-                  type="text"
                   required
                   value={themesInterested}
                   onChange={e => setThemesInterested(e.target.value)}
-                  placeholder="e.g. AI and democracy, future of work…"
-                  style={inputStyle}
+                  rows={4}
+                  placeholder="e.g. AI and democracy, future of work, art and creativity…"
+                  style={{ ...inputStyle, resize: "vertical" }}
                 />
               </div>
+
+              {interestType === "start_chapter" && (
+                <>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={labelStyle} htmlFor="leadership_experience">
+                      What&apos;s your experience organizing or leading groups? <span style={{ color: "#dc2626" }}>*</span>
+                    </label>
+                    <p style={hintStyle}>Could be anything from a book club to a professional meetup.</p>
+                    <textarea
+                      id="leadership_experience"
+                      required
+                      value={leadershipExperience}
+                      onChange={e => setLeadershipExperience(e.target.value)}
+                      rows={3}
+                      placeholder="Tell us about your experience…"
+                      style={{ ...inputStyle, resize: "vertical" }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={labelStyle} htmlFor="support_network">
+                      Do you have people in mind who could help you get started? <span style={{ fontWeight: 400, textTransform: "none", fontSize: 12 }}>(optional)</span>
+                    </label>
+                    <p style={hintStyle}>Co-hosts, a venue contact, or just enthusiastic friends — anything helps.</p>
+                    <textarea
+                      id="support_network"
+                      value={supportNetwork}
+                      onChange={e => setSupportNetwork(e.target.value)}
+                      rows={3}
+                      placeholder="e.g. A few colleagues interested in AI, a friend with a space…"
+                      style={{ ...inputStyle, resize: "vertical" }}
+                    />
+                  </div>
+                </>
+              )}
 
               <div style={{ marginBottom: 20 }}>
                 <label style={labelStyle} htmlFor="why_hosting">
@@ -335,7 +387,7 @@ export default function HostPage() {
                   Do you have a space to host? <span style={{ fontWeight: 400, textTransform: "none", fontSize: 12 }}>(Check all that apply)</span> <span style={{ color: "#dc2626" }}>*</span>
                 </label>
                 <p style={hintStyle}>
-                  Having a space is the most important thing to make this easy. Hosts have used their own apartments, public spaces like libraries, co-working or social areas.
+                  Having a space is the most important thing to make this easy. Hosts have used their own apartments, public spaces like libraries, co-working or social areas, or local businesses like restaurants, bars, and cafés.
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
                   {SPACE_OPTIONS.map((opt) => (
