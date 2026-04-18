@@ -12,6 +12,11 @@ type ArticleSummary = {
   chapter_id: string; created_at: string;
 };
 
+type OgData = {
+  image: string | null;
+  description: string | null;
+};
+
 async function getArticles(): Promise<ArticleSummary[]> {
   const r = await fetch(`${API_URL}/articles`, { cache: "no-store" });
   if (!r.ok) return [];
@@ -24,10 +29,54 @@ async function getChapters() {
   return r.json();
 }
 
+async function fetchOgData(url: string): Promise<OgData> {
+  try {
+    const r = await fetch(url, {
+      next: { revalidate: 3600 },
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AiSalon/1.0; +https://aisalon.xyz)" },
+    });
+    if (!r.ok) return { image: null, description: null };
+    const html = await r.text();
+    const imgMatch =
+      html.match(/<meta[^>]+property="og:image"[^>]+content="([^"]+)"/i) ??
+      html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:image"/i);
+    const descMatch =
+      html.match(/<meta[^>]+property="og:description"[^>]+content="([^"]+)"/i) ??
+      html.match(/<meta[^>]+content="([^"]+)"[^>]+property="og:description"/i);
+    return {
+      image: imgMatch?.[1] ?? null,
+      description: descMatch?.[1] ? decodeHtmlEntities(descMatch[1]) : null,
+    };
+  } catch {
+    return { image: null, description: null };
+  }
+}
+
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
 export default async function InsightsPage() {
   const [articles, chapters] = await Promise.all([getArticles(), getChapters()]);
   const chapterMap: Record<string, string> = {};
   for (const c of chapters) chapterMap[c.id] = c.name;
+
+  const ogResults = await Promise.allSettled(
+    articles.map((a) =>
+      a.substack_url ? fetchOgData(a.substack_url) : Promise.resolve({ image: null, description: null })
+    )
+  );
+  const ogMap: Record<string, OgData> = {};
+  articles.forEach((a, i) => {
+    const r = ogResults[i];
+    ogMap[a.id] = r.status === "fulfilled" ? r.value : { image: null, description: null };
+  });
 
   return (
     <div>
@@ -71,46 +120,79 @@ export default async function InsightsPage() {
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-              {articles.map((a) => (
-                <a
-                  key={a.id}
-                  href={a.substack_url ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: "none" }}
-                  data-umami-event="article-card-click"
-                  data-umami-event-title={a.title}
-                >
-                  <article
-                    style={{
-                      background: "#fff",
-                      borderRadius: 8,
-                      padding: "24px 28px",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                      borderLeft: "4px solid #56a1d2",
-                      transition: "box-shadow 0.15s",
-                    }}
+              {articles.map((a) => {
+                const og = ogMap[a.id];
+                return (
+                  <a
+                    key={a.id}
+                    href={a.substack_url ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: "none" }}
+                    data-umami-event="article-card-click"
+                    data-umami-event-title={a.title}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                      {chapterMap[a.chapter_id] && (
-                        <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#d2b356" }}>
-                          {chapterMap[a.chapter_id]}
+                    <article
+                      style={{
+                        background: "#fff",
+                        borderRadius: 8,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                        borderLeft: "4px solid #56a1d2",
+                        overflow: "hidden",
+                        display: "flex",
+                        transition: "box-shadow 0.15s",
+                      }}
+                    >
+                      <div style={{ flex: 1, padding: "24px 28px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                          {chapterMap[a.chapter_id] && (
+                            <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#d2b356" }}>
+                              {chapterMap[a.chapter_id]}
+                            </span>
+                          )}
+                          <span style={{ fontSize: 12, color: "#9ca3af" }}>·</span>
+                          <span style={{ fontSize: 12, color: "#9ca3af" }}>
+                            {new Date(a.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                          </span>
+                        </div>
+                        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111", margin: "0 0 8px", lineHeight: 1.35 }}>
+                          {a.title}
+                        </h2>
+                        {og.description && (
+                          <p style={{
+                            fontSize: 14,
+                            color: "#696969",
+                            lineHeight: 1.55,
+                            margin: "0 0 12px",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}>
+                            {og.description}
+                          </p>
+                        )}
+                        <span style={{ fontSize: 13, color: "#56a1d2", fontWeight: 600 }}>
+                          Read on Substack →
                         </span>
+                      </div>
+                      {og.image && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={og.image}
+                          alt=""
+                          style={{
+                            width: 160,
+                            flexShrink: 0,
+                            objectFit: "cover",
+                            objectPosition: "center",
+                          }}
+                        />
                       )}
-                      <span style={{ fontSize: 12, color: "#9ca3af" }}>·</span>
-                      <span style={{ fontSize: 12, color: "#9ca3af" }}>
-                        {new Date(a.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
-                      </span>
-                    </div>
-                    <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111", margin: "0 0 8px", lineHeight: 1.35 }}>
-                      {a.title}
-                    </h2>
-                    <span style={{ fontSize: 13, color: "#56a1d2", fontWeight: 600 }}>
-                      Read on Substack →
-                    </span>
-                  </article>
-                </a>
-              ))}
+                    </article>
+                  </a>
+                );
+              })}
             </div>
           )}
         </div>
