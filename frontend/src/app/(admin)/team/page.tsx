@@ -23,9 +23,10 @@ const EMPTY_FORM = {
 
 // Sort priority: Co-Founder=0, Chapter Lead=1, Host=2
 function rolePriority(role: string): number {
-  if (role === "Co-Founder") return 0;
-  if (role === "Chapter Lead") return 1;
-  return 2;
+  if (role === "Founder, Executive Director") return 0;
+  if (role.startsWith("Co-Founder")) return 1;
+  if (role.includes("Chapter Lead")) return 2;
+  return 3;
 }
 
 export default function TeamPage() {
