@@ -1,5 +1,6 @@
 """Admin API endpoints: api-keys, jobs, articles, chapters, team."""
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -103,6 +104,12 @@ async def run_job(job_id: str) -> None:
             job.status = JobStatus.completed
             job.completed_at = datetime.now(timezone.utc)
             job_log.info("job_completed", title=article_data["title"])
+            if job.input_storage_key:
+                try:
+                    (Path(settings.UPLOAD_DIR) / job.input_storage_key).unlink(missing_ok=True)
+                    job_log.info("audio_deleted", storage_key=job.input_storage_key)
+                except OSError:
+                    job_log.warning("audio_delete_failed", storage_key=job.input_storage_key)
         except Exception as exc:
             job_log.exception("job_failed", error=str(exc))
             job.status = JobStatus.failed

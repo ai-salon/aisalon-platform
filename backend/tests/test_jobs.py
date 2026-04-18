@@ -1,11 +1,17 @@
 """Tests for /admin/jobs endpoints."""
 import io
+from pathlib import Path
+from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.admin import run_job
+from app.core.config import settings
+from app.core.security import hash_password
 from app.models.job import Job, JobStatus
 from app.models.chapter import Chapter
+from app.models.user import User, UserRole
 
 
 def _audio_file():
@@ -121,3 +127,60 @@ class TestGetJob:
         r = await client.get(f"/admin/jobs/{job_id}", headers=admin_headers)
         for key in ("id", "status", "chapter_id", "input_filename", "created_at"):
             assert key in r.json()
+
+
+class TestRunJobFileCleanup:
+    async def _make_job(self, db_session: AsyncSession, chapter: Chapter, tmp_path: Path) -> tuple[Job, Path]:
+        user = User(
+            email="cleanup@test.com",
+            hashed_password=hash_password("x"),
+            role=UserRole.superadmin,
+            is_active=True,
+        )
+        db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+
+        storage_key = "abc123/recording.mp3"
+        (tmp_path / "abc123").mkdir()
+        audio_file = tmp_path / "abc123" / "recording.mp3"
+        audio_file.write_bytes(b"fake audio")
+
+        job = Job(
+            chapter_id=chapter.id,
+            user_id=user.id,
+            input_filename="recording.mp3",
+            input_storage_key=storage_key,
+            status=JobStatus.pending,
+        )
+        db_session.add(job)
+        await db_session.commit()
+        await db_session.refresh(job)
+        return job, audio_file
+
+    async def test_deletes_audio_on_success(
+        self, tmp_path: Path, db_session: AsyncSession, sf_chapter: Chapter, client
+    ):
+        job, audio_file = await self._make_job(db_session, sf_chapter, tmp_path)
+        assert audio_file.exists()
+
+        mock_result = {"title": "T", "content_md": "body", "anonymized_transcript": "anon"}
+        with patch("app.api.admin.SocraticProcessor") as mock_proc, \
+             patch.object(settings, "UPLOAD_DIR", str(tmp_path)):
+            mock_proc.return_value.process = AsyncMock(return_value=mock_result)
+            await run_job(job.id)
+
+        assert not audio_file.exists()
+
+    async def test_keeps_audio_on_failure(
+        self, tmp_path: Path, db_session: AsyncSession, sf_chapter: Chapter, client
+    ):
+        job, audio_file = await self._make_job(db_session, sf_chapter, tmp_path)
+        assert audio_file.exists()
+
+        with patch("app.api.admin.SocraticProcessor") as mock_proc, \
+             patch.object(settings, "UPLOAD_DIR", str(tmp_path)):
+            mock_proc.return_value.process = AsyncMock(side_effect=RuntimeError("transcription failed"))
+            await run_job(job.id)
+
+        assert audio_file.exists()
