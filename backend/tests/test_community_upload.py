@@ -23,12 +23,13 @@ async def _create_topic(db_session):
 
 
 async def _create_upload(
-    db_session, topic_id=None, upload_status=UploadStatus.pending
+    db_session, topic_id=None, upload_status=UploadStatus.pending, city="San Francisco"
 ):
     upload = CommunityUpload(
         name="Jane",
         email="jane@example.com",
         topic_id=topic_id,
+        city=city,
         audio_path="community/test.wav",
         notes="Great discussion",
         status=upload_status,
@@ -70,30 +71,64 @@ async def test_upload_audio(client: AsyncClient, db_session, tmp_path):
             "name": "Test User",
             "email": "test@example.com",
             "topic_id": topic.id,
+            "city": "San Francisco",
             "notes": "Good convo",
         },
     )
     assert r.status_code == 201
-    assert "id" in r.json()
+    body = r.json()
+    assert "id" in body
+    assert "audio_path" not in body  # not exposed in public response
 
 
-async def test_upload_audio_without_optional_fields(
-    client: AsyncClient, db_session
-):
+async def test_upload_requires_city(client: AsyncClient, db_session):
+    topic = await _create_topic(db_session)
     wav_data = _wav_header()
     r = await client.post(
         "/community/upload",
         files={"file": ("recording.wav", io.BytesIO(wav_data), "audio/wav")},
+        data={"topic_id": topic.id},  # city missing
+    )
+    assert r.status_code == 422
+
+
+async def test_upload_requires_topic(client: AsyncClient, db_session):
+    wav_data = _wav_header()
+    r = await client.post(
+        "/community/upload",
+        files={"file": ("recording.wav", io.BytesIO(wav_data), "audio/wav")},
+        data={"city": "Berlin"},  # no topic_id, no topic_text
+    )
+    assert r.status_code == 422
+
+
+async def test_upload_with_topic_text(client: AsyncClient, db_session):
+    wav_data = _wav_header()
+    r = await client.post(
+        "/community/upload",
+        files={"file": ("recording.wav", io.BytesIO(wav_data), "audio/wav")},
+        data={"city": "London", "topic_text": "The future of work"},
     )
     assert r.status_code == 201
+
+
+async def test_upload_honeypot_silently_accepted(client: AsyncClient, db_session):
+    topic = await _create_topic(db_session)
+    wav_data = _wav_header()
+    r = await client.post(
+        "/community/upload",
+        files={"file": ("recording.wav", io.BytesIO(wav_data), "audio/wav")},
+        data={"city": "Bot City", "topic_id": topic.id, "website": "http://spam.com"},
+    )
+    # Bots get a fake 200, not a 201 or an error
+    assert r.status_code == 200
 
 
 async def test_upload_rejects_non_audio(client: AsyncClient, db_session):
     r = await client.post(
         "/community/upload",
-        files={
-            "file": ("document.txt", io.BytesIO(b"hello world"), "text/plain")
-        },
+        files={"file": ("document.txt", io.BytesIO(b"hello world"), "text/plain")},
+        data={"city": "London", "topic_text": "Some topic"},
     )
     assert r.status_code == 400
 
@@ -106,11 +141,12 @@ async def test_admin_list_uploads_requires_auth(client: AsyncClient):
 async def test_admin_list_uploads(
     client: AsyncClient, db_session, admin_headers
 ):
-    await _create_upload(db_session)
+    await _create_upload(db_session, city="Tokyo")
     r = await client.get("/admin/community-uploads", headers=admin_headers)
     assert r.status_code == 200
     assert len(r.json()) == 1
     assert r.json()[0]["name"] == "Jane"
+    assert r.json()[0]["city"] == "Tokyo"
 
 
 async def test_admin_list_uploads_filter_by_status(

@@ -25,6 +25,8 @@ class CommunityUpload(Base, TimestampMixin):
     topic_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("topics.id"), nullable=True
     )
+    topic_text: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    city: Mapped[str] = mapped_column(String(256), nullable=False, server_default="")
     audio_path: Mapped[str] = mapped_column(String(512), nullable=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[UploadStatus] = mapped_column(

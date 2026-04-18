@@ -1,11 +1,13 @@
 """Community upload API: public upload + admin queue management."""
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth import limiter
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.community_upload import CommunityUpload, UploadStatus
@@ -25,7 +27,7 @@ AUDIO_MAGIC_BYTES = {
     b"\x00\x00\x00": "m4a",
 }
 
-MAX_UPLOAD_SIZE = 500 * 1024 * 1024
+MAX_UPLOAD_SIZE = 150 * 1024 * 1024  # 150 MB
 
 
 def _require_lead_or_above(user: User) -> None:
@@ -40,11 +42,20 @@ def _is_audio(data: bytes) -> bool:
     return False
 
 
+class CommunityUploadPublicResponse(BaseModel):
+    id: str
+    status: UploadStatus
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+
 class CommunityUploadResponse(BaseModel):
     id: str
     name: str | None
     email: str | None
     topic_id: str | None
+    topic_text: str | None
+    city: str
     audio_path: str
     notes: str | None
     status: UploadStatus
@@ -59,27 +70,45 @@ class CommunityUploadUpdate(BaseModel):
 
 @router.post(
     "/community/upload",
-    response_model=CommunityUploadResponse,
+    response_model=CommunityUploadPublicResponse,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit("5/hour")
 async def community_upload(
+    request: Request,
     file: UploadFile = File(...),
     name: str | None = Form(None),
     email: str | None = Form(None),
     topic_id: str | None = Form(None),
+    topic_text: str | None = Form(None),
+    city: str = Form(...),
     notes: str | None = Form(None),
+    website: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
+    # Honeypot — bots fill this; real users don't
+    if website:
+        return JSONResponse(
+            {"id": "submitted", "status": "pending", "created_at": datetime.utcnow().isoformat()},
+            status_code=200,
+        )
+
+    if not topic_id and not (topic_text and topic_text.strip()):
+        raise HTTPException(status_code=422, detail="topic_id or topic_text is required")
+
     data = await file.read()
     if not _is_audio(data):
         raise HTTPException(status_code=400, detail="Only audio files are accepted")
     if len(data) > MAX_UPLOAD_SIZE:
-        raise HTTPException(status_code=400, detail="File too large (max 500 MB)")
+        raise HTTPException(status_code=400, detail="File too large (max 150 MB)")
+
     key = await save_upload(f"community/{file.filename or 'upload'}", data)
     upload = CommunityUpload(
         name=name,
         email=email,
         topic_id=topic_id,
+        topic_text=topic_text,
+        city=city,
         audio_path=key,
         notes=notes,
     )
