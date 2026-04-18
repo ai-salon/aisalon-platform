@@ -179,7 +179,10 @@ export default async function PrintPage() {
             <div style={{ fontSize: 11, color: "#555", marginBottom: 2 }}>
               Scan to learn about hosting an official Ai Salon chapter.
             </div>
-            <div style={{ fontSize: 11, color: "#888" }}>aisalon.xyz/host</div>
+            <div style={{ fontSize: 11, color: "#888", marginBottom: 6 }}>aisalon.xyz/host</div>
+            <div style={{ fontSize: 11, color: "#555" }}>
+              Record your conversation? Submit at aisalon.xyz/community_upload
+            </div>
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img

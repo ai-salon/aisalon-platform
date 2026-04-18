@@ -191,6 +191,16 @@ export default function StartPage() {
         </section>
       )}
 
+      {/* Recording note */}
+      <section style={{ padding: "0 24px 32px", textAlign: "center" }}>
+        <p style={{ fontSize: 15, color: "#888" }}>
+          Want to capture what was said?{" "}
+          <Link href="/community_upload" style={{ color: "#56a1d2", fontWeight: 600 }}>
+            Record your conversation and submit it to our community archive →
+          </Link>
+        </p>
+      </section>
+
       {/* Footer CTA */}
       <section style={{ padding: "48px 24px", textAlign: "center", background: "#f8f6ec" }}>
         <p style={{ color: "#444", fontSize: 17, fontWeight: 500, marginBottom: 20 }}>
