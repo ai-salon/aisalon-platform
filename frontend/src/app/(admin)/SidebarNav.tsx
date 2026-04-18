@@ -44,23 +44,25 @@ function buildNav(userRole: string): NavEntry[] {
     ...(!isHost ? [{ href: '/volunteer-applications', label: 'Volunteer Applications', icon: 'fa-envelope-open-o' }] : []),
   ]
 
+  const adminChildren: NavItem[] = [
+    { href: '/community', label: 'Community Analytics', icon: 'fa-bar-chart' },
+    { href: '/users', label: 'Users', icon: 'fa-user-circle-o' },
+  ]
+
   return [
     { href: '/dashboard', label: 'Dashboard', icon: 'fa-th-large' },
     { href: '/upload', label: 'Upload Conversations', icon: 'fa-upload' },
     { href: '/articles', label: 'Articles', icon: 'fa-file-text-o' },
-    ...(!isHost ? [{ href: '/community', label: 'Community', icon: 'fa-bar-chart' }] : []),
-    ...(!isHost ? [{ href: '/social', label: 'Social Media', icon: 'fa-share-alt' }] : []),
     ...(isSuperadmin ? [{ href: '/chapters', label: 'Chapters', icon: 'fa-map-marker' }] : []),
     ...(isChapterLead ? [{ href: '/chapters', label: 'My Chapter', icon: 'fa-map-marker' }] : []),
     ...(!isHost ? [{ group: true as const, label: 'Team', icon: 'fa-users', children: teamChildren }] : []),
-    ...(isSuperadmin ? [{ href: '/users', label: 'Users', icon: 'fa-user-circle-o' }] : []),
+    ...(isSuperadmin ? [{ group: true as const, label: 'Admin', icon: 'fa-shield', children: adminChildren }] : []),
     ...(!isHost ? [{ href: '/topics', label: 'Topics', icon: 'fa-lightbulb-o' }] : []),
     ...(!isHost ? [{ href: '/community-uploads', label: 'Community Uploads', icon: 'fa-cloud-upload' }] : []),
     { href: '/settings', label: 'Settings', icon: 'fa-cog' },
   ]
 }
 
-const TEAM_HREFS = ['/team', '/volunteer-roles', '/volunteer-applications', '/hosting-interest']
 
 function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children'> & { items: NavItem[]; pathname: string }) {
   const isAnyChildActive = items.some(
