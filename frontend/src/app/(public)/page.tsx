@@ -234,7 +234,7 @@ export default function HomePage() {
             {/* Right */}
             <div style={{ flex: "1 1 300px" }}>
               <div style={{ marginBottom: 32 }}>
-                <Link href="/host" className="chapter-button">
+                <Link href="/host" className="chapter-button" data-umami-event="chapters-host-or-join">
                   <i className="fa fa-plus-circle" aria-hidden="true" /> Host or Join a Chapter
                 </Link>
               </div>
