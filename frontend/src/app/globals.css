@@ -116,11 +116,6 @@ a {
   background: transparent;
 }
 
-.btn-outline:hover {
-  color: #56a1d2;
-  border-color: #56a1d2;
-}
-
 /* Clockwise border trace: top → right → bottom → left */
 .btn-outline::before,
 .btn-outline::after {
@@ -134,8 +129,8 @@ a {
 .btn-outline::before {
   top: -3px;
   left: -3px;
-  border-top: 3px solid #d2b356;
-  border-right: 3px solid #d2b356;
+  border-top: 3px solid #56a1d2;
+  border-right: 3px solid #56a1d2;
   transition: width 0s, height 0s;
 }
 
@@ -148,8 +143,8 @@ a {
 .btn-outline::after {
   bottom: -3px;
   right: -3px;
-  border-bottom: 3px solid #d2b356;
-  border-left: 3px solid #d2b356;
+  border-bottom: 3px solid #56a1d2;
+  border-left: 3px solid #56a1d2;
   transition: width 0s, height 0s;
 }
 
