@@ -34,24 +34,22 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               style={{ height: 50, width: "auto", marginBottom: 15, filter: "brightness(0) invert(1)" }}
             />
             <p style={{ fontSize: 15, lineHeight: 1.6, color: "rgba(255,255,255,0.6)" }}>
-              Conversations on the meaning and impact of AI
+              The global AI Commons: Conversations on the meaning and impact of AI
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
             <h4 style={{ color: "#fff", fontSize: 14, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 20 }}>
-              Quick Links
+              Get Involved
             </h4>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {[
-                ["Home", "/"],
-                ["Events", "https://lu.ma/Ai-salon"],
+                ["Attend an Event", "https://lu.ma/Ai-salon"],
                 ["Insights", "/insights"],
-                ["Host a Chapter", "/host"],
+                ["Run a Salon", "/start"],
                 ["Volunteer", "/volunteer"],
-                ["Newsletter", "https://aisalon.substack.com"],
-                ["Member Sign In", "/login"],
+                ["Host or Join a Chapter", "/host"],
               ].map(([label, href]) => (
                 <li key={label} style={{ marginBottom: 12 }}>
                   <a href={href} style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>
@@ -91,7 +89,6 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
                 { icon: "fa-twitter", href: "https://x.com/TheAISalonSF", label: "Twitter" },
                 { icon: "fa-linkedin", href: "https://www.linkedin.com/company/the-ai-salon", label: "LinkedIn" },
                 { icon: "fa-newspaper-o", href: "https://aisalon.substack.com", label: "Substack" },
-                { icon: "fa-envelope", href: "mailto:contact@aisalon.xyz", label: "Email" },
               ].map(({ icon, href, label }) => (
                 <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="footer-social-link">
                   <i className={`fa ${icon}`} aria-hidden="true" />
