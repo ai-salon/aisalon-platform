@@ -174,9 +174,10 @@ export default function HomePage() {
             padding: "0 30px",
             position: "relative",
             zIndex: 2,
+            pointerEvents: "none",
           }}
         >
-          <div style={{ maxWidth: 480, paddingTop: 80, paddingBottom: 60 }}>
+          <div style={{ maxWidth: 480, paddingTop: 80, paddingBottom: 60, pointerEvents: "auto" }}>
             {/* Gold rule */}
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
 
