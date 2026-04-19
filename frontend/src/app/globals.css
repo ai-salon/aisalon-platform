@@ -308,7 +308,7 @@ a {
 /* ── Banner (hero) ── */
 #banner {
   position: relative;
-  min-height: calc(75vh - 71px);
+  min-height: min(calc(75vh - 71px), 42vw);
   overflow: hidden;
   background: #f8f6ec;
 }
@@ -322,7 +322,7 @@ a {
 }
 
 .banner-interactive canvas {
-  height: calc(75vh - 71px);
+  height: min(calc(75vh - 71px), 42vw);
   width: auto;
 }
 
