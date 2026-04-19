@@ -22,6 +22,7 @@ from app.api.hosting_interest import router as hosting_interest_router
 from app.api.volunteer import router as volunteer_router
 from app.api.topics import router as topics_router
 from app.api.community import router as community_router
+from app.api.graph import public_router as graph_public_router, admin_router as graph_admin_router
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles
@@ -40,6 +41,7 @@ import app.models.social_post  # noqa: F401
 import app.models.volunteer  # noqa: F401
 import app.models.topic  # noqa: F401
 import app.models.community_upload  # noqa: F401
+import app.models.graph  # noqa: F401
 
 # Initialize structured logging
 setup_logging()
@@ -122,6 +124,8 @@ app.include_router(hosting_interest_router)
 app.include_router(volunteer_router)
 app.include_router(topics_router)
 app.include_router(community_router)
+app.include_router(graph_public_router)
+app.include_router(graph_admin_router)
 
 upload_dir = Path(settings.UPLOAD_DIR)
 upload_dir.mkdir(parents=True, exist_ok=True)

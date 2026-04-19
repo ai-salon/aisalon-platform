@@ -106,12 +106,20 @@ class SocraticProcessor(BaseProcessor):
                 # Pass model explicitly so the constructor doesn't try to init
                 # a default Anthropic chain (which would fail with AuthenticationError)
                 generator = ArticleGenerator(model="gemini-2.5-flash")
-                article_path, _ = generator.generate(input_paths=audio_path, anonymize=True)
+                article_path, meta_path = generator.generate(input_paths=audio_path, anonymize=True)
                 article_md = Path(article_path).read_text()
                 # Read anonymized transcript before the work dir is cleaned up
                 anon_files = list(Path(work_dir, "processed").glob("*_anon.txt"))
                 anon_transcript = anon_files[0].read_text() if anon_files else ""
-                return article_md, anon_transcript
+                # Read meta.json for graph ingestion (None if file missing)
+                import json as _json
+                meta: dict = {}
+                if meta_path and Path(meta_path).exists():
+                    try:
+                        meta = _json.loads(Path(meta_path).read_text())
+                    except Exception:
+                        pass
+                return article_md, anon_transcript, meta
             finally:
                 if prev_google is None:
                     os.environ.pop("GOOGLE_API_KEY", None)
@@ -119,7 +127,7 @@ class SocraticProcessor(BaseProcessor):
                     os.environ["GOOGLE_API_KEY"] = prev_google
                 shutil.rmtree(work_dir, ignore_errors=True)
 
-        article_md, anon_transcript = await loop.run_in_executor(_executor, run_generator)
+        article_md, anon_transcript, meta = await loop.run_in_executor(_executor, run_generator)
 
         # Find the first # heading (article title) — the file may start with
         # the editor's note block before the title heading
@@ -135,4 +143,5 @@ class SocraticProcessor(BaseProcessor):
             "title": title,
             "content_md": "\n".join(body_lines).strip(),
             "anonymized_transcript": anon_transcript,
+            "meta": meta,
         }

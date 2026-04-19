@@ -83,6 +83,7 @@ async def run_job(job_id: str) -> None:
             job.step = label
             await db.commit()
 
+        article = None
         try:
             processor = SocraticProcessor()
             article_data = await processor.process(
@@ -99,6 +100,7 @@ async def run_job(job_id: str) -> None:
                 title=article_data["title"],
                 content_md=article_data["content_md"],
                 anonymized_transcript=article_data.get("anonymized_transcript"),
+                meta=article_data.get("meta") or None,
                 status=ArticleStatus.draft,
             )
             db.add(article)
@@ -117,6 +119,32 @@ async def run_job(job_id: str) -> None:
             job.error_message = str(exc)
 
         await db.commit()
+
+        # Trigger graph ingestion if we have an article and meta
+        if job.status == JobStatus.completed and article is not None and article.meta:
+            try:
+                from app.core.encryption import decrypt_key
+                from app.models.api_key import APIKeyProvider
+                google_key_result = await db.execute(
+                    select(UserAPIKey).where(
+                        UserAPIKey.user_id == job.user_id,
+                        UserAPIKey.provider == APIKeyProvider.google,
+                    )
+                )
+                google_key_row = google_key_result.scalar_one_or_none()
+                if google_key_row:
+                    from app.services.graph import GraphIngestionService
+                    google_key = decrypt_key(google_key_row.encrypted_key, settings.SECRET_KEY)
+                    svc = GraphIngestionService(db, google_key)
+                    await svc.ingest_article(
+                        article_id=article.id,
+                        chapter_id=article.chapter_id,
+                        publish_date=article.publish_date,
+                        meta=article.meta,
+                    )
+                    job_log.info("graph_ingestion_complete", article_id=article.id)
+            except Exception as exc:
+                job_log.warning("graph_ingestion_failed", error=str(exc))
 
 
 # ── Community Stats ───────────────────────────────────────────────────────────
