@@ -146,23 +146,21 @@ export function InteractiveLogo() {
     const { pts, pairs, overLetterPairs } = buildNetwork();
 
     const ctx = canvas.getContext("2d")!;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.scale(DPR, DPR);
 
     let mouseX = -9999, mouseY = -9999;
     let clickPulses: { x: number; y: number; t0: number }[] = [];
 
-    // Capture non-null reference for use inside event handlers
-    const el = canvas;
-
     // Scale mouse coords from CSS-pixel space to canvas coordinate space (W×H)
     function onMouseMove(e: MouseEvent) {
-      const r = el.getBoundingClientRect();
+      const r = canvas!.getBoundingClientRect();
       mouseX = (e.clientX - r.left) * (W / r.width);
       mouseY = (e.clientY - r.top) * (H / r.height);
     }
     function onMouseLeave() { mouseX = -9999; mouseY = -9999; }
     function onClick(e: MouseEvent) {
-      const r = el.getBoundingClientRect();
+      const r = canvas!.getBoundingClientRect();
       clickPulses.push({
         x: (e.clientX - r.left) * (W / r.width),
         y: (e.clientY - r.top) * (H / r.height),
