@@ -693,7 +693,6 @@ a {
 .chapter-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 6px 16px rgba(0,0,0,0.1);
-  border-left-color: #d2b356;
   color: #111;
 }
 
