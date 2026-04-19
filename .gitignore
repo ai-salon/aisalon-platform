@@ -31,3 +31,6 @@ backend/uploads/
 
 # Screenshots (root-level)
 /*.png
+
+# Git worktrees
+.worktrees/
