@@ -179,15 +179,15 @@ export default function HomePage() {
         >
           <div style={{ maxWidth: 480, paddingTop: 80, paddingBottom: 60, pointerEvents: "auto" }}>
             {/* Gold rule */}
-            <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
+            <div className="banner-text-rule" style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
 
             <h1>The Global AI Commons</h1>
             <h2>AI will impact everyone – everyone should impact AI</h2>
 
             {/* Gold rule */}
-            <div style={{ width: 40, height: 4, background: "#d2b356", margin: "28px 0 36px" }} />
+            <div className="banner-text-rule" style={{ width: 40, height: 4, background: "#d2b356", margin: "28px 0 36px" }} />
 
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div className="hero-ctas" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
               <a
                 href="https://lu.ma/Ai-salon"
                 target="_blank"

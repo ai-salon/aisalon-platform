@@ -317,10 +317,8 @@ a {
   position: absolute;
   right: 0;
   top: 0;
-  width: 55%;
+  width: 65%;
   height: 100%;
-  display: flex;
-  align-items: center;
 }
 
 #banner h1 {
@@ -732,6 +730,9 @@ a {
   }
   #banner h1 { font-size: 36px; }
   #banner h2 { font-size: 18px; }
+  .banner-text-rule { display: none; }
+  .hero-ctas { flex-wrap: nowrap !important; }
+  .hero-ctas .btn { white-space: nowrap; }
   .section-title { font-size: 26px; }
 }
 
