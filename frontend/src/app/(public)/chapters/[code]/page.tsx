@@ -102,8 +102,9 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
           <div style={{ maxWidth: 560, paddingTop: 72, paddingBottom: 60 }}>
             {/* Gold rule */}
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 24 }} />
-            <div style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, color: "#56a1d2", marginBottom: 12 }}>
-              Ai Salon · {chapter.name}
+            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, color: "#56a1d2", marginBottom: 12 }}>
+              <span>Ai Salon</span>
+              <span style={{ textTransform: "uppercase" }}> · {chapter.name}</span>
             </div>
             <h1 style={{ fontSize: 48, fontWeight: 800, margin: "0 0 16px", lineHeight: 1.15, color: "#111" }}>
               {chapter.title}
