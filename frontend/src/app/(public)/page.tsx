@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { InteractiveLogo } from "@/components/InteractiveLogo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -163,7 +164,9 @@ export default function HomePage() {
     <>
       {/* ── HERO ── */}
       <section id="banner">
-        <div className="banner-image" />
+        <div className="banner-interactive">
+          <InteractiveLogo />
+        </div>
         <div
           style={{
             maxWidth: 1140,
