@@ -90,7 +90,27 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <NavLinks chapters={chapters} />
 
             {/* Nav buttons — hidden on mobile */}
-            <div className="desktop-nav-buttons" style={{ display: "flex", gap: 12 }}>
+            <div className="desktop-nav-buttons" style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <a
+                href="https://www.linkedin.com/company/the-ai-salon"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-social-icon"
+                aria-label="LinkedIn"
+              >
+                <i className="fa fa-linkedin" aria-hidden="true" />
+              </a>
+              <a
+                href="https://aisalon.substack.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="nav-social-icon"
+                aria-label="Substack"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+                  <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z"/>
+                </svg>
+              </a>
               <a
                 href="https://lu.ma/Ai-salon"
                 target="_blank"

@@ -185,6 +185,24 @@ a {
 }
 
 /* ── Nav ── */
+.nav-social-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #444;
+  font-size: 15px;
+  transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+
+.nav-social-icon:hover {
+  color: #56a1d2;
+  background: rgba(86, 161, 210, 0.1);
+  transform: translateY(-2px);
+}
+
 .nav-button {
   font-size: 14px;
   padding: 8px 16px;
