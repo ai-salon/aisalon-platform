@@ -97,27 +97,32 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
   return (
     <div>
       {/* ── HERO ── */}
-      <section id="banner" style={{ minHeight: "calc(60vh - 71px)" }}>
+      <section id="banner">
         <div className="banner-interactive">
           <InteractiveLogo />
         </div>
-        <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 30px", position: "relative", zIndex: 2, pointerEvents: "none" }}>
-          <div style={{ maxWidth: 560, paddingTop: 72, paddingBottom: 60, pointerEvents: "auto" }}>
+        <div
+          style={{
+            maxWidth: 1140,
+            margin: "0 auto",
+            padding: "0 30px",
+            position: "relative",
+            zIndex: 2,
+            pointerEvents: "none",
+          }}
+        >
+          <div style={{ maxWidth: 480, paddingTop: 80, paddingBottom: 60, pointerEvents: "auto" }}>
             {/* Gold rule */}
-            <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 24 }} />
+            <div className="banner-text-rule" style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, color: "#56a1d2", marginBottom: 12 }}>
               <span>Ai Salon</span>
               <span style={{ textTransform: "uppercase" }}> · {chapter.name}</span>
             </div>
-            <h1 style={{ fontSize: 48, fontWeight: 800, margin: "0 0 16px", lineHeight: 1.15, color: "#111" }}>
-              {chapter.title}
-            </h1>
-            <p style={{ fontSize: 20, lineHeight: 1.6, margin: "0 0 32px", color: "#696969" }}>
-              {chapter.tagline}
-            </p>
+            <h1>{chapter.title}</h1>
+            <h2>{chapter.tagline}</h2>
             {/* Gold rule */}
-            <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 32 }} />
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div className="banner-text-rule" style={{ width: 40, height: 4, background: "#d2b356", margin: "28px 0 36px" }} />
+            <div className="hero-ctas" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
               {chapter.event_link && (
                 <a
                   href={chapter.event_link}
