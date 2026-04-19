@@ -116,6 +116,10 @@ a {
   background: transparent;
 }
 
+.btn-outline:hover {
+  color: #56a1d2;
+}
+
 /* Clockwise border trace: top → right → bottom → left */
 .btn-outline::before,
 .btn-outline::after {
