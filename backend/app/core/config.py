@@ -9,7 +9,7 @@ _INSECURE_DEFAULTS = {
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "AI Salon API"
+    APP_NAME: str = "Ai Salon API"
     VERSION: str = "0.1.0"
     ENVIRONMENT: str = "development"
     FRONTEND_URL: str = "http://localhost:3000"

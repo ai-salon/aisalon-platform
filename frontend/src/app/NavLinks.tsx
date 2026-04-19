@@ -76,11 +76,14 @@ export default function NavLinks({ chapters }: { chapters: ChapterNav[] }) {
           Chapters <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
         </Link>
         <ul className="dropdown-menu" style={{ listStyle: 'none', margin: 0, padding: '10px 0' }}>
-          {chapters.map((ch) => (
-            <li key={ch.code}>
-              <Link href={`/chapters/${ch.code}`}>{ch.name}</Link>
-            </li>
-          ))}
+          {chapters.map((ch) => {
+            const active = isActive(pathname, `/chapters/${ch.code}`);
+            return (
+              <li key={ch.code}>
+                <Link href={`/chapters/${ch.code}`} className={active ? 'nav-dropdown-active' : ''}>{ch.name}</Link>
+              </li>
+            );
+          })}
         </ul>
       </li>
 
@@ -98,9 +101,9 @@ export default function NavLinks({ chapters }: { chapters: ChapterNav[] }) {
               Attend an Event
             </a>
           </li>
-          <li><Link href="/start">Run a Salon</Link></li>
-          <li><Link href="/volunteer">Volunteer</Link></li>
-          <li><Link href="/host">Host or Join a Chapter</Link></li>
+          <li><Link href="/start" className={isActive(pathname, '/start') ? 'nav-dropdown-active' : ''}>Run a Salon</Link></li>
+          <li><Link href="/volunteer" className={isActive(pathname, '/volunteer') ? 'nav-dropdown-active' : ''}>Volunteer</Link></li>
+          <li><Link href="/host" className={isActive(pathname, '/host') ? 'nav-dropdown-active' : ''}>Host or Join a Chapter</Link></li>
         </ul>
       </li>
     </ul>

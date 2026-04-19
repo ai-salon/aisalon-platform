@@ -52,7 +52,7 @@ _CHAPTERS = [
         title="The San Francisco Ai Salon",
         tagline="Where AI innovation meets thoughtful conversation",
         description=(
-            "The San Francisco AI Salon is where it all began. As our founding chapter, "
+            "The San Francisco Ai Salon is where it all began. As our founding chapter, "
             "we bring together the vibrant Bay Area AI community to discuss the most "
             "pressing topics in artificial intelligence today."
         ),
@@ -90,7 +90,7 @@ _CHAPTERS = [
         title="The Berlin Ai Salon",
         tagline="Bridging European perspectives on AI",
         description=(
-            "The Berlin AI Salon brings together Europe's diverse perspectives on "
+            "The Berlin Ai Salon brings together Europe's diverse perspectives on "
             "artificial intelligence, fostering cross-cultural dialogue on AI's future "
             "development and impact."
         ),
@@ -129,7 +129,7 @@ _CHAPTERS = [
         title="The London Ai Salon",
         tagline="Where British innovation meets global AI discourse",
         description=(
-            "The London AI Salon connects the UK's thriving AI community, bringing "
+            "The London Ai Salon connects the UK's thriving AI community, bringing "
             "together diverse perspectives from the City's financial district, tech "
             "startups, and world-class universities."
         ),
@@ -148,7 +148,7 @@ _CHAPTERS = [
         title="The Bangalore Ai Salon",
         tagline="Where Indian innovation meets global AI transformation",
         description=(
-            "The Bangalore AI Salon brings together India's vibrant tech ecosystem, "
+            "The Bangalore Ai Salon brings together India's vibrant tech ecosystem, "
             "connecting engineers, researchers, entrepreneurs, and thought leaders to "
             "shape AI's future in the world's largest democracy."
         ),
@@ -184,7 +184,7 @@ _CHAPTERS = [
         title="The Lagos Ai Salon",
         tagline="Where African innovation shapes AI's global future",
         description=(
-            "The Lagos AI Salon connects Nigeria's growing tech ecosystem with global "
+            "The Lagos Ai Salon connects Nigeria's growing tech ecosystem with global "
             "AI discourse, exploring how artificial intelligence can address African "
             "challenges and amplify African innovation."
         ),
@@ -212,7 +212,7 @@ _CHAPTERS = [
         title="The Vancouver Ai Salon",
         tagline="Where Canadian values meet AI innovation",
         description=(
-            "The Vancouver AI Salon connects Canada's West Coast tech community, "
+            "The Vancouver Ai Salon connects Canada's West Coast tech community, "
             "bringing together diverse perspectives on responsible AI development from "
             "one of the world's most livable and multicultural cities."
         ),
@@ -246,7 +246,7 @@ _CHAPTERS = [
         title="The Zurich Ai Salon",
         tagline="Where Swiss precision meets the future of AI",
         description=(
-            "The Zurich AI Salon brings together Switzerland's world-class research "
+            "The Zurich Ai Salon brings together Switzerland's world-class research "
             "institutions, financial sector, and tech community to explore the meaning "
             "and impact of artificial intelligence."
         ),
@@ -275,7 +275,7 @@ _CHAPTERS = [
         title="The New York City Ai Salon",
         tagline="Where AI meets the world's most dynamic city",
         description=(
-            "The New York City AI Salon brings together the city's diverse AI community, "
+            "The New York City Ai Salon brings together the city's diverse AI community, "
             "from Wall Street to Silicon Alley, exploring how artificial intelligence "
             "intersects with finance, media, healthcare, and social impact."
         ),
@@ -435,11 +435,11 @@ _VOLUNTEER_ROLES = [
         slug="insights-lead",
         description=(
             "## About This Role\n\n"
-            "Mine and organize insights from 2+ years of AI Salon discussions across cities "
+            "Mine and organize insights from 2+ years of Ai Salon discussions across cities "
             "and disciplines. Working with transcripts and summaries from our events, you'll "
             "identify recurring themes, track how public AI discourse is evolving, and shape "
             "that material into structured reports — published on our Substack and shared "
-            "with our community — culminating in an Annual AI Salon Index Report.\n\n"
+            "with our community — culminating in an Annual Ai Salon Index Report.\n\n"
             "## Who Would Be a Good Fit?\n\n"
             "You're drawn to this if you love finding patterns in a pile of qualitative "
             "material and turning them into something coherent and useful. Maybe you've done "
@@ -450,7 +450,7 @@ _VOLUNTEER_ROLES = [
             "- Review transcripts and summaries from past and upcoming salon events\n"
             "- Identify cross-cutting themes across cities, disciplines, and time\n"
             "- Write thematic reports and briefings published on our Substack\n"
-            "- Lead production of the Annual AI Salon Index Report\n"
+            "- Lead production of the Annual Ai Salon Index Report\n"
             "- Work with AI-assisted tools to surface patterns across our archive"
         ),
         requirements=None,

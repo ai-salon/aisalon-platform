@@ -61,7 +61,7 @@ CHAPTERS = [
         title="The San Francisco Ai Salon",
         tagline="Where AI innovation meets thoughtful conversation",
         description=(
-            "The San Francisco AI Salon is where it all began. As our founding chapter, "
+            "The San Francisco Ai Salon is where it all began. As our founding chapter, "
             "we bring together the vibrant Bay Area AI community to discuss the most "
             "pressing topics in artificial intelligence today."
         ),
@@ -101,7 +101,7 @@ CHAPTERS = [
         title="The Berlin Ai Salon",
         tagline="Bridging European perspectives on AI",
         description=(
-            "The Berlin AI Salon brings together Europe's diverse perspectives on "
+            "The Berlin Ai Salon brings together Europe's diverse perspectives on "
             "artificial intelligence, fostering cross-cultural dialogue on AI's future "
             "development and impact."
         ),
@@ -144,7 +144,7 @@ CHAPTERS = [
         title="The London Ai Salon",
         tagline="Where British innovation meets global AI discourse",
         description=(
-            "The London AI Salon connects the UK's thriving AI community, bringing "
+            "The London Ai Salon connects the UK's thriving AI community, bringing "
             "together diverse perspectives from the City's financial district, tech "
             "startups, and world-class universities."
         ),
@@ -163,7 +163,7 @@ CHAPTERS = [
         title="The Bangalore Ai Salon",
         tagline="Where Indian innovation meets global AI transformation",
         description=(
-            "The Bangalore AI Salon brings together India's vibrant tech ecosystem, "
+            "The Bangalore Ai Salon brings together India's vibrant tech ecosystem, "
             "connecting engineers, researchers, entrepreneurs, and thought leaders to "
             "shape AI's future in the world's largest democracy."
         ),
@@ -203,7 +203,7 @@ CHAPTERS = [
         title="The Lagos Ai Salon",
         tagline="Where African innovation shapes AI's global future",
         description=(
-            "The Lagos AI Salon connects Nigeria's growing tech ecosystem with global "
+            "The Lagos Ai Salon connects Nigeria's growing tech ecosystem with global "
             "AI discourse, exploring how artificial intelligence can address African "
             "challenges and amplify African innovation."
         ),
@@ -234,7 +234,7 @@ CHAPTERS = [
         title="The Vancouver Ai Salon",
         tagline="Where Canadian values meet AI innovation",
         description=(
-            "The Vancouver AI Salon connects Canada's West Coast tech community, "
+            "The Vancouver Ai Salon connects Canada's West Coast tech community, "
             "bringing together diverse perspectives on responsible AI development from "
             "one of the world's most livable and multicultural cities."
         ),
@@ -271,7 +271,7 @@ CHAPTERS = [
         title="The Zurich Ai Salon",
         tagline="Where Swiss precision meets the future of AI",
         description=(
-            "The Zurich AI Salon brings together Switzerland's world-class research "
+            "The Zurich Ai Salon brings together Switzerland's world-class research "
             "institutions, financial sector, and tech community to explore the meaning "
             "and impact of artificial intelligence."
         ),
@@ -302,7 +302,7 @@ CHAPTERS = [
         title="The New York City Ai Salon",
         tagline="Where AI meets the world's most dynamic city",
         description=(
-            "The New York City AI Salon brings together the city's diverse AI community, "
+            "The New York City Ai Salon brings together the city's diverse AI community, "
             "from Wall Street to Silicon Alley, exploring how artificial intelligence "
             "intersects with finance, media, healthcare, and social impact."
         ),

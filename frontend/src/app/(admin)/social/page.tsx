@@ -18,7 +18,7 @@ interface Article {
 // ── Template generators ────────────────────────────────────────────────────
 
 function linkedinTemplate(title: string, url: string, chapterName: string): string {
-  return `🎙️ New AI Salon conversation recap: "${title}"
+  return `🎙️ New Ai Salon conversation recap: "${title}"
 
 We had a fascinating discussion on AI and its impact on our community. Check out the full writeup from our ${chapterName} chapter.
 
@@ -28,7 +28,7 @@ ${url}
 }
 
 function twitterTemplate(title: string, url: string): string {
-  return `New AI Salon recap: "${title}"
+  return `New Ai Salon recap: "${title}"
 
 ${url}
 
@@ -36,7 +36,7 @@ ${url}
 }
 
 function newsletterTemplate(title: string, url: string, chapterName: string): string {
-  return `Subject: New AI Salon Recap — ${title}
+  return `Subject: New Ai Salon Recap — ${title}
 
 Hi everyone,
 
@@ -47,7 +47,7 @@ We just published a new conversation recap from the ${chapterName} chapter:
 Read the full recap here: ${url}
 
 See you at the next event!
-— AI Salon`;
+— Ai Salon`;
 }
 
 // ── Article card ───────────────────────────────────────────────────────────
@@ -280,7 +280,7 @@ export default function SocialPage() {
           </div>
         ) : (
           withLink.map((a) => (
-            <ArticleCard key={a.id} article={a} chapterName={chapters[a.chapter_id] ?? "AI Salon"} />
+            <ArticleCard key={a.id} article={a} chapterName={chapters[a.chapter_id] ?? "Ai Salon"} />
           ))
         )}
       </section>

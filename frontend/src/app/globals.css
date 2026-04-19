@@ -300,6 +300,12 @@ a {
   color: #56a1d2;
 }
 
+.dropdown-menu a.nav-dropdown-active {
+  color: #56a1d2;
+  font-weight: 700;
+  background: rgba(86, 161, 210, 0.07);
+}
+
 /* ── Banner (hero) ── */
 #banner {
   position: relative;
