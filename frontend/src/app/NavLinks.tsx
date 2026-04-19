@@ -24,9 +24,9 @@ export default function NavLinks({ chapters }: { chapters: ChapterNav[] }) {
     gap: 4,
   });
 
-  const aboutActive = isActive(pathname, '/#about');
+  const aboutActive = pathname === '/';
   const insightsActive = isActive(pathname, '/insights');
-  const chaptersActive = isActive(pathname, '/#chapters');
+  const chaptersActive = pathname.startsWith('/chapters');
   const getInvolvedActive = ['/start', '/volunteer', '/host'].some((h) =>
     isActive(pathname, h)
   );
