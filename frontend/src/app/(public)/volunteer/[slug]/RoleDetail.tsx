@@ -92,7 +92,7 @@ export default function RoleDetail({ role }: { role: Role }) {
   return (
     <div style={{ background: "#f8f6ec", minHeight: "100vh" }}>
       {/* ── Header ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid rgba(0,0,0,0.07)" }}>
+      <div>
         <div style={{ maxWidth: 800, margin: "0 auto", padding: "28px 30px 24px" }}>
           <Link
             href="/volunteer"
