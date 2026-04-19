@@ -1,0 +1,359 @@
+[
+  {
+    "title": "Building for Life Beyond 100 Years with AI",
+    "substack_url": "https://aisalon.substack.com/p/building-for-life-beyond-100-years",
+    "chapter_code": "london",
+    "publish_date": "2026-03-26",
+    "meta_file": null
+  },
+  {
+    "title": "Confronting Consciousness, Creativity, and Control in a Rapidly Evolving World",
+    "substack_url": "https://aisalon.substack.com/p/confronting-consciousness-creativity",
+    "chapter_code": "zurich",
+    "publish_date": "2026-03-03",
+    "meta_file": "2026-02-19 AI Salon Zurich  - Pascale Speck_meta.json"
+  },
+  {
+    "title": "Beyond Human-Centric AI: Rethinking AI in the wider ecosystem of intelligence",
+    "substack_url": "https://aisalon.substack.com/p/beyond-human-centric-ai-rethinking",
+    "chapter_code": "london",
+    "publish_date": "2025-12-23",
+    "meta_file": null
+  },
+  {
+    "title": "The Inevitability Illusion: Competing Visions of Our AI Future",
+    "substack_url": "https://aisalon.substack.com/p/the-inevitability-illusion-competing",
+    "chapter_code": "vancouver",
+    "publish_date": "2025-11-12",
+    "meta_file": null
+  },
+  {
+    "title": "The Meaning Machine: How AI Challenges Our Understanding of Art and Creation",
+    "substack_url": "https://aisalon.substack.com/p/the-meaning-machine-how-ai-challenges",
+    "chapter_code": "berlin",
+    "publish_date": "2025-11-05",
+    "meta_file": null
+  },
+  {
+    "title": "The AI Paradox",
+    "substack_url": "https://aisalon.substack.com/p/the-ai-paradox",
+    "chapter_code": "nyc",
+    "publish_date": "2025-08-13",
+    "meta_file": "2025-06-25 Ai salon nyc_ benefits and risks - Rupi Sureshkumar_meta.json"
+  },
+  {
+    "title": "The Algorithmic Mind",
+    "substack_url": "https://aisalon.substack.com/p/the-algorithmic-mind",
+    "chapter_code": "nyc",
+    "publish_date": "2025-08-07",
+    "meta_file": "2025-06-22 AI Salon NYC critical thinking - Rupi Sureshkumar_meta.json"
+  },
+  {
+    "title": "Digital Intimacy",
+    "substack_url": "https://aisalon.substack.com/p/digital-intimacy",
+    "chapter_code": "berlin",
+    "publish_date": "2025-08-03",
+    "meta_file": null
+  },
+  {
+    "title": "Between Human and Machine",
+    "substack_url": "https://aisalon.substack.com/p/between-human-and-machine",
+    "chapter_code": "london",
+    "publish_date": "2025-07-31",
+    "meta_file": null
+  },
+  {
+    "title": "Finding Your \u201cAlpha\u201d: Navigating Career Evolution in an AI-Saturated Future",
+    "substack_url": "https://aisalon.substack.com/p/personal-and-career-impact",
+    "chapter_code": "sf",
+    "publish_date": "2025-06-08",
+    "meta_file": "2025-02-21 - personal impact and career evolution_transcript_anon_meta.json"
+  },
+  {
+    "title": "The Last Shall Be First: Africa\u2019s Path to Leading in the AI Revolution",
+    "substack_url": "https://aisalon.substack.com/p/the-last-shall-be-first-africas-path",
+    "chapter_code": "lagos",
+    "publish_date": "2025-05-08",
+    "meta_file": "2025-04-04-Africa_s Practical Path - Francis Sani_meta.json"
+  },
+  {
+    "title": "Nigeria\u2019s AI Landscape: Between Hopeful Innovation and Systemic Challenges",
+    "substack_url": "https://aisalon.substack.com/p/nigerias-ai-landscape-between-hopeful",
+    "chapter_code": "lagos",
+    "publish_date": "2025-04-30",
+    "meta_file": "2025-02-28- Where is Nigeria Today - Francis Sani_meta.json"
+  },
+  {
+    "title": "Authentic in an Age of AI: Navigating Identity, Language, and Digital Twins",
+    "substack_url": "https://aisalon.substack.com/p/authenticity",
+    "chapter_code": "sf",
+    "publish_date": "2025-04-18",
+    "meta_file": "2025-03-17 - Authenticity - Cecilia Callas_meta.json"
+  },
+  {
+    "title": "Children: Developing alongside our technologies",
+    "substack_url": "https://aisalon.substack.com/p/children",
+    "chapter_code": "bangalore",
+    "publish_date": "2025-04-09",
+    "meta_file": "2025-02-18 - AI salon audio - Anirudh Iyer_meta.json"
+  },
+  {
+    "title": "HumanX 2025: Reflections from the Ai Salon",
+    "substack_url": "https://aisalon.substack.com/p/humanx-2025-reflections-from-the",
+    "chapter_code": null,
+    "publish_date": "2025-03-19",
+    "meta_file": null
+  },
+  {
+    "title": "HumanX Ai Salon - AI2050",
+    "substack_url": "https://aisalon.substack.com/p/humanx-ai-salon-ai2050",
+    "chapter_code": null,
+    "publish_date": "2025-03-19",
+    "meta_file": "2025-03-12 - AI 2050 - Ross_meta.json"
+  },
+  {
+    "title": "HumanX Ai Salon - Governance & Control",
+    "substack_url": "https://aisalon.substack.com/p/humanx-ai-salon-governance-and-control",
+    "chapter_code": null,
+    "publish_date": "2025-03-12",
+    "meta_file": "2025-03-11 - AI Salon HumanX #2 Governance & Control - Ross Matican_meta.json"
+  },
+  {
+    "title": "HumanX Ai Salon - The Future of Work",
+    "substack_url": "https://aisalon.substack.com/p/humanx-ai-salon-the-future-of-work",
+    "chapter_code": null,
+    "publish_date": "2025-03-12",
+    "meta_file": "2025-03-10 - future of work - combined_transcript_anon_meta.json"
+  },
+  {
+    "title": "029 - Storytelling",
+    "substack_url": "https://aisalon.substack.com/p/029-storytelling",
+    "chapter_code": "bangalore",
+    "publish_date": "2025-03-10",
+    "meta_file": "2025-02-22 - Storytelling - Sharat Satyanarayana_transcript_anon_meta.json"
+  },
+  {
+    "title": "028 - Government",
+    "substack_url": "https://aisalon.substack.com/p/028-government",
+    "chapter_code": "sf",
+    "publish_date": "2025-03-05",
+    "meta_file": null
+  },
+  {
+    "title": "020 - Purpose and Meaning",
+    "substack_url": "https://aisalon.substack.com/p/020-purpose-and-meaning",
+    "chapter_code": "sf",
+    "publish_date": "2025-02-22",
+    "meta_file": null
+  },
+  {
+    "title": "027 - Education",
+    "substack_url": "https://aisalon.substack.com/p/027-education",
+    "chapter_code": "sf",
+    "publish_date": "2025-02-05",
+    "meta_file": null
+  },
+  {
+    "title": "026 - Augmentation: Bicycles for the Mind",
+    "substack_url": "https://aisalon.substack.com/p/026-augmentation",
+    "chapter_code": "sf",
+    "publish_date": "2025-01-29",
+    "meta_file": null
+  },
+  {
+    "title": "025 - Beauty: The Digital Mirror",
+    "substack_url": "https://aisalon.substack.com/p/025-beauty",
+    "chapter_code": "sf",
+    "publish_date": "2025-01-24",
+    "meta_file": null
+  },
+  {
+    "title": "024 - Common Questions, Uncommon Times",
+    "substack_url": "https://aisalon.substack.com/p/024-common-questions-uncommon-times",
+    "chapter_code": "sf",
+    "publish_date": "2025-01-16",
+    "meta_file": null
+  },
+  {
+    "title": "023 - Autonomous Scientific Discovery",
+    "substack_url": "https://aisalon.substack.com/p/023-autonomous-scientific-discovery",
+    "chapter_code": "vancouver",
+    "publish_date": "2025-01-08",
+    "meta_file": null
+  },
+  {
+    "title": "022 - Sovereignty",
+    "substack_url": "https://aisalon.substack.com/p/022-sovereignty",
+    "chapter_code": "bangalore",
+    "publish_date": "2024-12-11",
+    "meta_file": null
+  },
+  {
+    "title": "021 - Trustworthy AI Futures: 2024 Reflections",
+    "substack_url": "https://aisalon.substack.com/p/021-trustworthy-ai-futures-2024-reflections",
+    "chapter_code": "sf",
+    "publish_date": "2024-11-20",
+    "meta_file": null
+  },
+  {
+    "title": "019 - Love and Dating",
+    "substack_url": "https://aisalon.substack.com/p/019-love-and-dating",
+    "chapter_code": "sf",
+    "publish_date": "2024-08-27",
+    "meta_file": null
+  },
+  {
+    "title": "018 - Elections & Democracy",
+    "substack_url": "https://aisalon.substack.com/p/018-elections-and-democracy",
+    "chapter_code": "sf",
+    "publish_date": "2024-08-23",
+    "meta_file": null
+  },
+  {
+    "title": "017 - Trustworthy AI Futures: Situational Awareness",
+    "substack_url": "https://aisalon.substack.com/p/017-trustworthy-ai-futures-situational",
+    "chapter_code": "sf",
+    "publish_date": "2024-07-10",
+    "meta_file": null
+  },
+  {
+    "title": "016 - Guardrails",
+    "substack_url": "https://aisalon.substack.com/p/016-guardrails",
+    "chapter_code": "sf",
+    "publish_date": "2024-06-23",
+    "meta_file": null
+  },
+  {
+    "title": "015 - Trustworthy AI Futures: Agents",
+    "substack_url": "https://aisalon.substack.com/p/015-trustworthy-ai-futures-agents",
+    "chapter_code": "sf",
+    "publish_date": "2024-05-22",
+    "meta_file": null
+  },
+  {
+    "title": "014 - National Power & War",
+    "substack_url": "https://aisalon.substack.com/p/014-national-power-and-war",
+    "chapter_code": "sf",
+    "publish_date": "2024-05-08",
+    "meta_file": null
+  },
+  {
+    "title": "013 - Science Fiction Futures",
+    "substack_url": "https://aisalon.substack.com/p/013-science-fiction-futures",
+    "chapter_code": "sf",
+    "publish_date": "2024-05-01",
+    "meta_file": null
+  },
+  {
+    "title": "012 - Neurotechnology",
+    "substack_url": "https://aisalon.substack.com/p/012-neurotechnology",
+    "chapter_code": "sf",
+    "publish_date": "2024-04-24",
+    "meta_file": null
+  },
+  {
+    "title": "011 - Loneliness",
+    "substack_url": "https://aisalon.substack.com/p/011-loneliness",
+    "chapter_code": "sf",
+    "publish_date": "2024-04-17",
+    "meta_file": null
+  },
+  {
+    "title": "010 - Videogames",
+    "substack_url": "https://aisalon.substack.com/p/009-videogames",
+    "chapter_code": "sf",
+    "publish_date": "2024-04-10",
+    "meta_file": null
+  },
+  {
+    "title": "009 - Religion",
+    "substack_url": "https://aisalon.substack.com/p/009-religion",
+    "chapter_code": "sf",
+    "publish_date": "2024-04-03",
+    "meta_file": null
+  },
+  {
+    "title": "008 - Personhood: The Mirror of Machine Personhood",
+    "substack_url": "https://aisalon.substack.com/p/008-personhood",
+    "chapter_code": "sf",
+    "publish_date": "2024-03-27",
+    "meta_file": null
+  },
+  {
+    "title": "007 - Common Sense: AI and the Unspoken Rules of Being Human",
+    "substack_url": "https://aisalon.substack.com/p/007-common-sense",
+    "chapter_code": "sf",
+    "publish_date": "2024-03-27",
+    "meta_file": null
+  },
+  {
+    "title": "006 - Mental Health: When Psyche Meets Silicon",
+    "substack_url": "https://aisalon.substack.com/p/006-mental-health",
+    "chapter_code": "sf",
+    "publish_date": "2024-03-27",
+    "meta_file": null
+  },
+  {
+    "title": "005 - Space Industries",
+    "substack_url": "https://aisalon.substack.com/p/005-space-industries",
+    "chapter_code": "sf",
+    "publish_date": "2024-03-27",
+    "meta_file": null
+  },
+  {
+    "title": "003 - Digital Immortality",
+    "substack_url": "https://aisalon.substack.com/p/003-digital-immortality",
+    "chapter_code": "sf",
+    "publish_date": "2024-03-27",
+    "meta_file": null
+  },
+  {
+    "title": "002 - Creativity and Expression",
+    "substack_url": "https://aisalon.substack.com/p/002-creativity-and-expression",
+    "chapter_code": "sf",
+    "publish_date": "2024-03-27",
+    "meta_file": null
+  },
+  {
+    "title": "001 - Dating and Relationships",
+    "substack_url": "https://aisalon.substack.com/p/001-dating-and-relationships",
+    "chapter_code": "sf",
+    "publish_date": "2024-03-27",
+    "meta_file": null
+  },
+  {
+    "title": "004-05 - Human Flourishing & Design",
+    "substack_url": "https://aisalon.substack.com/p/004-05-human-flourishing-and-design",
+    "chapter_code": "sf",
+    "publish_date": "2024-01-31",
+    "meta_file": null
+  },
+  {
+    "title": "004-04 - Human Flourishing & Creativity",
+    "substack_url": "https://aisalon.substack.com/p/004-04-human-flourishing-and-creativity",
+    "chapter_code": "sf",
+    "publish_date": "2024-01-31",
+    "meta_file": null
+  },
+  {
+    "title": "004-03 - Human Flourishing & Knowledge",
+    "substack_url": "https://aisalon.substack.com/p/004-03-human-flourishing-and-knowledge",
+    "chapter_code": "sf",
+    "publish_date": "2024-01-31",
+    "meta_file": null
+  },
+  {
+    "title": "004-02 - Human Flourishing & Governance",
+    "substack_url": "https://aisalon.substack.com/p/004-02-human-flourishing-and-governance",
+    "chapter_code": "sf",
+    "publish_date": "2024-01-31",
+    "meta_file": null
+  },
+  {
+    "title": "004-01 - Human Flourishing & Relationships",
+    "substack_url": "https://aisalon.substack.com/p/004-01-human-flourishing-and-relationships",
+    "chapter_code": "sf",
+    "publish_date": "2024-01-31",
+    "meta_file": null
+  }
+]
