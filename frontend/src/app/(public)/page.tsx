@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { InteractiveLogo } from "@/components/InteractiveLogo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -163,7 +164,9 @@ export default function HomePage() {
     <>
       {/* ── HERO ── */}
       <section id="banner">
-        <div className="banner-image" />
+        <div className="banner-interactive">
+          <InteractiveLogo />
+        </div>
         <div
           style={{
             maxWidth: 1140,
@@ -171,19 +174,20 @@ export default function HomePage() {
             padding: "0 30px",
             position: "relative",
             zIndex: 2,
+            pointerEvents: "none",
           }}
         >
-          <div style={{ maxWidth: 480, paddingTop: 80, paddingBottom: 60 }}>
+          <div style={{ maxWidth: 480, paddingTop: 80, paddingBottom: 60, pointerEvents: "auto" }}>
             {/* Gold rule */}
-            <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
+            <div className="banner-text-rule" style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
 
             <h1>The Global AI Commons</h1>
             <h2>AI will impact everyone – everyone should impact AI</h2>
 
             {/* Gold rule */}
-            <div style={{ width: 40, height: 4, background: "#d2b356", margin: "28px 0 36px" }} />
+            <div className="banner-text-rule" style={{ width: 40, height: 4, background: "#d2b356", margin: "28px 0 36px" }} />
 
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div className="hero-ctas" style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
               <a
                 href="https://lu.ma/Ai-salon"
                 target="_blank"
