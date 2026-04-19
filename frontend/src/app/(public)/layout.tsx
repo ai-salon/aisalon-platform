@@ -36,7 +36,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <p style={{ fontSize: 15, lineHeight: 1.6, color: "rgba(255,255,255,0.6)" }}>
               The global AI Commons: Conversations on the meaning and impact of AI
             </p>
-            <a href="/login" style={{ display: "inline-block", marginTop: 15, fontSize: 14, color: "rgba(255,255,255,0.7)" }}>
+            <a href="/login" className="btn-primary" style={{ display: "inline-block", marginTop: 15, fontSize: 13, padding: "10px 20px" }}>
               Member Sign In
             </a>
           </div>
