@@ -319,6 +319,8 @@ a {
   top: 0;
   width: 55%;
   height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 #banner h1 {
@@ -712,9 +714,22 @@ a {
 
 /* ── Responsive ── */
 @media (max-width: 991px) {
-  .banner-interactive { display: none; }
-  #banner { text-align: center; }
-  #banner > div > div { max-width: 100%; }
+  #banner {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    text-align: center;
+  }
+  .banner-interactive {
+    position: static;
+    width: 100%;
+    height: auto;
+  }
+  #banner > div > div {
+    max-width: 100%;
+    padding-top: 24px !important;
+    padding-bottom: 32px !important;
+  }
   #banner h1 { font-size: 36px; }
   #banner h2 { font-size: 18px; }
   .section-title { font-size: 26px; }
