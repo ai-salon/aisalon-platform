@@ -9,6 +9,23 @@ import OnboardingBanner, { type OnboardingStep } from "@/components/OnboardingBa
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+function TeamAvatar({ url, name, size = 28 }: { url: string; name: string; size?: number }) {
+  const [broken, setBroken] = useState(false);
+  const src = url.startsWith("/") ? `${API_URL}${url}` : url;
+  if (!url || broken) {
+    return (
+      <div style={{ width: size, height: size, borderRadius: "50%", background: "#f0ebe0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.43, flexShrink: 0 }}>
+        👤
+      </div>
+    );
+  }
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
+      <img src={src} alt={name} onError={() => setBroken(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+    </div>
+  );
+}
+
 // ─── Reusable primitives ──────────────────────────────────────────────────────
 
 function Accordion({
@@ -1532,35 +1549,9 @@ function ChapterTeamTab({ chapterCode }: { chapterCode: string }) {
                 textAlign: "center",
               }}
             >
-              {m.profile_image_url ? (
-                <img
-                  src={m.profile_image_url.startsWith("/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url}
-                  alt={m.name}
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                    marginBottom: 10,
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: "50%",
-                    background: "#f0ebe0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 22,
-                    margin: "0 auto 10px",
-                  }}
-                >
-                  👤
-                </div>
-              )}
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                <TeamAvatar url={m.profile_image_url ?? ""} name={m.name} size={64} />
+              </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "#111", marginBottom: 2 }}>
                 {m.name}
               </div>
@@ -1744,31 +1735,7 @@ function RecentActivity({ token, chapterCode }: { token: string; chapterCode: st
                   padding: "8px 12px",
                 }}
               >
-                {m.profile_image_url ? (
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
-                    <img
-                      src={m.profile_image_url.startsWith("/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url}
-                      alt={m.name}
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      background: "#f0ebe0",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 12,
-                      flexShrink: 0,
-                    }}
-                  >
-                    👤
-                  </div>
-                )}
+                <TeamAvatar url={m.profile_image_url ?? ""} name={m.name} size={28} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#111" }}>{m.name}</div>
                   <div style={{ fontSize: 11, color: "#696969" }}>{m.role}</div>
