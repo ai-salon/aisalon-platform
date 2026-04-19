@@ -308,7 +308,7 @@ export function InteractiveLogo() {
         ref={canvasRef}
         width={W * DPR}
         height={H * DPR}
-        style={{ display: "block", width: "100%", height: "100%", cursor: "crosshair" }}
+        style={{ display: "block", height: "100%", width: "auto", cursor: "crosshair" }}
       />
       <div
         style={{
