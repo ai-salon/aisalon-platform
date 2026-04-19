@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import Providers from "./providers";
 import MobileNav from "./MobileNav";
+import NavLinks from "./NavLinks";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -86,100 +87,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Link>
 
             {/* Nav links — hidden on mobile */}
-            <ul
-              className="desktop-nav-links"
-              style={{
-                display: "flex",
-                gap: 4,
-                listStyle: "none",
-                margin: 0,
-                padding: 0,
-                marginRight: "auto",
-              }}
-            >
-              <li className="dropdown">
-                <Link
-                  href="/#about"
-                  style={{
-                    padding: "8px 14px",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    color: "#111",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  About <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
-                </Link>
-                <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
-                  <li><Link href="/#values">Values</Link></li>
-                  <li><Link href="/#team">Team</Link></li>
-                </ul>
-              </li>
-              <li>
-                <Link
-                  href="/insights"
-                  style={{
-                    padding: "8px 14px",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    color: "#111",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  Insights
-                </Link>
-              </li>
-              <li className="dropdown">
-                <Link
-                  href="/#chapters"
-                  style={{
-                    padding: "8px 14px",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    color: "#111",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  Chapters <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
-                </Link>
-                <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
-                  {chapters.map((ch) => (
-                    <li key={ch.code}><Link href={`/chapters/${ch.code}`}>{ch.name}</Link></li>
-                  ))}
-                </ul>
-              </li>
-              <li className="dropdown">
-                <Link
-                  href="/start"
-                  style={{
-                    padding: "8px 14px",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    color: "#111",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 4,
-                  }}
-                >
-                  Get Involved <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
-                </Link>
-                <ul className="dropdown-menu" style={{ listStyle: "none", margin: 0, padding: "10px 0" }}>
-                  <li><a href="https://lu.ma/Ai-salon" target="_blank" rel="noopener noreferrer">Attend an Event</a></li>
-                  <li><Link href="/start">Run a Salon</Link></li>
-                  <li><Link href="/volunteer">Volunteer</Link></li>
-                  <li><Link href="/host">Host or Join a Chapter</Link></li>
-                </ul>
-              </li>
-            </ul>
+            <NavLinks chapters={chapters} />
 
             {/* Nav buttons — hidden on mobile */}
             <div className="desktop-nav-buttons" style={{ display: "flex", gap: 12 }}>

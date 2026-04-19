@@ -140,6 +140,50 @@ a {
   color: #fff;
 }
 
+/* ── Public nav link animated underline ── */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 14px;
+  right: 14px;
+  height: 2px;
+  background: #56a1d2;
+  border-radius: 1px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.nav-link:hover::after,
+.nav-link-active::after {
+  transform: scaleX(1);
+}
+
+.nav-link-active {
+  color: #56a1d2 !important;
+}
+
+/* ── Admin sidebar nav ── */
+.sidebar-nav-link {
+  transition: background 0.15s ease, transform 0.12s ease !important;
+}
+
+.sidebar-nav-link:not(.sidebar-nav-link-active):hover {
+  background: rgba(0, 0, 0, 0.04) !important;
+  transform: translateX(2px);
+}
+
+.sidebar-nav-link-active {
+  background: rgba(86, 161, 210, 0.1) !important;
+  box-shadow: inset 3px 0 0 #56a1d2;
+  color: #56a1d2 !important;
+}
+
 /* ── Nav ── */
 .nav-button {
   font-size: 14px;
@@ -163,7 +207,6 @@ a {
 }
 
 .dropdown-menu {
-  display: none;
   position: absolute;
   top: 100%;
   left: 0;
@@ -171,13 +214,21 @@ a {
   padding: 10px 0;
   background: #f8f6ec;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
   z-index: 1000;
   white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 0.15s ease, visibility 0.15s, transform 0.15s ease;
 }
 
 .dropdown:hover .dropdown-menu {
-  display: block;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
 .dropdown-menu a {

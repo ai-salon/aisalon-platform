@@ -1,9 +1,49 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+/* ─────────────────────────────────────────
+   Count-up animation (triggers on scroll)
+───────────────────────────────────────── */
+function CountUp({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) { setStarted(true); observer.disconnect(); }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!started) return;
+    const duration = 1200;
+    const startTime = performance.now();
+    let rafId: number;
+    const step = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setCount(Math.floor(eased * target));
+      if (progress < 1) rafId = requestAnimationFrame(step);
+      else setCount(target);
+    };
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [started, target]);
+
+  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
+}
 
 /* ─────────────────────────────────────────
    Helper: two-column section wrapper
@@ -201,7 +241,7 @@ export default function HomePage() {
               <IconBlock
                 icon="fa-globe"
                 title="Global Reach"
-                body="With chapters across six cities (and growing!), we're breaking down geographic barriers to ensure valuable perspectives from all regions contribute to AI's development."
+                body={`With chapters across ${chapters.length > 0 ? chapters.length : 6} cities (and growing!), we're breaking down geographic barriers to ensure valuable perspectives from all regions contribute to AI's development.`}
               />
               <IconBlock
                 icon="fa-lightbulb-o"
@@ -255,7 +295,7 @@ export default function HomePage() {
               <p className="section-subtitle">
                 We believe the best AI solutions emerge when insights flow freely across
                 geographic and cultural boundaries. The Ai Salon has expanded beyond San
-                Francisco to a global community across six cities (and growing!).
+                Francisco to a global community across {chapters.length > 0 ? chapters.length : 6} cities (and growing!).
               </p>
             </div>
 
@@ -316,7 +356,7 @@ export default function HomePage() {
               </p>
               <div className="social-proof-badge">
                 <i className="fa fa-calendar-check-o" aria-hidden="true" />
-                <span>70+ events hosted</span>
+                <span><CountUp target={70} suffix="+" /> events hosted</span>
               </div>
             </div>
 
@@ -397,7 +437,7 @@ export default function HomePage() {
               </p>
               <div className="social-proof-badge" style={{ marginBottom: 24 }}>
                 <i className="fa fa-users" aria-hidden="true" />
-                <span>6,000+ subscribers</span>
+                <span><CountUp target={6000} suffix="+" /> subscribers</span>
               </div>
               <a
                 href="https://aisalon.substack.com/subscribe"

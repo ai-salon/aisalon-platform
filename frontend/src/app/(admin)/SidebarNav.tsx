@@ -122,21 +122,22 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
               borderRadius: 6,
               fontSize: 13,
               fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#fff' : '#555',
-              background: isActive ? '#56a1d2' : 'transparent',
+              color: isActive ? '#56a1d2' : '#555',
+              background: isActive ? 'rgba(86, 161, 210, 0.1)' : 'transparent',
               textDecoration: 'none',
-              transition: 'background 0.15s',
             }
             const iconStyle = {
               width: 14,
               textAlign: 'center' as const,
-              color: isActive ? '#fff' : '#56a1d2',
+              color: '#56a1d2',
               fontSize: 12,
             }
 
             if (external) {
               return (
-                <a key={href} href={href} target="_blank" rel="noopener noreferrer" style={sharedStyle}>
+                <a key={href} href={href} target="_blank" rel="noopener noreferrer"
+                  className={`sidebar-nav-link${isActive ? ' sidebar-nav-link-active' : ''}`}
+                  style={sharedStyle}>
                   <i className={`fa ${childIcon}`} style={iconStyle} aria-hidden="true" />
                   {childLabel}
                   <i className="fa fa-external-link" style={{ fontSize: 10, marginLeft: 'auto', color: '#9ca3af' }} aria-hidden="true" />
@@ -145,7 +146,9 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
             }
 
             return (
-              <Link key={href} href={href} style={sharedStyle}>
+              <Link key={href} href={href}
+                className={`sidebar-nav-link${isActive ? ' sidebar-nav-link-active' : ''}`}
+                style={sharedStyle}>
                 <i className={`fa ${childIcon}`} style={iconStyle} aria-hidden="true" />
                 {childLabel}
               </Link>
@@ -205,6 +208,7 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
             <Link
               key={entry.href}
               href={entry.href}
+              className={`sidebar-nav-link${isActive ? ' sidebar-nav-link-active' : ''}`}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -213,15 +217,14 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
                 borderRadius: 6,
                 fontSize: 14,
                 fontWeight: isActive ? 600 : 500,
-                color: isActive ? '#fff' : '#444',
-                background: isActive ? '#56a1d2' : 'transparent',
+                color: isActive ? '#56a1d2' : '#444',
+                background: isActive ? 'rgba(86, 161, 210, 0.1)' : 'transparent',
                 textDecoration: 'none',
-                transition: 'background 0.15s',
               }}
             >
               <i
                 className={`fa ${entry.icon}`}
-                style={{ width: 16, textAlign: 'center', color: isActive ? '#fff' : '#56a1d2' }}
+                style={{ width: 16, textAlign: 'center', color: '#56a1d2' }}
                 aria-hidden="true"
               />
               {entry.label}
