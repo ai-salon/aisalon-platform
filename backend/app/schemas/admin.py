@@ -178,6 +178,7 @@ class UserResponse(BaseModel):
     has_article: bool = False
     has_read_hosting_guide: bool = False
     has_read_lead_guide: bool = False
+    scheduling_url: str | None = None
 
     model_config = {"from_attributes": True}
 

@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, nullslast
 
@@ -676,6 +677,50 @@ async def mark_guide_read(
     elif body.guide == "lead" and current_user.lead_guide_read_at is None:
         current_user.lead_guide_read_at = datetime.now(timezone.utc)
         await db.commit()
+
+
+class SchedulingUrlUpdate(BaseModel):
+    scheduling_url: str | None = None
+
+
+@router.patch("/me/scheduling-url", response_model=UserResponse)
+async def update_scheduling_url(
+    body: SchedulingUrlUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    current_user.scheduling_url = body.scheduling_url or None
+    await db.commit()
+    await db.refresh(current_user)
+    r = UserResponse.model_validate(current_user)
+    r.has_read_hosting_guide = current_user.hosting_guide_read_at is not None
+    r.has_read_lead_guide = current_user.lead_guide_read_at is not None
+    return r
+
+
+@router.get("/chapter-leads")
+async def get_chapter_leads(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    chapter_id = current_user.chapter_id
+    if not chapter_id:
+        return []
+    result = await db.execute(
+        select(User.id, User.email, User.username, User.scheduling_url)
+        .where(User.chapter_id == chapter_id)
+        .where(User.role == UserRole.chapter_lead)
+        .where(User.is_active.is_(True))
+    )
+    rows = result.all()
+    return [
+        {
+            "id": row.id,
+            "name": row.username or row.email.split("@")[0],
+            "scheduling_url": row.scheduling_url,
+        }
+        for row in rows
+    ]
 
 
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

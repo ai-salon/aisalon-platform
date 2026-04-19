@@ -25,5 +25,6 @@ class User(Base, TimestampMixin):
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     hosting_guide_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     lead_guide_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    scheduling_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     chapter: Mapped["Chapter | None"] = relationship("Chapter", back_populates="users")  # noqa: F821

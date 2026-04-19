@@ -1710,7 +1710,7 @@ function RecentActivity({ token, chapterCode }: { token: string; chapterCode: st
                     {a.status}
                   </span>
                   <span style={{ fontSize: 11, color: "#9ca3af" }}>
-                    {new Date(a.created_at).toLocaleDateString()}
+                    {new Date(a.publish_date ?? a.created_at).toLocaleDateString()}
                   </span>
                 </div>
               </Link>
@@ -1731,7 +1731,7 @@ function RecentActivity({ token, chapterCode }: { token: string; chapterCode: st
           <p style={{ fontSize: 13, color: "#9ca3af" }}>No team members yet.</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {team.slice(0, 5).map((m: any) => (
+            {[...team].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 5).map((m: any) => (
               <div
                 key={m.id}
                 style={{
@@ -1745,11 +1745,13 @@ function RecentActivity({ token, chapterCode }: { token: string; chapterCode: st
                 }}
               >
                 {m.profile_image_url ? (
-                  <img
-                    src={m.profile_image_url.startsWith("/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url}
-                    alt={m.name}
-                    style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-                  />
+                  <div style={{ width: 28, height: 28, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
+                    <img
+                      src={m.profile_image_url.startsWith("/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url}
+                      alt={m.name}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
                 ) : (
                   <div
                     style={{
@@ -2119,6 +2121,12 @@ const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
     ctaLabel: "Open guide",
     ctaHref: undefined,
   },
+  {
+    title: "Set up your 1:1 scheduling link",
+    description: "Add a booking link (cal.com, Calendly, or Google Calendar) so hosts can schedule time with you.",
+    ctaLabel: "Go to Settings",
+    ctaHref: "/settings",
+  },
 ];
 
 function GuideReadItem({ label, defaultRead, onOpen, onMarkRead }: { label: string; defaultRead?: boolean; onOpen: () => void; onMarkRead: () => void }) {
@@ -2155,6 +2163,7 @@ export default function WelcomeDashboard({
   completedSteps,
   hasReadHostingGuide,
   hasReadLeadGuide,
+  chapterLeads = [],
 }: {
   userName: string;
   userEmail: string;
@@ -2164,6 +2173,7 @@ export default function WelcomeDashboard({
   completedSteps?: boolean[];
   hasReadHostingGuide?: boolean;
   hasReadLeadGuide?: boolean;
+  chapterLeads?: { id: string; name: string; scheduling_url: string | null }[];
 }) {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken ?? "";
@@ -2451,11 +2461,9 @@ export default function WelcomeDashboard({
             }}
           >
             <SectionLabel>Quick Links</SectionLabel>
-            <QuickLink href="https://aisalon.xyz/" emoji="🌐" label="Ai Salon Website" />
             <QuickLink href="https://aisalon.substack.com" emoji="📰" label="Substack Archive" />
             <QuickLink href="https://lu.ma/Ai-salon" emoji="🗓️" label="Luma Calendar" />
             <QuickLink href="/host" emoji="📝" label="Hosting Interest Form" />
-            <QuickLink href="/upload" emoji="🎤" label="Submit Recording" />
             <QuickLink href="https://photos.app.goo.gl/27GC3nktVkvDL11x8" emoji="📷" label="Photo Album" />
           </div>
 
@@ -2486,7 +2494,12 @@ export default function WelcomeDashboard({
             }}
           >
             <SectionLabel>Connect</SectionLabel>
-            <QuickLink href="https://cal.com/ianeisenberg/ai-salon-coordination" emoji="📅" label="1:1 with Ian" />
+            {chapterLeads.filter((l) => l.scheduling_url).map((l) => (
+              <QuickLink key={l.id} href={l.scheduling_url!} emoji="📅" label={`1:1 with ${l.name}`} />
+            ))}
+            {chapterLeads.filter((l) => l.scheduling_url).length === 0 && (
+              <QuickLink href="https://cal.com/ianeisenberg/ai-salon-coordination" emoji="📅" label="1:1 with Ian" />
+            )}
             <QuickLink href="https://www.linkedin.com/company/92632727/" emoji="💼" label="LinkedIn" />
             <QuickLink href="https://x.com/TheAISalonSF" emoji="𝕏" label="X / Twitter" />
           </div>

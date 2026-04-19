@@ -253,9 +253,13 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [systemKeys, setSystemKeys] = useState<Set<string>>(new Set());
+  const [schedulingUrl, setSchedulingUrl] = useState("");
+  const [schedulingUrlSaving, setSchedulingUrlSaving] = useState(false);
+  const [schedulingUrlEdit, setSchedulingUrlEdit] = useState(false);
 
   const token = (session as any)?.accessToken;
   const isSuperadmin = (session?.user as any)?.role === "superadmin";
+  const userRole = (session?.user as any)?.role;
 
   useEffect(() => {
     if (status === "unauthenticated") redirect("/login");
@@ -268,6 +272,12 @@ export default function SettingsPage() {
     })
       .then((r) => r.json())
       .then(setKeys)
+      .catch(console.error);
+    fetch(`${API_URL}/admin/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => { if (data.scheduling_url) setSchedulingUrl(data.scheduling_url); })
       .catch(console.error);
   }, [token]);
 
@@ -327,6 +337,22 @@ export default function SettingsPage() {
       toast.success("API key removed");
     } else {
       toast.error("Failed to remove API key");
+    }
+  }
+
+  async function saveSchedulingUrl() {
+    setSchedulingUrlSaving(true);
+    const r = await fetch(`${API_URL}/admin/me/scheduling-url`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ scheduling_url: schedulingUrl || null }),
+    });
+    setSchedulingUrlSaving(false);
+    if (r.ok) {
+      toast.success("Scheduling link saved");
+      setSchedulingUrlEdit(false);
+    } else {
+      toast.error("Failed to save scheduling link");
     }
   }
 
@@ -505,6 +531,72 @@ export default function SettingsPage() {
             </div>
           );
         })}
+
+        {/* Scheduling URL (chapter leads + superadmin) */}
+        {(userRole === "chapter_lead" || userRole === "superadmin") && (
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 8,
+              padding: "20px 24px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+              <i className="fa fa-calendar" style={{ color: "#56a1d2", fontSize: 15 }} />
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>1:1 Scheduling Link</span>
+              {schedulingUrl && !schedulingUrlEdit && <StatusBadge active={true} />}
+            </div>
+            <p style={{ fontSize: 13, color: "#696969", marginBottom: 14 }}>
+              Add your booking link so hosts can schedule 1:1 meetings with you. Use{" "}
+              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>cal.com</a>,{" "}
+              <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>Calendly</a>, or{" "}
+              Google Calendar appointment pages.
+            </p>
+            {schedulingUrlEdit ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <input
+                  type="url"
+                  value={schedulingUrl}
+                  onChange={(e) => setSchedulingUrl(e.target.value)}
+                  placeholder="https://cal.com/yourname/meeting"
+                  style={{ fontSize: 13, padding: "8px 12px", borderRadius: 6, border: "1.5px solid #d1d5db", outline: "none", width: "100%" }}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={saveSchedulingUrl}
+                    disabled={schedulingUrlSaving}
+                    style={{ fontSize: 13, fontWeight: 600, padding: "6px 14px", borderRadius: 6, border: "none", background: "#56a1d2", color: "#fff", cursor: "pointer" }}
+                  >
+                    {schedulingUrlSaving ? "Saving…" : "Save"}
+                  </button>
+                  <button
+                    onClick={() => setSchedulingUrlEdit(false)}
+                    style={{ fontSize: 13, fontWeight: 600, padding: "6px 14px", borderRadius: 6, border: "1.5px solid #d1d5db", background: "transparent", color: "#696969", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                {schedulingUrl ? (
+                  <a href={schedulingUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#56a1d2", wordBreak: "break-all" }}>
+                    {schedulingUrl}
+                  </a>
+                ) : (
+                  <span style={{ fontSize: 13, color: "#9ca3af" }}>No link set</span>
+                )}
+                <button
+                  onClick={() => setSchedulingUrlEdit(true)}
+                  style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 6, border: "1.5px solid #56a1d2", color: "#56a1d2", background: "transparent", cursor: "pointer", flexShrink: 0 }}
+                >
+                  {schedulingUrl ? "Update" : "Set link"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* System settings (superadmin only) */}
         {isSuperadmin && (

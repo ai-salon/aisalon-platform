@@ -22,7 +22,8 @@ interface Job { id: string; input_filename: string; status: string; created_at: 
 interface Article { id: string; title: string; status: string; created_at: string }
 interface TeamMember { id: string; chapter_id: string }
 interface ChapterRecord { id: string; code: string; name: string; tagline?: string; description?: string }
-interface MeResponse { has_read_hosting_guide: boolean; has_read_lead_guide: boolean }
+interface MeResponse { has_read_hosting_guide: boolean; has_read_lead_guide: boolean; scheduling_url?: string | null }
+interface ChapterLead { id: string; name: string; scheduling_url: string | null }
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -34,13 +35,14 @@ export default async function DashboardPage() {
   const userEmail: string = session.user?.email ?? "";
   const userChapterId: string | undefined = (session.user as { chapterId?: string } | undefined)?.chapterId;
 
-  const [apiKeys, jobs, articles, team, chapters, me] = await Promise.all([
+  const [apiKeys, jobs, articles, team, chapters, me, chapterLeads] = await Promise.all([
     fetchJson<ApiKey[]>(`${API_URL}/admin/api-keys`, token),
     fetchJson<Job[]>(`${API_URL}/admin/jobs`, token),
     fetchJson<Article[]>(`${API_URL}/admin/articles`, token),
     fetchJson<TeamMember[]>(`${API_URL}/admin/team`, token),
     fetchJson<ChapterRecord[]>(`${API_URL}/chapters`, token),
     fetchJson<MeResponse>(`${API_URL}/admin/me`, token),
+    fetchJson<ChapterLead[]>(`${API_URL}/admin/chapter-leads`, token),
   ]);
 
   const hasApiKey = Array.isArray(apiKeys)
@@ -51,8 +53,10 @@ export default async function DashboardPage() {
   const articleList = Array.isArray(articles) ? articles : [];
   const teamList = Array.isArray(team) ? team : [];
   const chapterList = Array.isArray(chapters) ? chapters : [];
+  const chapterLeadList = Array.isArray(chapterLeads) ? chapterLeads : [];
   const hasReadHostingGuide = me?.has_read_hosting_guide ?? false;
   const hasReadLeadGuide = me?.has_read_lead_guide ?? false;
+  const hasSchedulingUrl = !!(me?.scheduling_url);
 
   let userChapter: ChapterRecord | undefined;
   if (userChapterId) {
@@ -65,7 +69,7 @@ export default async function DashboardPage() {
   if (userRole === "host") {
     completedSteps = [hasApiKey, jobList.length > 0, articleList.length > 0, hasReadHostingGuide];
   } else if (userRole === "chapter_lead") {
-    completedSteps = [hasApiKey, jobList.length > 0, chapterComplete, teamList.length > 0, hasReadHostingGuide, hasReadLeadGuide];
+    completedSteps = [hasApiKey, jobList.length > 0, chapterComplete, teamList.length > 0, hasReadHostingGuide, hasReadLeadGuide, hasSchedulingUrl];
   }
 
   return (
@@ -78,6 +82,7 @@ export default async function DashboardPage() {
       completedSteps={completedSteps}
       hasReadHostingGuide={hasReadHostingGuide}
       hasReadLeadGuide={hasReadLeadGuide}
+      chapterLeads={chapterLeadList}
     />
   );
 }

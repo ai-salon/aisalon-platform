@@ -1,4 +1,5 @@
 from typing import Any
+import datetime
 from pydantic import BaseModel
 
 
@@ -22,6 +23,7 @@ class TeamMemberPublic(BaseModel):
     linkedin: str | None
     is_cofounder: bool
     display_order: int
+    created_at: datetime.datetime
 
     model_config = {"from_attributes": True}
 
