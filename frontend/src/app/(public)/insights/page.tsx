@@ -10,6 +10,7 @@ type ArticleSummary = {
   id: string; title: string; status: string;
   substack_url: string | null;
   chapter_id: string; created_at: string;
+  publish_date: string | null;
 };
 
 type OgData = {
@@ -144,7 +145,7 @@ export default async function InsightsPage() {
                       }}
                     >
                       <div style={{ flex: 1, padding: "24px 28px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
                           {chapterMap[a.chapter_id] && (
                             <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#d2b356" }}>
                               {chapterMap[a.chapter_id]}
@@ -152,7 +153,7 @@ export default async function InsightsPage() {
                           )}
                           <span style={{ fontSize: 12, color: "#9ca3af" }}>·</span>
                           <span style={{ fontSize: 12, color: "#9ca3af" }}>
-                            {new Date(a.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                            {new Date(a.publish_date ? a.publish_date + "T00:00:00" : a.created_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
                           </span>
                         </div>
                         <h2 style={{ fontSize: 20, fontWeight: 700, color: "#111", margin: "0 0 8px", lineHeight: 1.35 }}>

@@ -26,7 +26,7 @@ class Article(Base, TimestampMixin):
     substack_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     meta: Mapped[Any | None] = mapped_column(JSON, nullable=True)
     status: Mapped[ArticleStatus] = mapped_column(String(32), nullable=False, default=ArticleStatus.draft)
-    scheduled_publish_date: Mapped[_dt.date | None] = mapped_column(Date, nullable=True)
+    publish_date: Mapped[_dt.date | None] = mapped_column(Date, nullable=True)
     substack_draft_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
 
     job: Mapped["Job | None"] = relationship("Job", back_populates="article")  # noqa: F821

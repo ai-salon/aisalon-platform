@@ -17,6 +17,11 @@ type Chapter = {
   status: string; team_members: Member[];
 };
 
+type ArticleSummary = {
+  id: string; title: string; substack_url: string | null;
+  chapter_id: string; created_at: string; publish_date: string | null;
+};
+
 async function getChapter(code: string): Promise<Chapter | null> {
   try {
     const r = await fetch(`${API_URL}/chapters/${code}`, { cache: "no-store" });
@@ -25,6 +30,21 @@ async function getChapter(code: string): Promise<Chapter | null> {
   } catch {
     return null;
   }
+}
+
+async function getChapterArticles(chapterId: string): Promise<ArticleSummary[]> {
+  try {
+    const r = await fetch(`${API_URL}/articles?chapter_id=${chapterId}`, { cache: "no-store" });
+    if (!r.ok) return [];
+    return r.json();
+  } catch {
+    return [];
+  }
+}
+
+function formatDate(a: ArticleSummary): string {
+  const raw = a.publish_date ? a.publish_date + "T00:00:00" : a.created_at;
+  return new Date(raw).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
@@ -50,6 +70,8 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
   const { code } = await params;
   const chapter = await getChapter(code);
   if (!chapter) notFound();
+
+  const articles = await getChapterArticles(chapter.id);
 
   const rolePriority = (r: string) => {
     if (r === "Founder, Executive Director") return 0;
@@ -82,22 +104,22 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
             </p>
             {/* Gold rule */}
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 32 }} />
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-            {chapter.event_link && (
-              <a
-                href={chapter.event_link}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-outline"
-              >
-                JOIN EVENTS
-              </a>
-            )}
-            <Link href={`/host/${chapter.code}`} className="btn btn-outline">
-              BECOME A HOST
-            </Link>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              {chapter.event_link && (
+                <a
+                  href={chapter.event_link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-outline"
+                >
+                  JOIN EVENTS
+                </a>
+              )}
+              <Link href={`/host/${chapter.code}`} className="btn btn-outline">
+                BECOME A HOST
+              </Link>
+            </div>
           </div>
-        </div>
         </div>
       </section>
 
@@ -180,7 +202,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
             <IconBlock
               icon="fa-users"
               title="Vibrant Community"
-              body="We bring together scientists, technologists, policymakers, academia, artists and the generally curious to consider and shape our future together."
+              body="We bring together scientists, technologists, policymakers, academics, artists and the generally curious to consider and shape our future together."
             />
             <IconBlock
               icon="fa-comments"
@@ -251,6 +273,58 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── INSIGHTS ── */}
+      {articles.length > 0 && (
+        <section style={{ background: "#f8f6ec", padding: "72px 30px" }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+            <span className="section-label">From the Archive</span>
+            <h2 className="section-title">{chapter.name} Insights</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 32 }}>
+              {articles.map((a) => (
+                <a
+                  key={a.id}
+                  href={a.substack_url ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "none" }}
+                  data-umami-event="chapter-article-click"
+                  data-umami-event-title={a.title}
+                >
+                  <div
+                    style={{
+                      background: "#fff",
+                      borderRadius: 8,
+                      border: "1px solid rgba(0,0,0,0.07)",
+                      borderLeft: "4px solid #56a1d2",
+                      padding: "16px 24px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 16,
+                    }}
+                  >
+                    <div>
+                      <p style={{ fontSize: 16, fontWeight: 700, color: "#111", margin: "0 0 4px", lineHeight: 1.35 }}>
+                        {a.title}
+                      </p>
+                      <span style={{ fontSize: 12, color: "#9ca3af" }}>{formatDate(a)}</span>
+                    </div>
+                    <span style={{ fontSize: 13, color: "#56a1d2", fontWeight: 600, whiteSpace: "nowrap" }}>
+                      Read →
+                    </span>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <div style={{ marginTop: 24, textAlign: "center" }}>
+              <Link href="/insights" style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}>
+                View all community insights →
+              </Link>
             </div>
           </div>
         </section>

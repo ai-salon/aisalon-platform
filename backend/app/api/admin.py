@@ -362,7 +362,7 @@ async def create_article(
         title=body.title,
         content_md="",
         substack_url=body.substack_url,
-        scheduled_publish_date=body.published_date,
+        publish_date=body.publish_date,
         status=ArticleStatus.published,
     )
     db.add(article)
@@ -420,6 +420,8 @@ async def update_article(
         article.substack_url = body.substack_url or None  # empty string → NULL
     if body.status is not None:
         article.status = body.status
+    if body.publish_date is not None:
+        article.publish_date = body.publish_date
     await db.commit()
     await db.refresh(article)
     return article

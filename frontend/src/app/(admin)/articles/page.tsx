@@ -92,7 +92,7 @@ export default function ArticlesPage() {
         title: form.title,
         substack_url: form.substackUrl,
       };
-      if (form.publishedDate) body.published_date = form.publishedDate;
+      if (form.publishedDate) body.publish_date = form.publishedDate;
       if (isSuperadmin && form.chapterId) body.chapter_id = form.chapterId;
       const r = await fetch(`${API_URL}/admin/articles`, {
         method: "POST",

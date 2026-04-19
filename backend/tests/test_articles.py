@@ -191,12 +191,12 @@ class TestCreateArticle:
             json={
                 "title": "Dated Post",
                 "substack_url": "https://sub.stack/p/dated",
-                "published_date": "2024-03-15",
+                "publish_date": "2024-03-15",
             },
             headers=lead_headers,
         )
         assert r.status_code == 201
-        assert r.json()["scheduled_publish_date"] == "2024-03-15"
+        assert r.json()["publish_date"] == "2024-03-15"
 
     async def test_requires_auth(self, client: AsyncClient):
         r = await client.post(

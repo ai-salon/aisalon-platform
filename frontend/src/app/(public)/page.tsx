@@ -76,19 +76,34 @@ type Member = {
   linkedin: string | null; is_cofounder: boolean; display_order: number;
 };
 
+type ArticleSummary = {
+  id: string; title: string; substack_url: string | null;
+  chapter_id: string; created_at: string; publish_date: string | null;
+};
+
+function formatArticleDate(a: ArticleSummary): string {
+  const raw = a.publish_date ? a.publish_date + "T00:00:00" : a.created_at;
+  return new Date(raw).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+}
+
 export default function HomePage() {
   const [chapters, setChapters] = useState<{ id: string; name: string; code: string; tagline: string; status: string }[]>([]);
   const [team, setTeam] = useState<Member[]>([]);
+  const [articles, setArticles] = useState<ArticleSummary[]>([]);
 
   useEffect(() => {
     fetch(`${API_URL}/chapters`)
       .then((r) => r.json())
       .then(setChapters)
-      .catch(() => {});
+      .catch(() => { });
     fetch(`${API_URL}/team`)
       .then((r) => r.json())
       .then(setTeam)
-      .catch(() => {});
+      .catch(() => { });
+    fetch(`${API_URL}/articles`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: ArticleSummary[]) => setArticles(data.slice(0, 3)))
+      .catch(() => { });
   }, []);
 
   return (
@@ -163,7 +178,7 @@ export default function HomePage() {
               <IconBlock
                 icon="fa-users"
                 title="Vibrant Community"
-                body="We bring together scientists, technologists, policymakers, academia, artists and the generally curious to consider and shape our future together."
+                body="We bring together scientists, technologists, policymakers, academics, artists and the generally curious to consider and shape our future together."
               />
               <IconBlock
                 icon="fa-comments"
@@ -383,39 +398,88 @@ export default function HomePage() {
               </a>
             </div>
 
-            {/* Right: Clean Substack CTA card */}
+            {/* Right: Recent articles list */}
             <div style={{ flex: "1 1 400px" }}>
-              <div
-                style={{
-                  background: "#f8f6ec",
-                  borderRadius: 12,
-                  padding: "40px 36px",
-                  textAlign: "center",
-                  border: "1px solid rgba(0,0,0,0.06)",
-                }}
-              >
-                <i
-                  className="fa fa-newspaper-o"
-                  aria-hidden="true"
-                  style={{ fontSize: 48, color: "#d2b356", marginBottom: 20, display: "block" }}
-                />
-                <h3 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 10 }}>
-                  The Ai Salon Archive
-                </h3>
-                <p style={{ fontSize: 15, color: "#696969", lineHeight: 1.6, marginBottom: 24, maxWidth: 360, margin: "0 auto 24px" }}>
-                  Curated insights from our in-person conversations, delivered to your inbox.
-                </p>
-                <a
-                  href="https://aisalon.substack.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary"
-                  style={{ display: "inline-block" }}
-                  data-umami-event="newsletter-read-substack"
+              {articles.length === 0 ? (
+                <div
+                  style={{
+                    background: "#f8f6ec",
+                    borderRadius: 12,
+                    padding: "40px 36px",
+                    textAlign: "center",
+                    border: "1px solid rgba(0,0,0,0.06)",
+                  }}
                 >
-                  Read on Substack
-                </a>
-              </div>
+                  <i
+                    className="fa fa-newspaper-o"
+                    aria-hidden="true"
+                    style={{ fontSize: 48, color: "#d2b356", marginBottom: 20, display: "block" }}
+                  />
+                  <h3 style={{ fontSize: 22, fontWeight: 700, color: "#111", marginBottom: 10 }}>
+                    The Ai Salon Archive
+                  </h3>
+                  <p style={{ fontSize: 15, color: "#696969", lineHeight: 1.6, marginBottom: 24, maxWidth: 360, margin: "0 auto 24px" }}>
+                    Curated insights from our in-person conversations, delivered to your inbox.
+                  </p>
+                  <a
+                    href="https://aisalon.substack.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary"
+                    style={{ display: "inline-block" }}
+                    data-umami-event="newsletter-read-substack"
+                  >
+                    Read on Substack
+                  </a>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {articles.map((a) => {
+                    const chapterName = chapters.find((c) => c.id === a.chapter_id)?.name;
+                    return (
+                      <a
+                        key={a.id}
+                        href={a.substack_url ?? "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ textDecoration: "none" }}
+                        data-umami-event="homepage-article-click"
+                        data-umami-event-title={a.title}
+                      >
+                        <div
+                          style={{
+                            background: "#fff",
+                            borderRadius: 8,
+                            border: "1px solid rgba(0,0,0,0.07)",
+                            borderLeft: "4px solid #56a1d2",
+                            padding: "16px 20px",
+                            transition: "box-shadow 0.15s",
+                          }}
+                        >
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                            {chapterName && (
+                              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#d2b356" }}>
+                                {chapterName}
+                              </span>
+                            )}
+                            <span style={{ fontSize: 11, color: "#9ca3af" }}>·</span>
+                            <span style={{ fontSize: 11, color: "#9ca3af" }}>{formatArticleDate(a)}</span>
+                          </div>
+                          <p style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 6px", lineHeight: 1.35 }}>
+                            {a.title}
+                          </p>
+                          <span style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600 }}>Read on Substack →</span>
+                        </div>
+                      </a>
+                    );
+                  })}
+                  <div style={{ marginTop: 8 }}>
+                    <Link href="/insights" style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }} data-umami-event="homepage-view-all-insights">
+                      View all insights →
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </Row>

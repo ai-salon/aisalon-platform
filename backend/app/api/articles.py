@@ -1,9 +1,9 @@
 """Public articles endpoints."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, nullslast
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, date
 
 from app.core.database import get_db
 from app.models.article import Article, ArticleStatus
@@ -18,6 +18,7 @@ class ArticleSummary(BaseModel):
     substack_url: str | None
     chapter_id: str
     created_at: datetime
+    publish_date: date | None = None
 
     model_config = {"from_attributes": True}
 
@@ -27,12 +28,21 @@ class ArticleDetail(ArticleSummary):
 
 
 @router.get("", response_model=list[ArticleSummary])
-async def list_articles(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
+async def list_articles(
+    chapter_id: str | None = Query(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
         select(Article)
         .where(Article.status == ArticleStatus.published)
-        .order_by(Article.created_at.desc())
+        .order_by(
+            nullslast(Article.publish_date.desc()),
+            Article.created_at.desc(),
+        )
     )
+    if chapter_id:
+        stmt = stmt.where(Article.chapter_id == chapter_id)
+    result = await db.execute(stmt)
     return result.scalars().all()
 
 
