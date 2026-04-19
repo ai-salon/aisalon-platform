@@ -2187,60 +2187,15 @@ export default function WelcomeDashboard({
 
   return (
     <div style={{ maxWidth: 1140, margin: "0 auto", padding: "32px 28px" }}>
-      {/* ── Hero header ── */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, #56a1d2 0%, #3d7fb8 100%)",
-          borderRadius: 14,
-          padding: "26px 32px",
-          marginBottom: 28,
-          color: "#fff",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ position: "absolute", top: -30, right: 40, width: 160, height: 160, borderRadius: "50%", background: "rgba(255,255,255,0.07)", pointerEvents: "none" }} />
-        <div style={{ position: "absolute", bottom: -40, right: -20, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.05)", pointerEvents: "none" }} />
-        <div style={{ position: "relative" }}>
-          <p style={{ fontSize: 12, opacity: 0.75, marginBottom: 4, letterSpacing: 0.5, margin: "0 0 4px" }}>
-            Welcome back
-          </p>
-          <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 10px", letterSpacing: "-0.02em" }}>
-            {userName || userEmail}
-          </h1>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: "3px 11px",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.2)",
-                textTransform: "capitalize",
-                letterSpacing: 0.5,
-              }}
-            >
-              {isChapterLead ? "Chapter Lead" : isHost ? "Host" : "Super Admin"}
-            </span>
-            {userChapter && (
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  padding: "3px 11px",
-                  borderRadius: 12,
-                  background: "rgba(210, 179, 86, 0.3)",
-                  color: "#fde68a",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                }}
-              >
-                {userChapter.name}
-              </span>
-            )}
-            <span style={{ fontSize: 12, opacity: 0.65 }}>{userEmail}</span>
-          </div>
-        </div>
+      {/* ── Page header ── */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>
+          {userName || userEmail}
+        </h1>
+        <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+          {isChapterLead ? "Chapter Lead" : isHost ? "Host" : "Super Admin"}
+          {userChapter && ` · ${userChapter.name}`}
+        </p>
       </div>
 
       {/* ── Two-column layout ── */}
