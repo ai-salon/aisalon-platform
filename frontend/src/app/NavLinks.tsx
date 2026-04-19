@@ -57,14 +57,26 @@ export default function NavLinks({ chapters }: { chapters: ChapterNav[] }) {
         </ul>
       </li>
 
-      <li>
+      <li className="dropdown">
         <Link
           href="/insights"
           className={`nav-link${insightsActive ? ' nav-link-active' : ''}`}
           style={linkStyle(insightsActive)}
         >
-          Insights
+          Insights <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
         </Link>
+        <ul className="dropdown-menu" style={{ listStyle: 'none', margin: 0, padding: '10px 0' }}>
+          <li>
+            <Link href="/insights" className={pathname === '/insights' ? 'nav-dropdown-active' : ''}>
+              Articles
+            </Link>
+          </li>
+          <li>
+            <Link href="/insights/graph" className={isActive(pathname, '/insights/graph') ? 'nav-dropdown-active' : ''}>
+              Concept Graph
+            </Link>
+          </li>
+        </ul>
       </li>
 
       <li className="dropdown">
