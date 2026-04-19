@@ -292,8 +292,9 @@ The public "Insights" nav item becomes a dropdown:
 ```
 /insights           → Articles (current list, default)
 /insights/graph     → Concept Graph
-/insights/[id]      → Article detail (unchanged)
 ```
+
+Clicking an article (from the list or from the graph sidebar) navigates to Substack — there is no internal article detail route.
 
 ### Library
 
@@ -324,7 +325,7 @@ Force controls map directly to D3-force simulation parameters (`d3.forceManyBody
 ### Interaction model
 
 - **Click any node** → slide-in sidebar (never navigate away — preserves exploration state)
-  - Article node: title, chapter, publish date, excerpt, "Read article →" CTA
+  - Article node: title, chapter, publish date, excerpt, "Read on Substack →" CTA (external link)
   - Concept node: description, parent concept chip (if any), child concept chips, linked articles
   - Question node: description, articles that raised it, related concept chips
 - **Parent concept nodes** with children: click to expand/collapse children
