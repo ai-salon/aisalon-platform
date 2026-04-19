@@ -20,6 +20,7 @@ import app.models.login_event  # noqa: F401
 import app.models.volunteer  # noqa: F401
 import app.models.topic  # noqa: F401
 import app.models.community_upload  # noqa: F401
+import app.models.graph  # noqa: F401
 
 from app.models.base import Base
 from app.core.config import settings
