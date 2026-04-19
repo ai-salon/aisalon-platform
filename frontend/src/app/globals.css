@@ -317,8 +317,13 @@ a {
   position: absolute;
   right: 0;
   top: 0;
-  width: 65%;
+  width: 75%;
   height: 100%;
+}
+
+.banner-interactive canvas {
+  height: calc(75vh - 71px);
+  width: auto;
 }
 
 #banner h1 {
@@ -720,6 +725,10 @@ a {
   }
   .banner-interactive {
     position: static;
+    width: 100%;
+    height: auto;
+  }
+  .banner-interactive canvas {
     width: 100%;
     height: auto;
   }
