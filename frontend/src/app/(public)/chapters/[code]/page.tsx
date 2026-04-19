@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fetchOgData, type OgData } from "@/lib/og";
+import { InteractiveLogo } from "@/components/InteractiveLogo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -97,9 +98,11 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
     <div>
       {/* ── HERO ── */}
       <section id="banner" style={{ minHeight: "calc(60vh - 71px)" }}>
-        <div className="banner-image" />
-        <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 30px", position: "relative", zIndex: 2 }}>
-          <div style={{ maxWidth: 560, paddingTop: 72, paddingBottom: 60 }}>
+        <div className="banner-interactive">
+          <InteractiveLogo />
+        </div>
+        <div style={{ maxWidth: 1140, margin: "0 auto", padding: "0 30px", position: "relative", zIndex: 2, pointerEvents: "none" }}>
+          <div style={{ maxWidth: 560, paddingTop: 72, paddingBottom: 60, pointerEvents: "auto" }}>
             {/* Gold rule */}
             <div style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 24 }} />
             <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 2, color: "#56a1d2", marginBottom: 12 }}>
