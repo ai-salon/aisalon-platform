@@ -339,6 +339,38 @@ No force graph rendered. Replace with a tag-cloud:
 
 ---
 
+## Planned Extensions
+
+### External Content Ingestion
+
+The graph layer is fully content-agnostic. The deduplication, storage, and visualization are all reusable for content outside the AI Salon pipeline — papers, blog posts, external transcripts, reading lists.
+
+**What's needed:**
+
+1. **`ExternalSource` model** (platform backend):
+   ```
+   id, title, url, source_type ('paper' | 'blog' | 'transcript' | ...)
+   author, published_date, content_md, meta (JSONB)
+   status ('active' | 'archived')
+   ```
+   Graph nodes for external content use `external_table='external_sources'`. No graph schema changes.
+
+2. **`GenericContentExtractor`** (SocraticAI):
+   A sibling to `GraphExtractor` that takes raw text/markdown and runs a single LLM pass to produce themes, insights, and questions in the same `GraphExtractionResult` format. The platform's `GraphIngestionService` receives the output identically — it doesn't know or care whether candidates came from a Salon session or an external paper.
+
+3. **Admin submission UI**: A simple form to paste a URL or upload content, triggering extraction + ingestion.
+
+**Why deduplication stays in the platform, not SocraticAI:**
+SocraticAI is stateless by design — it answers "what concepts are in this document?" without knowledge of prior documents. Deduplication requires comparing candidates against the full accumulated graph (all existing node embeddings), which only the platform's PostgreSQL has. Moving deduplication into SocraticAI would require a DB connection and would break its use as a standalone CLI tool.
+
+The boundary is intentional:
+- **SocraticAI:** *"what concepts, questions, and insights are in this document?"*
+- **Platform:** *"have we seen these before, and how do they connect to everything else?"*
+
+This boundary means external content ingestion slots in cleanly: write a new extractor, point it at the same ingestion service, done.
+
+---
+
 ## What's Not In This Spec
 
 - Real-time graph updates via WebSocket (polling on publish is sufficient for now)
@@ -346,3 +378,4 @@ No force graph rendered. Replace with a tag-cloud:
 - Article recommendation engine (same embeddings, different query — future feature)
 - Exporting the graph as Obsidian vault markdown (the existing CLI `KnowledgeGraphGenerator` handles this separately)
 - Person / event / book node types (schema supports them; extraction pipeline does not yet)
+- External content submission UI and `GenericContentExtractor` (covered in Planned Extensions above)
