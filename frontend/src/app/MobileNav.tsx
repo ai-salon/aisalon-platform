@@ -72,7 +72,8 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
             </NavSection>
 
             <NavSection label="Explore">
-              <NavLink href="/insights" icon="fa-newspaper-o">Insights</NavLink>
+              <NavLink href="/insights" icon="fa-newspaper-o">Articles</NavLink>
+              <NavLink href="/insights/graph" icon="fa-share-alt">Concept Graph</NavLink>
             </NavSection>
 
             <NavSection label="Chapters">
