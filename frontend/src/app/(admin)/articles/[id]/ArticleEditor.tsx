@@ -583,9 +583,19 @@ export default function ArticleEditor({
               }}
             >
               <div>
-                <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
+                <p style={{ fontSize: 13, color: "#696969", margin: "0 0 4px" }}>
                   Names and identifiers have been replaced with anonymous labels (Person A, Person B…).
                 </p>
+                {substackUrl && (
+                  <a
+                    href={substackUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}
+                  >
+                    Read published article on Substack →
+                  </a>
+                )}
               </div>
               <button
                 onClick={async () => {

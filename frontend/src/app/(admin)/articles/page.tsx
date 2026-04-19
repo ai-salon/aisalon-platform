@@ -18,15 +18,20 @@ type Article = {
   status: string;
   chapter_id: string;
   created_at: string;
+  publish_date: string | null;
+  substack_url: string | null;
   anonymized_transcript?: string | null;
 };
+
+type OgData = { image: string | null; description: string | null };
 
 type Tab = "articles" | "transcripts";
 
 export default function ArticlesPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [articles, setArticles] = useState<Article[]>([]);
+  const [articles, setArticles] = useState<Article[] | null>(null);
+  const [ogMap, setOgMap] = useState<Record<string, OgData>>({});
   const [tab, setTab] = useState<Tab>("articles");
   const [deleting, setDeleting] = useState<string | null>(null);
   const [chapters, setChapters] = useState<{ id: string; name: string }[]>([]);
@@ -61,8 +66,18 @@ export default function ArticlesPage() {
       cache: "no-store",
     } as RequestInit)
       .then((r) => (r.ok ? r.json() : Promise.resolve([])))
-      .then((data) => setArticles(Array.isArray(data) ? data : []))
-      .catch(() => {});
+      .then((data: Article[]) => {
+        const list = Array.isArray(data) ? data : [];
+        setArticles(list);
+        list.forEach((a) => {
+          if (!a.substack_url) return;
+          fetch(`/api/og?url=${encodeURIComponent(a.substack_url)}`)
+            .then((r) => r.ok ? r.json() : { image: null, description: null })
+            .then((og: OgData) => setOgMap((prev) => ({ ...prev, [a.id]: og })))
+            .catch(() => {});
+        });
+      })
+      .catch(() => { setArticles([]); });
   }
 
   async function handleDelete(e: React.MouseEvent, article: Article) {
@@ -76,7 +91,7 @@ export default function ArticlesPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (r.ok) {
-        setArticles((prev) => prev.filter((a) => a.id !== article.id));
+        setArticles((prev) => (prev ?? []).filter((a) => a.id !== article.id));
       }
     } finally {
       setDeleting(null);
@@ -105,7 +120,7 @@ export default function ArticlesPage() {
         return;
       }
       const created = await r.json();
-      setArticles((prev) => [created, ...prev]);
+      setArticles((prev) => [created, ...(prev ?? [])]);
       setShowModal(false);
       setForm({ title: "", substackUrl: "", publishedDate: "", chapterId: "" });
     } finally {
@@ -113,7 +128,7 @@ export default function ArticlesPage() {
     }
   }
 
-  if (status === "loading") return null;
+  if (status === "loading" || articles === null) return null;
 
   const transcripts = articles.filter((a) => !!a.anonymized_transcript);
   const visibleArticles = tab === "transcripts" ? transcripts : articles;
@@ -235,32 +250,40 @@ export default function ArticlesPage() {
               tab === "transcripts"
                 ? `/articles/${article.id}?tab=transcript`
                 : `/articles/${article.id}`;
+            const og = ogMap[article.id];
+            const displayDate = article.publish_date
+              ? new Date(article.publish_date + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+              : new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
             return (
               <Link key={article.id} href={href} style={{ textDecoration: "none" }}>
                 <div
                   style={{
                     background: "#fff",
                     borderRadius: 8,
-                    padding: "18px 24px",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                     display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+                    overflow: "hidden",
                     transition: "box-shadow 0.15s",
                     cursor: "pointer",
                   }}
                 >
-                  <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111", margin: "0 0 4px" }}>
+                  {og?.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={og.image} alt="" style={{ width: 110, flexShrink: 0, objectFit: "cover" }} />
+                  )}
+                  <div style={{ flex: 1, padding: "16px 20px", minWidth: 0 }}>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 4px", lineHeight: 1.3 }}>
                       {article.title}
                     </h3>
-                    <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
-                      {new Date(article.created_at).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
+                    {og?.description && (
+                      <p style={{
+                        fontSize: 12, color: "#696969", margin: "0 0 6px", lineHeight: 1.5,
+                        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                      }}>
+                        {og.description}
+                      </p>
+                    )}
+                    <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>{displayDate}</p>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {tab === "transcripts" && (

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, nullslast
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
@@ -380,7 +380,7 @@ async def list_articles(
     chapter_id = _chapter_filter(current_user)
     if chapter_id:
         stmt = stmt.where(Article.chapter_id == chapter_id)
-    result = await db.execute(stmt.order_by(Article.created_at.desc()))
+    result = await db.execute(stmt.order_by(nullslast(Article.publish_date.desc()), Article.created_at.desc()))
     return result.scalars().all()
 
 

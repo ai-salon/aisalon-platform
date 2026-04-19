@@ -81,6 +81,8 @@ type ArticleSummary = {
   chapter_id: string; created_at: string; publish_date: string | null;
 };
 
+type OgData = { image: string | null; description: string | null };
+
 function formatArticleDate(a: ArticleSummary): string {
   const raw = a.publish_date ? a.publish_date + "T00:00:00" : a.created_at;
   return new Date(raw).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
@@ -90,6 +92,7 @@ export default function HomePage() {
   const [chapters, setChapters] = useState<{ id: string; name: string; code: string; tagline: string; status: string }[]>([]);
   const [team, setTeam] = useState<Member[]>([]);
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
+  const [ogMap, setOgMap] = useState<Record<string, OgData>>({});
 
   useEffect(() => {
     fetch(`${API_URL}/chapters`)
@@ -102,7 +105,17 @@ export default function HomePage() {
       .catch(() => { });
     fetch(`${API_URL}/articles`)
       .then((r) => r.ok ? r.json() : [])
-      .then((data: ArticleSummary[]) => setArticles(data.slice(0, 3)))
+      .then((data: ArticleSummary[]) => {
+        const top = data.slice(0, 3);
+        setArticles(top);
+        top.forEach((a) => {
+          if (!a.substack_url) return;
+          fetch(`/api/og?url=${encodeURIComponent(a.substack_url)}`)
+            .then((r) => r.ok ? r.json() : { image: null, description: null })
+            .then((og: OgData) => setOgMap((prev) => ({ ...prev, [a.id]: og })))
+            .catch(() => { });
+        });
+      })
       .catch(() => { });
   }, []);
 
@@ -433,9 +446,10 @@ export default function HomePage() {
                   </a>
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                   {articles.map((a) => {
                     const chapterName = chapters.find((c) => c.id === a.chapter_id)?.name;
+                    const og = ogMap[a.id];
                     return (
                       <a
                         key={a.id}
@@ -446,30 +460,44 @@ export default function HomePage() {
                         data-umami-event="homepage-article-click"
                         data-umami-event-title={a.title}
                       >
-                        <div
+                        <article
                           style={{
                             background: "#fff",
                             borderRadius: 8,
                             border: "1px solid rgba(0,0,0,0.07)",
                             borderLeft: "4px solid #56a1d2",
-                            padding: "16px 20px",
-                            transition: "box-shadow 0.15s",
+                            overflow: "hidden",
+                            display: "flex",
                           }}
                         >
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                            {chapterName && (
-                              <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#d2b356" }}>
-                                {chapterName}
-                              </span>
+                          <div style={{ flex: 1, padding: "16px 20px" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                              {chapterName && (
+                                <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#d2b356" }}>
+                                  {chapterName}
+                                </span>
+                              )}
+                              <span style={{ fontSize: 11, color: "#9ca3af" }}>·</span>
+                              <span style={{ fontSize: 11, color: "#9ca3af" }}>{formatArticleDate(a)}</span>
+                            </div>
+                            <p style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 6px", lineHeight: 1.35 }}>
+                              {a.title}
+                            </p>
+                            {og?.description && (
+                              <p style={{
+                                fontSize: 12, color: "#696969", lineHeight: 1.5, margin: "0 0 6px",
+                                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                              }}>
+                                {og.description}
+                              </p>
                             )}
-                            <span style={{ fontSize: 11, color: "#9ca3af" }}>·</span>
-                            <span style={{ fontSize: 11, color: "#9ca3af" }}>{formatArticleDate(a)}</span>
+                            <span style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600 }}>Read on Substack →</span>
                           </div>
-                          <p style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 6px", lineHeight: 1.35 }}>
-                            {a.title}
-                          </p>
-                          <span style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600 }}>Read on Substack →</span>
-                        </div>
+                          {og?.image && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={og.image} alt="" style={{ width: 100, flexShrink: 0, objectFit: "cover" }} />
+                          )}
+                        </article>
                       </a>
                     );
                   })}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { fetchOgData, type OgData } from "@/lib/og";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -72,6 +73,14 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
   if (!chapter) notFound();
 
   const articles = await getChapterArticles(chapter.id);
+  const ogResults = await Promise.allSettled(
+    articles.map((a) => a.substack_url ? fetchOgData(a.substack_url) : Promise.resolve({ image: null, description: null }))
+  );
+  const ogMap: Record<string, OgData> = {};
+  articles.forEach((a, i) => {
+    const r = ogResults[i];
+    ogMap[a.id] = r.status === "fulfilled" ? r.value : { image: null, description: null };
+  });
 
   const rolePriority = (r: string) => {
     if (r === "Founder, Executive Director") return 0;
@@ -284,42 +293,54 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
           <div style={{ maxWidth: 1000, margin: "0 auto" }}>
             <span className="section-label">From the Archive</span>
             <h2 className="section-title">{chapter.name} Insights</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 32 }}>
-              {articles.map((a) => (
-                <a
-                  key={a.id}
-                  href={a.substack_url ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ textDecoration: "none" }}
-                  data-umami-event="chapter-article-click"
-                  data-umami-event-title={a.title}
-                >
-                  <div
-                    style={{
-                      background: "#fff",
-                      borderRadius: 8,
-                      border: "1px solid rgba(0,0,0,0.07)",
-                      borderLeft: "4px solid #56a1d2",
-                      padding: "16px 24px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 16,
-                    }}
+            <div style={{ display: "flex", flexDirection: "column", gap: 20, marginTop: 32 }}>
+              {articles.map((a) => {
+                const og = ogMap[a.id];
+                return (
+                  <a
+                    key={a.id}
+                    href={a.substack_url ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ textDecoration: "none" }}
+                    data-umami-event="chapter-article-click"
+                    data-umami-event-title={a.title}
                   >
-                    <div>
-                      <p style={{ fontSize: 16, fontWeight: 700, color: "#111", margin: "0 0 4px", lineHeight: 1.35 }}>
-                        {a.title}
-                      </p>
-                      <span style={{ fontSize: 12, color: "#9ca3af" }}>{formatDate(a)}</span>
-                    </div>
-                    <span style={{ fontSize: 13, color: "#56a1d2", fontWeight: 600, whiteSpace: "nowrap" }}>
-                      Read →
-                    </span>
-                  </div>
-                </a>
-              ))}
+                    <article
+                      style={{
+                        background: "#fff",
+                        borderRadius: 8,
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                        borderLeft: "4px solid #56a1d2",
+                        overflow: "hidden",
+                        display: "flex",
+                      }}
+                    >
+                      <div style={{ flex: 1, padding: "20px 24px" }}>
+                        <span style={{ fontSize: 12, color: "#9ca3af", display: "block", marginBottom: 8 }}>
+                          {formatDate(a)}
+                        </span>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: "0 0 8px", lineHeight: 1.35 }}>
+                          {a.title}
+                        </h3>
+                        {og.description && (
+                          <p style={{
+                            fontSize: 13, color: "#696969", lineHeight: 1.55, margin: "0 0 10px",
+                            display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                          }}>
+                            {og.description}
+                          </p>
+                        )}
+                        <span style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600 }}>Read on Substack →</span>
+                      </div>
+                      {og.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={og.image} alt="" style={{ width: 130, flexShrink: 0, objectFit: "cover" }} />
+                      )}
+                    </article>
+                  </a>
+                );
+              })}
             </div>
             <div style={{ marginTop: 24, textAlign: "center" }}>
               <Link href="/insights" style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}>
