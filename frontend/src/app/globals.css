@@ -313,18 +313,12 @@ a {
   background: #f8f6ec;
 }
 
-.banner-image {
+.banner-interactive {
   position: absolute;
   right: 0;
   top: 0;
   width: 55%;
   height: 100%;
-  background-image: url('/images/banner-image-1-1200w.png');
-  background-repeat: no-repeat;
-  background-position: right center;
-  background-size: contain;
-  -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 15%, rgba(0,0,0,1) 75%);
-  mask-image: linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 15%, rgba(0,0,0,1) 75%);
 }
 
 #banner h1 {
@@ -718,7 +712,7 @@ a {
 
 /* ── Responsive ── */
 @media (max-width: 991px) {
-  .banner-image { display: none; }
+  .banner-interactive { display: none; }
   #banner { text-align: center; }
   #banner > div > div { max-width: 100%; }
   #banner h1 { font-size: 36px; }
