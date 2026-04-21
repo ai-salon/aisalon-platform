@@ -2,22 +2,19 @@
 """Backfill anonymized transcripts into articles from AiSalonContent/processed/.
 
 Run from backend/ directory:
-    poetry run python scripts/backfill_transcripts.py
+    poetry run python scripts/backfill/backfill_transcripts.py
 
-For production, set DATABASE_URL env var first:
-    DATABASE_URL=postgresql://... poetry run python scripts/backfill_transcripts.py
+For Railway:
+    railway run poetry run python scripts/backfill/backfill_transcripts.py
 """
 
 import os
-import sys
 from pathlib import Path
 
-# Support both local SQLite and remote PostgreSQL
 DATABASE_URL = os.environ.get(
     "DATABASE_URL",
-    f"sqlite:///{Path(__file__).parent.parent / 'dev.db'}",
+    f"sqlite:///{Path(__file__).parent.parent.parent / 'dev.db'}",
 )
-# Convert async driver URLs to sync for this script
 DATABASE_URL = (
     DATABASE_URL.replace("+aiosqlite", "")
     .replace("postgresql+asyncpg", "postgresql")
@@ -25,10 +22,10 @@ DATABASE_URL = (
 )
 
 TRANSCRIPTS_DIR = (
-    Path(__file__).parent.parent.parent.parent / "AiSalonContent" / "processed"
+    Path(__file__).parent.parent.parent.parent.parent / "AiSalonContent" / "processed"
 )
 
-# Maps substack_url → list of transcript filenames (relative to TRANSCRIPTS_DIR).
+# substack_url → list of transcript filenames (relative to TRANSCRIPTS_DIR)
 # Multiple files are concatenated with a separator.
 ARTICLE_TRANSCRIPTS: dict[str, list[str]] = {
     "https://aisalon.substack.com/p/confronting-consciousness-creativity": [
@@ -79,7 +76,6 @@ ARTICLE_TRANSCRIPTS: dict[str, list[str]] = {
     "https://aisalon.substack.com/p/025-beauty": [
         "2024-12-16 - beauty - Cecilia Callas_transcript_anon.txt",
     ],
-    # 024 has 6 separate recording files — concatenate them all
     "https://aisalon.substack.com/p/024-common-questions-uncommon-times": [
         "2024-10-08 - Ai salon Human Flourishing, Amina Vinson_transcript_anon.txt",
         "2024-10-08 - Ai salon Human Flourishing, Austin Fischer_transcript_anon.txt",
@@ -100,7 +96,6 @@ ARTICLE_TRANSCRIPTS: dict[str, list[str]] = {
     "https://aisalon.substack.com/p/018-elections-and-democracy": [
         "2024-07-25 - election & democracy_transcript_anon.txt",
     ],
-    # 017 has two recording files
     "https://aisalon.substack.com/p/017-trustworthy-ai-futures-situational": [
         "2024-06-23 - trustworthy ai futures #2-1_transcript_anon.txt",
         "2024-06-23 - trustworthy ai futures #2-2_transcript_anon.txt",
@@ -160,9 +155,7 @@ def main() -> None:
 
             combined = "\n\n---\n\n".join(parts)
             result = conn.execute(
-                text(
-                    "UPDATE articles SET anonymized_transcript = :t WHERE substack_url = :u"
-                ),
+                text("UPDATE articles SET anonymized_transcript = :t WHERE substack_url = :u"),
                 {"t": combined, "u": url},
             )
             if result.rowcount == 0:
