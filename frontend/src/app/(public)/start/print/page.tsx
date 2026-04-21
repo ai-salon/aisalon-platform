@@ -3,7 +3,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 import PrintButton from "./PrintButton";
 import AutoPrint from "./AutoPrint";
-import TopicMarkdown from "./TopicMarkdown";
+
+function extractBullets(content: string, limit = 3): string[] {
+  return content
+    .split("\n")
+    .filter((line) => /^[-*]\s/.test(line.trim()))
+    .map((line) => line.replace(/^[-*]\s+/, "").replace(/\*\*/g, "").trim())
+    .slice(0, limit);
+}
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -150,27 +157,27 @@ export default async function PrintPage() {
         {/* Topics — shown only if any exist */}
         {topics.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <h2
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: 1,
-                color: "#111",
-                marginBottom: 10,
-              }}
-            >
+            <h2 style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, color: "#111", marginBottom: 10 }}>
               Topic Inspiration
             </h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {topics.slice(0, 3).map((topic) => (
-                <div key={topic.id} style={{ borderLeft: "3px solid #56a1d2", paddingLeft: 12 }}>
-                  <h3 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 6px", color: "#111" }}>
-                    {topic.title}
-                  </h3>
-                  <TopicMarkdown content={topic.content} />
-                </div>
-              ))}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              {topics.slice(0, 3).map((topic) => {
+                const bullets = extractBullets(topic.content, 3);
+                return (
+                  <div key={topic.id} style={{ borderLeft: "3px solid #56a1d2", paddingLeft: 10 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: "#111", marginBottom: 5 }}>
+                      {topic.title}
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: 12 }}>
+                      {bullets.map((b, i) => (
+                        <li key={i} style={{ fontSize: 11, color: "#444", lineHeight: 1.5, marginBottom: 3, listStyleType: "disc" }}>
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
