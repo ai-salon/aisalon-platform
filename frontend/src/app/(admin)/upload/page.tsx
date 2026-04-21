@@ -292,7 +292,7 @@ export default function UploadPage() {
                   alignSelf: "flex-start",
                 }}
               >
-                {uploading ? "Uploading…" : "Create Job"}
+                {uploading ? "Uploading…" : "Begin Upload"}
               </button>
             </div>
           </form>
