@@ -310,14 +310,6 @@ export function InteractiveLogo() {
         height={H * DPR}
         style={{ display: "block", cursor: "crosshair" }}
       />
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          background: "linear-gradient(to right, #f8f6ec 0%, transparent 40%)",
-        }}
-      />
     </div>
   );
 }

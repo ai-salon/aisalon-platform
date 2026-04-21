@@ -489,7 +489,7 @@ function HostingGuide() {
             >
               Ai Salon: [Theme]
             </code>
-            &nbsp;·&nbsp; Duration: 2–3 hours
+            &nbsp;·&nbsp; Duration: [see run of show in event description]
           </p>
         </div>
 
@@ -872,12 +872,15 @@ We'll explore questions like:
 • [FILL IN: An open-ended question that invites diverse perspectives]
 
 ---
-⏱️ 2–3 hours
+⏱️ Run of show:
+[FILL IN: e.g. 7:00 PM – Doors open / 7:20 PM – Conversation begins / 9:30 PM – Wrap-up]
+
+*This is an intimate conversation, and it matters deeply that everyone is present from the start. Out of respect for all attendees, we close the doors 20 minutes after we begin. If you're running late, please reach out in advance.*
 
 ---
 [The Ai Salon](https://aisalon.xyz/) is a global community founded in San Francisco focused on intimate, small-sized group discussions on the sociological, economic, cultural, and philosophical impacts and meaning of AI developments. We host small group discussions, all of which you can find on [our calendar](https://lu.ma/ai-salon). You can find summaries of our [previous conversations on our substack](https://aisalon.substack.com/).
 
-*Please be advised: Unfortunately, space is very limited at these in-person community events and we can not always accept everyone we would like to. If you are not accepted to this event, please try and come to another.!*`;
+*Please be advised: Unfortunately, space is very limited at these in-person community events and we can not always accept everyone we would like to. If you are not accepted to this event, please try and come to another.*`;
 
   const regQuestions = [
     `What topics would you most want to explore in the context of "${theme || "[THEME]"}"?`,
