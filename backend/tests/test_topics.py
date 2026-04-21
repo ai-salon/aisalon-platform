@@ -10,9 +10,7 @@ async def _create_topic(
 ):
     topic = Topic(
         title=title,
-        description="A test topic description",
-        opening_question="What do you think about this?",
-        prompts=["Follow-up 1?", "Follow-up 2?"],
+        content="## Description\n\nA test topic.",
         is_active=is_active,
         display_order=display_order,
     )
@@ -46,6 +44,17 @@ async def test_list_topics_ordered_by_display_order(client: AsyncClient, db_sess
     assert titles == ["First", "Second"]
 
 
+async def test_list_topics_response_has_content_field(client: AsyncClient, db_session):
+    await _create_topic(db_session, title="Has Content")
+    r = await client.get("/topics")
+    assert r.status_code == 200
+    topic = r.json()[0]
+    assert "content" in topic
+    assert "description" not in topic
+    assert "opening_question" not in topic
+    assert "prompts" not in topic
+
+
 async def test_admin_list_topics_requires_auth(client: AsyncClient):
     r = await client.get("/admin/topics")
     assert r.status_code == 401
@@ -64,25 +73,19 @@ async def test_admin_list_topics_includes_inactive(
 async def test_admin_create_topic(client: AsyncClient, admin_headers):
     payload = {
         "title": "AI Ethics",
-        "description": "Exploring ethical AI",
-        "opening_question": "What ethical frameworks should guide AI?",
-        "prompts": ["How do we balance innovation and safety?"],
+        "content": "## Description\n\nExploring ethical AI.",
     }
     r = await client.post("/admin/topics", json=payload, headers=admin_headers)
     assert r.status_code == 201
     assert r.json()["title"] == "AI Ethics"
+    assert r.json()["content"] == "## Description\n\nExploring ethical AI."
     assert r.json()["is_active"] is True
 
 
 async def test_admin_create_topic_requires_superadmin(
     client: AsyncClient, lead_headers
 ):
-    payload = {
-        "title": "Test",
-        "description": "Test",
-        "opening_question": "Test?",
-        "prompts": [],
-    }
+    payload = {"title": "Test", "content": "Test content."}
     r = await client.post("/admin/topics", json=payload, headers=lead_headers)
     assert r.status_code == 403
 
@@ -91,27 +94,18 @@ async def test_admin_update_topic(client: AsyncClient, db_session, admin_headers
     topic = await _create_topic(db_session)
     r = await client.put(
         f"/admin/topics/{topic.id}",
-        json={
-            "title": "Updated",
-            "description": "Updated desc",
-            "opening_question": "New question?",
-            "prompts": [],
-        },
+        json={"title": "Updated", "content": "Updated markdown."},
         headers=admin_headers,
     )
     assert r.status_code == 200
     assert r.json()["title"] == "Updated"
+    assert r.json()["content"] == "Updated markdown."
 
 
 async def test_admin_update_topic_not_found(client: AsyncClient, admin_headers):
     r = await client.put(
         "/admin/topics/fake-id",
-        json={
-            "title": "X",
-            "description": "X",
-            "opening_question": "X?",
-            "prompts": [],
-        },
+        json={"title": "X", "content": "X"},
         headers=admin_headers,
     )
     assert r.status_code == 404

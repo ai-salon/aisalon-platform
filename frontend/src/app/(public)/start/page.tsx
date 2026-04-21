@@ -1,4 +1,6 @@
 "use client";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -7,9 +9,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 interface Topic {
   id: string;
   title: string;
-  description: string;
-  opening_question: string;
-  prompts: string[];
+  content: string;
 }
 
 const VALUES = [
@@ -150,7 +150,15 @@ export default function StartPage() {
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {topics.map((topic) => (
-                <div key={topic.id} style={{ background: "white", borderRadius: 10, padding: "20px 24px", boxShadow: "0 2px 6px rgba(0,0,0,0.06)" }}>
+                <div
+                  key={topic.id}
+                  style={{
+                    background: "white",
+                    borderRadius: 10,
+                    padding: "20px 24px",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+                  }}
+                >
                   <div
                     onClick={() => setExpandedTopic(expandedTopic === topic.id ? null : topic.id)}
                     style={{ cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
@@ -161,27 +169,9 @@ export default function StartPage() {
                       style={{ color: "#999", fontSize: 14, marginLeft: 12 }}
                     />
                   </div>
-                  <p style={{ color: "#555", margin: "6px 0 0", fontSize: 14, lineHeight: 1.6 }}>{topic.description}</p>
                   {expandedTopic === topic.id && (
-                    <div style={{ marginTop: 16 }}>
-                      <div style={{ background: "#f0f7fd", borderRadius: 6, padding: "12px 16px", marginBottom: 12 }}>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: "#56a1d2", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-                          Opening Question
-                        </div>
-                        <p style={{ fontSize: 15, fontWeight: 500, margin: 0 }}>{topic.opening_question}</p>
-                      </div>
-                      {topic.prompts.length > 0 && (
-                        <>
-                          <div style={{ fontSize: 11, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
-                            Follow-up Prompts
-                          </div>
-                          <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
-                            {topic.prompts.map((p, i) => (
-                              <li key={i} style={{ fontSize: 14, color: "#555", lineHeight: 1.5 }}>{p}</li>
-                            ))}
-                          </ul>
-                        </>
-                      )}
+                    <div style={{ marginTop: 16, fontSize: 14, color: "#444", lineHeight: 1.7 }}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{topic.content}</ReactMarkdown>
                     </div>
                   )}
                 </div>
