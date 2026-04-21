@@ -26,7 +26,7 @@ structlog = "^25.5.0"
 slowapi = "^0.1.9"
 google-genai = "^1.0.0"
 beautifulsoup4 = "^4.14.3"
-socraticai = {path = "../../SocraticAI", develop = true}
+socraticai = {git = "https://github.com/ai-salon/SocraticAI.git", rev = "main"}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.9.0"

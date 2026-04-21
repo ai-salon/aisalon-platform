@@ -5191,7 +5191,7 @@ optional = false
 python-versions = "^3.11"
 groups = ["main"]
 files = []
-develop = true
+develop = false
 
 [package.dependencies]
 anthropic = "0.49.0"
@@ -5219,8 +5219,10 @@ tenacity = "^9.0.0"
 tiktoken = "^0.8.0"
 
 [package.source]
-type = "directory"
-url = "../../SocraticAI"
+type = "git"
+url = "https://github.com/ai-salon/SocraticAI.git"
+reference = "main"
+resolved_reference = "75f2459800c7ec0797f46fecfd572e69ef6540be"
 
 [[package]]
 name = "soupsieve"
@@ -6648,4 +6650,4 @@ dev = ["pytest", "setuptools"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "72dc24a7e629456a22714fc01cf0afd948077233ae637d0071cead4bda812430"
+content-hash = "238e0b58ca7c1ae4cee8eaf9e475121bd19b5bbe85aabccc555a879f09018621"
