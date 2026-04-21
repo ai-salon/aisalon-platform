@@ -166,6 +166,34 @@ export default function StartPage() {
         </div>
       </section>
 
+      {/* CTAs */}
+      <section style={{ padding: "40px 24px" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 240, background: "#f8f6ec", borderRadius: 10, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <p style={{ fontSize: 16, fontWeight: 600, color: "#333", margin: 0 }}>
+              Connect <em>your</em> conversation to the global conversation.
+            </p>
+            <Link
+              href="/community_upload"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#56a1d2", color: "white", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none", alignSelf: "flex-start" }}
+            >
+              Record &amp; submit your conversation →
+            </Link>
+          </div>
+          <div style={{ flex: 1, minWidth: 240, background: "#f8f6ec", borderRadius: 10, padding: "24px 28px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <p style={{ fontSize: 16, fontWeight: 600, color: "#333", margin: 0 }}>
+              Want to connect with other hosts or become an official chapter?
+            </p>
+            <Link
+              href="/host"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#56a1d2", color: "white", padding: "10px 20px", borderRadius: 8, fontSize: 14, fontWeight: 700, textDecoration: "none", alignSelf: "flex-start" }}
+            >
+              Learn more about hosting →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Topic Inspiration */}
       {topics.length > 0 && (
         <section style={{ background: "#f8f6ec", padding: "40px 24px" }}>
@@ -206,29 +234,6 @@ export default function StartPage() {
           </div>
         </section>
       )}
-
-      {/* Recording CTA */}
-      <section style={{ padding: "0 24px 32px", textAlign: "center" }}>
-        <p style={{ fontSize: 16, fontWeight: 500, color: "#333", marginBottom: 8 }}>
-          Connect <em>your</em> conversation to the global conversation.
-        </p>
-        <Link href="/community_upload" style={{ color: "#56a1d2", fontWeight: 600, fontSize: 15 }}>
-          🎙️ Record your conversation and submit it to our community archive →
-        </Link>
-      </section>
-
-      {/* Footer CTA */}
-      <section style={{ padding: "48px 24px", textAlign: "center", background: "#f8f6ec" }}>
-        <p style={{ color: "#444", fontSize: 17, fontWeight: 500, marginBottom: 20 }}>
-          Want to connect with other hosts or become an official chapter?
-        </p>
-        <Link
-          href="/host"
-          style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "#56a1d2", color: "white", padding: "13px 32px", borderRadius: 8, fontSize: 15, fontWeight: 700, textDecoration: "none" }}
-        >
-          Learn more about hosting →
-        </Link>
-      </section>
     </div>
   );
 }
