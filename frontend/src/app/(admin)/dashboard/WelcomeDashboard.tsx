@@ -872,12 +872,12 @@ We'll explore questions like:
 • [FILL IN: An open-ended question that invites diverse perspectives]
 
 ---
-🔒 Approval required · Location shared with approved guests
-📍 Address revealed 24–48 hours before the event
 ⏱️ 2–3 hours
 
 ---
-[The Ai Salon](https://aisalon.xyz/) is a global community founded in San Francisco focused on intimate, small-sized group discussions on the sociological, economic, cultural, and philosophical impacts and meaning of AI developments. We host small group discussions, all of which you can find on [our calendar](https://lu.ma/ai-salon). You can find summaries of our [previous conversations on our substack](https://aisalon.substack.com/).`;
+[The Ai Salon](https://aisalon.xyz/) is a global community founded in San Francisco focused on intimate, small-sized group discussions on the sociological, economic, cultural, and philosophical impacts and meaning of AI developments. We host small group discussions, all of which you can find on [our calendar](https://lu.ma/ai-salon). You can find summaries of our [previous conversations on our substack](https://aisalon.substack.com/).
+
+*Please be advised: Unfortunately, space is very limited at these in-person community events and we can not always accept everyone we would like to. If you are not accepted to this event, please try and come to another.!*`;
 
   const regQuestions = [
     `What topics would you most want to explore in the context of "${theme || "[THEME]"}"?`,
