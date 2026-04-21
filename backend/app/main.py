@@ -26,6 +26,9 @@ from app.api.graph import public_router as graph_public_router, admin_router as 
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles, seed_topics
+from app.core.database import AsyncSessionLocal
+from app.models.job import Job, JobStatus
+from sqlalchemy import update
 
 # Ensure models are imported so SQLAlchemy can discover them
 import app.models.chapter  # noqa: F401
@@ -57,8 +60,31 @@ if settings.SENTRY_DSN:
     )
 
 
+async def _fail_orphaned_jobs() -> None:
+    """Mark any processing jobs as failed on startup.
+
+    BackgroundTasks are in-memory; a server restart silently kills them.
+    Any job still in 'processing' at startup is orphaned with no worker.
+    """
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            update(Job)
+            .where(Job.status == JobStatus.processing)
+            .values(
+                status=JobStatus.failed,
+                error_message="Job interrupted: server restarted while processing. Please resubmit.",
+            )
+            .returning(Job.id)
+        )
+        orphaned = result.scalars().all()
+        if orphaned:
+            logger.warning("orphaned_jobs_failed", count=len(orphaned), job_ids=orphaned)
+        await db.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await _fail_orphaned_jobs()
     await seed_superadmin()
     await seed_chapters()
     await seed_chapter_leads()

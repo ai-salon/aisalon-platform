@@ -362,6 +362,26 @@ async def get_job(
     return job
 
 
+@router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def cancel_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Discard a pending or stuck processing job. Completed jobs cannot be deleted."""
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if current_user.role != UserRole.superadmin and job.chapter_id != current_user.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if job.status == JobStatus.completed:
+        raise HTTPException(status_code=400, detail="Completed jobs cannot be deleted")
+    await db.delete(job)
+    await db.commit()
+    logger.info("job_cancelled", job_id=job_id, user_id=str(current_user.id))
+
+
 # ── Articles ──────────────────────────────────────────────────────────────────
 
 @router.post("/articles", response_model=ArticleResponse, status_code=status.HTTP_201_CREATED)
