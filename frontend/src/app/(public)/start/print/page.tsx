@@ -3,15 +3,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 import PrintButton from "./PrintButton";
 import AutoPrint from "./AutoPrint";
+import TopicMarkdown from "./TopicMarkdown";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface Topic {
   id: string;
   title: string;
-  description: string;
-  opening_question: string;
-  prompts: string[];
+  content: string;
 }
 
 async function getTopics(): Promise<Topic[]> {
@@ -151,19 +150,25 @@ export default async function PrintPage() {
         {/* Topics — shown only if any exist */}
         {topics.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 1, color: "#111", marginBottom: 10 }}>
+            <h2
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                color: "#111",
+                marginBottom: 10,
+              }}
+            >
               Topic Inspiration
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {topics.map((topic) => (
+              {topics.slice(0, 3).map((topic) => (
                 <div key={topic.id} style={{ borderLeft: "3px solid #56a1d2", paddingLeft: 12 }}>
-                  <h3 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 3px", color: "#111" }}>{topic.title}</h3>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#56a1d2", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
-                    Opening Question
-                  </div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "#333", margin: 0, lineHeight: 1.4 }}>
-                    {topic.opening_question}
-                  </p>
+                  <h3 style={{ fontSize: 13, fontWeight: 700, margin: "0 0 6px", color: "#111" }}>
+                    {topic.title}
+                  </h3>
+                  <TopicMarkdown content={topic.content} />
                 </div>
               ))}
             </div>
