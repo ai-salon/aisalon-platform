@@ -241,64 +241,9 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
         </div>
       </section>
 
-      {/* ── TEAM ── */}
-      {sortedMembers.length > 0 && (
-        <section style={{ background: "#fff", padding: "80px 30px" }}>
-          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-            <h2 style={{ fontSize: 36, fontWeight: 800, color: "#111", textAlign: "center", margin: "0 0 56px" }}>
-              Leadership
-            </h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 48 }}>
-              {sortedMembers.map((m) => (
-                <div key={m.id} style={{ textAlign: "center" }}>
-                  {/* Photo */}
-                  <div
-                    style={{
-                      width: 195,
-                      height: 195,
-                      borderRadius: "50%",
-                      background: "#f0ebe0",
-                      margin: "0 auto 20px",
-                      overflow: "hidden",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {m.profile_image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <i className="fa fa-user" style={{ fontSize: 64, color: "#d2b356" }} aria-hidden="true" />
-                    )}
-                  </div>
-                  {/* Name + LinkedIn */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
-                    <h4 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: 0 }}>{m.name}</h4>
-                    {m.linkedin && (
-                      <a href={m.linkedin} target="_blank" rel="noreferrer" aria-label={`${m.name} on LinkedIn`} style={{ color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>
-                        <i className="fa fa-linkedin-square" aria-hidden="true" />
-                      </a>
-                    )}
-                  </div>
-                  {/* Role */}
-                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#d2b356", margin: "0 0 10px" }}>
-                    {m.role}
-                  </p>
-                  {/* Description */}
-                  {m.description && (
-                    <p style={{ fontSize: 13, color: "#555", lineHeight: 1.65, margin: 0 }}>{m.description}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* ── INSIGHTS ── */}
       {articles.length > 0 && (
-        <section style={{ background: "#f8f6ec", padding: "72px 30px" }}>
+        <section style={{ background: "#fff", padding: "72px 30px" }}>
           <div style={{ maxWidth: 1000, margin: "0 auto" }}>
             <span className="section-label">From the Archive</span>
             <h2 className="section-title">{chapter.name} Insights</h2>
@@ -355,6 +300,61 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
               <Link href="/insights" style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}>
                 View all community insights →
               </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── TEAM ── */}
+      {sortedMembers.length > 0 && (
+        <section style={{ background: "#f8f6ec", padding: "80px 30px" }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+            <h2 style={{ fontSize: 36, fontWeight: 800, color: "#111", textAlign: "center", margin: "0 0 56px" }}>
+              Leadership
+            </h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 48 }}>
+              {sortedMembers.map((m) => (
+                <div key={m.id} style={{ textAlign: "center" }}>
+                  {/* Photo */}
+                  <div
+                    style={{
+                      width: 195,
+                      height: 195,
+                      borderRadius: "50%",
+                      background: "#f0ebe0",
+                      margin: "0 auto 20px",
+                      overflow: "hidden",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {m.profile_image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ) : (
+                      <i className="fa fa-user" style={{ fontSize: 64, color: "#d2b356" }} aria-hidden="true" />
+                    )}
+                  </div>
+                  {/* Name + LinkedIn */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
+                    <h4 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: 0 }}>{m.name}</h4>
+                    {m.linkedin && (
+                      <a href={m.linkedin} target="_blank" rel="noreferrer" aria-label={`${m.name} on LinkedIn`} style={{ color: "#9ca3af", fontSize: 16, lineHeight: 1 }}>
+                        <i className="fa fa-linkedin-square" aria-hidden="true" />
+                      </a>
+                    )}
+                  </div>
+                  {/* Role */}
+                  <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#d2b356", margin: "0 0 10px" }}>
+                    {m.role}
+                  </p>
+                  {/* Description */}
+                  {m.description && (
+                    <p style={{ fontSize: 13, color: "#555", lineHeight: 1.65, margin: 0 }}>{m.description}</p>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </section>
