@@ -501,7 +501,6 @@ Examines how AI and automation reshape roles, skill demands, and organizational 
 - [HumanX Ai Salon: The Future of Work](https://aisalon.substack.com/p/humanx-ai-salon-the-future-of-work)
 - [Personal and Career Impact](https://aisalon.substack.com/p/personal-and-career-impact)\
 """,
-        display_order=0,
     ),
     dict(
         title="AI Ethics and Governance",
@@ -523,7 +522,6 @@ Explores the frameworks, principles, and policies shaping how AI is developed an
 - What values should be baked into AI systems, and who gets to choose?
 - Is it possible to have ethical AI in an unequal world?\
 """,
-        display_order=1,
     ),
     dict(
         title="AI in Creative Arts",
@@ -545,7 +543,6 @@ AI is generating art, music, and writing—raising questions about authorship, o
 - How do you decide whether to use AI tools in your own creative work?
 - What should we preserve about human-made art, and why?\
 """,
-        display_order=2,
     ),
     dict(
         title="AI and Personal Privacy",
@@ -567,7 +564,6 @@ AI systems collect and analyze vast amounts of personal data. Explore the tensio
 - What would it take to feel truly in control of your digital self?
 - Is privacy even possible in an AI-saturated world?\
 """,
-        display_order=3,
     ),
     dict(
         title="AI and Education",
@@ -589,7 +585,6 @@ From personalized tutoring to automated grading, AI is reshaping how we learn an
 - Will AI tutors make learning more equitable or widen existing gaps?
 - How should we redefine what it means to be "educated"?\
 """,
-        display_order=4,
     ),
     dict(
         title="AI and Health",
@@ -611,7 +606,6 @@ AI is diagnosing diseases, accelerating drug discovery, and personalizing treatm
 - What should remain irreducibly human in healthcare?
 - Who should be liable when an AI medical tool gets it wrong?\
 """,
-        display_order=5,
     ),
 ]
 

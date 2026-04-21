@@ -23,7 +23,8 @@ def upgrade() -> None:
     op.drop_column('topics', 'prompts')
     op.drop_column('topics', 'opening_question')
     op.drop_column('topics', 'description')
-    op.alter_column('topics', 'content', nullable=False, server_default=None)
+    with op.batch_alter_table('topics') as batch_op:
+        batch_op.alter_column('content', nullable=False, server_default=None)
 
 
 def downgrade() -> None:

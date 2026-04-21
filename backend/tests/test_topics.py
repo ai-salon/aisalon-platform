@@ -6,13 +6,12 @@ from app.models.topic import Topic
 
 
 async def _create_topic(
-    db_session, title="Test Topic", display_order=0, is_active=True
+    db_session, title="Test Topic", is_active=True
 ):
     topic = Topic(
         title=title,
         content="## Description\n\nA test topic.",
         is_active=is_active,
-        display_order=display_order,
     )
     db_session.add(topic)
     await db_session.commit()
@@ -36,12 +35,12 @@ async def test_list_topics_returns_active_only(client: AsyncClient, db_session):
     assert "Inactive" not in titles
 
 
-async def test_list_topics_ordered_by_display_order(client: AsyncClient, db_session):
-    await _create_topic(db_session, title="Second", display_order=2)
-    await _create_topic(db_session, title="First", display_order=1)
+async def test_list_topics_ordered_alphabetically(client: AsyncClient, db_session):
+    await _create_topic(db_session, title="Zebra Topic")
+    await _create_topic(db_session, title="Apple Topic")
     r = await client.get("/topics")
     titles = [t["title"] for t in r.json()]
-    assert titles == ["First", "Second"]
+    assert titles == ["Apple Topic", "Zebra Topic"]
 
 
 async def test_list_topics_response_has_content_field(client: AsyncClient, db_session):

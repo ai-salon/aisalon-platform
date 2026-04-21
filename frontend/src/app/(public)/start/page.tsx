@@ -4,6 +4,32 @@ import remarkGfm from "remark-gfm";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+const mdComponents: any = {
+  h2: ({ children }: { children?: React.ReactNode }) => (
+    <h2 style={{ fontSize: 15, fontWeight: 700, margin: "16px 0 8px" }}>{children}</h2>
+  ),
+  h3: ({ children }: { children?: React.ReactNode }) => (
+    <h3 style={{ fontSize: 14, fontWeight: 700, margin: "12px 0 6px" }}>{children}</h3>
+  ),
+  ul: ({ children }: { children?: React.ReactNode }) => (
+    <ul style={{ paddingLeft: 20, marginBottom: 12 }}>{children}</ul>
+  ),
+  li: ({ children }: { children?: React.ReactNode }) => (
+    <li style={{ marginBottom: 4, listStyleType: "disc" }}>{children}</li>
+  ),
+  p: ({ children }: { children?: React.ReactNode }) => (
+    <p style={{ marginBottom: 10 }}>{children}</p>
+  ),
+  strong: ({ children }: { children?: React.ReactNode }) => (
+    <strong style={{ fontWeight: 700 }}>{children}</strong>
+  ),
+  a: ({ href, children }: { href?: string; children?: React.ReactNode }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2", textDecoration: "underline" }}>
+      {children}
+    </a>
+  ),
+};
+
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 interface Topic {
@@ -171,7 +197,7 @@ export default function StartPage() {
                   </div>
                   {expandedTopic === topic.id && (
                     <div style={{ marginTop: 16, fontSize: 14, color: "#444", lineHeight: 1.7 }}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{topic.content}</ReactMarkdown>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{topic.content}</ReactMarkdown>
                     </div>
                   )}
                 </div>

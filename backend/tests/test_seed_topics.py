@@ -36,7 +36,7 @@ def test_seed_data_has_correct_count():
 
 
 def test_all_topics_have_required_fields():
-    required = {"title", "content", "display_order"}
+    required = {"title", "content"}
     for topic in _TOPICS:
         missing = required - set(topic.keys())
         assert not missing, f"Topic {topic.get('title', '?')} missing fields: {missing}"
@@ -45,8 +45,3 @@ def test_all_topics_have_required_fields():
 def test_all_topics_have_non_empty_content():
     for topic in _TOPICS:
         assert topic["content"].strip(), f"Topic '{topic['title']}' has empty content"
-
-
-def test_display_orders_are_unique():
-    orders = [t["display_order"] for t in _TOPICS]
-    assert len(orders) == len(set(orders)), "Duplicate display_order values"

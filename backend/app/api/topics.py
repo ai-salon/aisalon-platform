@@ -21,7 +21,6 @@ class TopicPublic(BaseModel):
     id: str
     title: str
     content: str
-    display_order: int
     model_config = {"from_attributes": True}
 
 
@@ -29,14 +28,12 @@ class TopicCreate(BaseModel):
     title: str
     content: str
     is_active: bool = True
-    display_order: int = 0
 
 
 class TopicUpdate(BaseModel):
     title: str
     content: str
     is_active: bool | None = None
-    display_order: int | None = None
 
 
 class TopicResponse(BaseModel):
@@ -44,7 +41,6 @@ class TopicResponse(BaseModel):
     title: str
     content: str
     is_active: bool
-    display_order: int
     model_config = {"from_attributes": True}
 
 
@@ -53,7 +49,7 @@ async def list_topics(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(Topic)
         .where(Topic.is_active.is_(True))
-        .order_by(Topic.display_order, Topic.title)
+        .order_by(Topic.title)
     )
     return result.scalars().all()
 
@@ -63,7 +59,7 @@ async def admin_list_topics(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(select(Topic).order_by(Topic.display_order, Topic.title))
+    result = await db.execute(select(Topic).order_by(Topic.title))
     return result.scalars().all()
 
 
