@@ -129,19 +129,23 @@ class SocraticProcessor(BaseProcessor):
 
         article_md, anon_transcript, meta = await loop.run_in_executor(_executor, run_generator)
 
-        # Find the first # heading (article title) — the file may start with
-        # the editor's note block before the title heading
+        # Extract title from the first meaningful heading in the article body.
+        # SocraticAI formats the file as: editor note → article body → # Notes from
+        # the Conversation → # Open Questions → # Pull Quotes. The article body may
+        # use ## headings rather than a # title, so we scan for any heading that isn't
+        # one of the known analysis section markers.
+        _SECTION_HEADERS = {"Notes from the Conversation", "Open Questions", "Pull Quotes", "Moments"}
         title = "Untitled"
-        body_lines = article_md.strip().splitlines()
-        for i, line in enumerate(body_lines):
-            if line.startswith("# "):
-                title = line[2:].strip()
-                body_lines = body_lines[i + 1:]
-                break
+        for line in article_md.strip().splitlines():
+            if line.startswith("#"):
+                candidate = line.lstrip("#").strip()
+                if candidate and candidate not in _SECTION_HEADERS:
+                    title = candidate
+                    break
 
         return {
             "title": title,
-            "content_md": "\n".join(body_lines).strip(),
+            "content_md": article_md.strip(),
             "anonymized_transcript": anon_transcript,
             "meta": meta,
         }
