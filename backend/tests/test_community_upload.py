@@ -10,9 +10,7 @@ from app.models.topic import Topic
 async def _create_topic(db_session):
     topic = Topic(
         title="Test Topic",
-        description="desc",
-        opening_question="question?",
-        prompts=[],
+        content="## Description\n\nA test topic.",
         is_active=True,
     )
     db_session.add(topic)

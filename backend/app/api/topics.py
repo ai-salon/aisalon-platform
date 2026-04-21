@@ -20,27 +20,21 @@ def _require_admin(user: User) -> None:
 class TopicPublic(BaseModel):
     id: str
     title: str
-    description: str
-    opening_question: str
-    prompts: list[str]
+    content: str
     display_order: int
     model_config = {"from_attributes": True}
 
 
 class TopicCreate(BaseModel):
     title: str
-    description: str
-    opening_question: str
-    prompts: list[str] = []
+    content: str
     is_active: bool = True
     display_order: int = 0
 
 
 class TopicUpdate(BaseModel):
     title: str
-    description: str
-    opening_question: str
-    prompts: list[str]
+    content: str
     is_active: bool | None = None
     display_order: int | None = None
 
@@ -48,9 +42,7 @@ class TopicUpdate(BaseModel):
 class TopicResponse(BaseModel):
     id: str
     title: str
-    description: str
-    opening_question: str
-    prompts: list[str]
+    content: str
     is_active: bool
     display_order: int
     model_config = {"from_attributes": True}

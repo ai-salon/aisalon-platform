@@ -476,92 +476,141 @@ async def seed_volunteer_roles() -> None:
 _TOPICS = [
     dict(
         title="AI and the Future of Work",
-        description=(
-            "How will AI transform employment, skills, and the meaning of work itself? "
-            "Explore automation, augmentation, and the evolving relationship between "
-            "humans and machines in the workplace."
-        ),
-        opening_question="In what ways is AI already changing how you work, and what shifts do you anticipate in the next five years?",
-        prompts=[
-            "Which jobs or industries do you think will be most transformed by AI?",
-            "How should education systems adapt to prepare people for an AI-augmented workforce?",
-            "What policies could help ensure the benefits of AI in the workplace are shared broadly?",
-        ],
+        content="""\
+## Description
+
+Examines how AI and automation reshape roles, skill demands, and organizational structures—empowering transformative change but also disrupting traditional career paths.
+
+**Conversation Topics**
+
+- AI as coworker: assistant, collaborator, or competitor?
+- Reskilling at scale: bootcamps, micro-credentials, lifelong learning
+- Hybrid teams: humans steering high-level strategy, AI handling routine
+- Universal basic income vs. guaranteed upskilling
+
+**Evocative Questions**
+
+- What tasks should remain human-only, and why?
+- How do we design workplaces that blend intuition and algorithms?
+- Will AI create more fulfilling jobs or hollow out work entirely?
+
+## Links
+
+**Ai Salon Archive Substacks**
+
+- [HumanX Ai Salon: The Future of Work](https://aisalon.substack.com/p/humanx-ai-salon-the-future-of-work)
+- [Personal and Career Impact](https://aisalon.substack.com/p/personal-and-career-impact)\
+""",
         display_order=0,
     ),
     dict(
         title="AI Ethics and Governance",
-        description=(
-            "Who decides how AI systems should behave, and what frameworks should guide "
-            "those decisions? Discuss accountability, transparency, bias, and the role of "
-            "regulation in shaping responsible AI."
-        ),
-        opening_question="What ethical principle do you think is most often overlooked in AI development today?",
-        prompts=[
-            "Should AI systems be required to explain their decisions? In what contexts?",
-            "How do we balance innovation speed with the need for safety and fairness?",
-            "What role should governments play versus industry self-regulation?",
-        ],
+        content="""\
+## Description
+
+Explores the frameworks, principles, and policies shaping how AI is developed and deployed—who decides the rules, who benefits, and who bears the risks.
+
+**Conversation Topics**
+
+- Algorithmic bias: detecting and correcting it in high-stakes systems
+- Regulation vs. innovation: where should governments draw the line?
+- AI in decisions that affect people: hiring, lending, criminal justice
+- Who owns AI systems—and who should they answer to?
+
+**Evocative Questions**
+
+- Can a machine be held accountable for harm?
+- What values should be baked into AI systems, and who gets to choose?
+- Is it possible to have ethical AI in an unequal world?\
+""",
         display_order=1,
     ),
     dict(
         title="AI in Creative Arts",
-        description=(
-            "AI is generating art, music, and writing. Explore what this means for "
-            "creativity, authorship, and the value we place on human expression in "
-            "an age of machine-generated content."
-        ),
-        opening_question="When an AI creates a painting or writes a poem, is it art? Why or why not?",
-        prompts=[
-            "How do you think AI tools will change the creative process for artists and writers?",
-            "Should AI-generated works be eligible for copyright protection?",
-            "What is lost — or gained — when machines participate in creative expression?",
-        ],
+        content="""\
+## Description
+
+AI is generating art, music, and writing—raising questions about authorship, originality, and the value we place on human expression in an age of machine-generated content.
+
+**Conversation Topics**
+
+- What makes something "art"—process, intent, or result?
+- Copyright and ownership: who holds rights to AI-generated work?
+- AI as collaborator vs. replacement for human artists
+- The economics of creativity when anyone can generate images or music
+
+**Evocative Questions**
+
+- When an AI creates a painting, is something lost that we can't name?
+- How do you decide whether to use AI tools in your own creative work?
+- What should we preserve about human-made art, and why?\
+""",
         display_order=2,
     ),
     dict(
         title="AI and Personal Privacy",
-        description=(
-            "AI systems collect and analyze vast amounts of personal data. Discuss the "
-            "tension between personalization and privacy, surveillance, and what digital "
-            "autonomy means in the AI era."
-        ),
-        opening_question="How comfortable are you with AI systems knowing your habits, preferences, and behaviors?",
-        prompts=[
-            "Where do you draw the line between helpful personalization and invasive surveillance?",
-            "How should companies handle the data used to train AI models?",
-            "What rights should individuals have over AI-generated insights about them?",
-        ],
+        content="""\
+## Description
+
+AI systems collect and analyze vast amounts of personal data. Explore the tension between personalization and privacy, the rise of surveillance, and what digital autonomy means in the AI era.
+
+**Conversation Topics**
+
+- Where does helpful personalization become invasive surveillance?
+- Data ownership: should individuals control what's used to train AI?
+- Facial recognition, emotion detection, and the public/private divide
+- Privacy by design vs. opt-in consent frameworks
+
+**Evocative Questions**
+
+- How comfortable are you with AI knowing your habits and behaviors?
+- What would it take to feel truly in control of your digital self?
+- Is privacy even possible in an AI-saturated world?\
+""",
         display_order=3,
     ),
     dict(
         title="AI and Education",
-        description=(
-            "From personalized tutoring to automated grading, AI is reshaping how we "
-            "learn and teach. Explore what this means for students, educators, and the "
-            "future of knowledge."
-        ),
-        opening_question="How should schools and universities integrate AI tools into learning?",
-        prompts=[
-            "Will AI tutors make education more equitable or widen existing gaps?",
-            "How do we teach critical thinking when AI can generate convincing answers to any question?",
-            "What skills become more important — not less — in an AI-powered world?",
-        ],
+        content="""\
+## Description
+
+From personalized tutoring to automated grading, AI is reshaping how we learn and teach—raising questions about critical thinking, equity, and the future of knowledge itself.
+
+**Conversation Topics**
+
+- AI tutors: deeper personalization or shallow substitution for human teachers?
+- Academic integrity in an age of AI-generated writing
+- Teaching critical thinking when AI can answer any question convincingly
+- Skills that become more valuable—not less—as AI advances
+
+**Evocative Questions**
+
+- What is the purpose of education when knowledge is instantly accessible?
+- Will AI tutors make learning more equitable or widen existing gaps?
+- How should we redefine what it means to be "educated"?\
+""",
         display_order=4,
     ),
     dict(
         title="AI and Health",
-        description=(
-            "AI is diagnosing diseases, discovering drugs, and personalizing treatment. "
-            "Explore the promise and the perils of AI in healthcare — from bias in medical "
-            "AI to the future of the doctor-patient relationship."
-        ),
-        opening_question="Would you trust an AI to diagnose a medical condition? What would make you more or less comfortable?",
-        prompts=[
-            "How do we ensure AI health tools work equally well for all populations?",
-            "What role should AI play in mental health support?",
-            "How might AI change the relationship between patients and doctors?",
-        ],
+        content="""\
+## Description
+
+AI is diagnosing diseases, accelerating drug discovery, and personalizing treatment—but also introducing new risks around bias, access, and the future of the doctor-patient relationship.
+
+**Conversation Topics**
+
+- Diagnostic AI: when to trust it, when to question it
+- Equity in health AI: ensuring tools work for all populations
+- Mental health support: chatbots, therapists, and the limits of technology
+- How AI changes the relationship between patients and doctors
+
+**Evocative Questions**
+
+- Would you trust an AI to diagnose a medical condition?
+- What should remain irreducibly human in healthcare?
+- Who should be liable when an AI medical tool gets it wrong?\
+""",
         display_order=5,
     ),
 ]
