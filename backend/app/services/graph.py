@@ -460,7 +460,10 @@ class GraphIngestionService:
         try:
             from google import genai as google_genai
 
-            client = google_genai.Client(api_key=self._google_api_key)
+            client = google_genai.Client(
+                api_key=self._google_api_key,
+                http_options={"api_version": "v1"},
+            )
             result = client.models.embed_content(
                 model="text-embedding-004",
                 contents=[text_input],

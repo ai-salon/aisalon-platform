@@ -255,10 +255,17 @@ async def _has_graph_node(db, article_id: str) -> bool:
 async def run(targets: list[dict], dry_run: bool, force: bool) -> None:
     from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
     from sqlalchemy import select
-    from app.core.config import get_settings
+    from app.core.config import Settings
+    # Import all models so SQLAlchemy can resolve inter-model relationships
+    import app.models.chapter, app.models.team_member, app.models.user  # noqa: F401
+    import app.models.api_key, app.models.job, app.models.article  # noqa: F401
+    import app.models.hosting_interest, app.models.invite  # noqa: F401
+    import app.models.system_setting, app.models.social_post  # noqa: F401
+    import app.models.login_event, app.models.volunteer  # noqa: F401
+    import app.models.topic, app.models.community_upload, app.models.graph  # noqa: F401
     from app.models.chapter import Chapter
 
-    settings = get_settings()
+    settings = Settings()
     engine = create_async_engine(DATABASE_URL)
     Session = async_sessionmaker(engine, expire_on_commit=False)
 
