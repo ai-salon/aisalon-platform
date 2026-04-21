@@ -25,7 +25,7 @@ from app.api.community import router as community_router
 from app.api.graph import public_router as graph_public_router, admin_router as graph_admin_router
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles
+from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles, seed_topics
 
 # Ensure models are imported so SQLAlchemy can discover them
 import app.models.chapter  # noqa: F401
@@ -63,6 +63,7 @@ async def lifespan(app: FastAPI):
     await seed_chapters()
     await seed_chapter_leads()
     await seed_volunteer_roles()
+    await seed_topics()
     yield
 
 

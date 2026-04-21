@@ -9,7 +9,6 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import sqlite
 
 # revision identifiers, used by Alembic.
 revision: str = '94ffe84c1c70'
@@ -24,6 +23,7 @@ def upgrade() -> None:
     op.drop_column('topics', 'prompts')
     op.drop_column('topics', 'opening_question')
     op.drop_column('topics', 'description')
+    op.alter_column('topics', 'content', nullable=False, server_default=None)
 
 
 def downgrade() -> None:
