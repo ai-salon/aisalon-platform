@@ -67,9 +67,9 @@ export default async function DashboardPage() {
 
   let completedSteps: boolean[] | undefined;
   if (userRole === "host") {
-    completedSteps = [hasApiKey, jobList.length > 0, articleList.length > 0, hasReadHostingGuide];
+    completedSteps = [hasReadHostingGuide, hasApiKey, jobList.length > 0, articleList.length > 0];
   } else if (userRole === "chapter_lead") {
-    completedSteps = [hasApiKey, jobList.length > 0, chapterComplete, teamList.length > 0, hasReadHostingGuide, hasReadLeadGuide, hasSchedulingUrl];
+    completedSteps = [hasReadLeadGuide, hasReadHostingGuide, hasApiKey, jobList.length > 0, teamList.length > 0, chapterComplete, hasSchedulingUrl];
   }
 
   return (

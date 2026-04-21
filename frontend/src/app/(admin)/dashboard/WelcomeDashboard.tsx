@@ -2029,6 +2029,12 @@ function TabBar<T extends string>({
 
 const HOST_STEPS: OnboardingStep[] = [
   {
+    title: "Read the Hosting Guide",
+    description: "Learn how to plan, run, and follow up on an Ai Salon event.",
+    ctaLabel: "Open guide",
+    ctaHref: undefined,
+  },
+  {
     title: "Add your API keys",
     description: "You need AssemblyAI and Google AI keys to process conversations.",
     ctaLabel: "Go to Settings",
@@ -2046,15 +2052,21 @@ const HOST_STEPS: OnboardingStep[] = [
     ctaLabel: "View articles",
     ctaHref: "/articles",
   },
+];
+
+const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
+  {
+    title: "Read the Chapter Lead Guide",
+    description: "Learn how to build and grow your local Ai Salon chapter.",
+    ctaLabel: "Open guide",
+    ctaHref: undefined,
+  },
   {
     title: "Read the Hosting Guide",
     description: "Learn how to plan, run, and follow up on an Ai Salon event.",
     ctaLabel: "Open guide",
     ctaHref: undefined,
   },
-];
-
-const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
   {
     title: "Add your API keys",
     description: "You need AssemblyAI and Google AI keys to process conversations.",
@@ -2068,28 +2080,16 @@ const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
     ctaHref: "/upload",
   },
   {
-    title: "Complete your chapter profile",
-    description: "Add a tagline and description so members can find you.",
-    ctaLabel: "Edit profile",
-    ctaHref: "/chapters",
-  },
-  {
     title: "Add your team",
     description: "Add co-founders and team members to your chapter page.",
     ctaLabel: "Manage team",
     ctaHref: "/team",
   },
   {
-    title: "Read the Hosting Guide",
-    description: "Learn how to plan, run, and follow up on an Ai Salon event.",
-    ctaLabel: "Open guide",
-    ctaHref: undefined,
-  },
-  {
-    title: "Read the Chapter Lead Guide",
-    description: "Learn how to build and grow your local Ai Salon chapter.",
-    ctaLabel: "Open guide",
-    ctaHref: undefined,
+    title: "Complete your chapter profile",
+    description: "Add a tagline and description so members can find you.",
+    ctaLabel: "Edit profile",
+    ctaHref: "/chapters",
   },
   {
     title: "Set up your 1:1 scheduling link",
@@ -2260,16 +2260,16 @@ export default function WelcomeDashboard({
                   <div style={{ background: "#fff", border: "1px solid #ede9d8", borderRadius: 10, padding: "18px 20px" }}>
                     <SectionLabel>Guide Checklist</SectionLabel>
                     <GuideReadItem
-                      label="Read through the Hosting Guide"
-                      defaultRead={hasReadHostingGuide}
-                      onOpen={() => setLeadTab("hosting-guide")}
-                      onMarkRead={() => markGuideRead("hosting")}
-                    />
-                    <GuideReadItem
                       label="Read through the Chapter Lead Guide"
                       defaultRead={hasReadLeadGuide}
                       onOpen={() => setLeadTab("chapter-lead-guide")}
                       onMarkRead={() => markGuideRead("lead")}
+                    />
+                    <GuideReadItem
+                      label="Read through the Hosting Guide"
+                      defaultRead={hasReadHostingGuide}
+                      onOpen={() => setLeadTab("hosting-guide")}
+                      onMarkRead={() => markGuideRead("hosting")}
                     />
                   </div>
                 </div>
@@ -2329,21 +2329,23 @@ export default function WelcomeDashboard({
               />
               {leadTab === "getting-started" && (
                 <div>
-                  <div style={{ background: "#fff", border: "1px solid #ede9d8", borderRadius: 10, padding: "18px 20px" }}>
-                    <SectionLabel>Guide Checklist</SectionLabel>
-                    <GuideReadItem
-                      label="Read through the Hosting Guide"
-                      defaultRead={hasReadHostingGuide}
-                      onOpen={() => setLeadTab("hosting-guide")}
-                      onMarkRead={() => markGuideRead("hosting")}
-                    />
-                    <GuideReadItem
-                      label="Read through the Chapter Lead Guide"
-                      defaultRead={hasReadLeadGuide}
-                      onOpen={() => setLeadTab("chapter-lead-guide")}
-                      onMarkRead={() => markGuideRead("lead")}
-                    />
-                  </div>
+                  {!(hasReadHostingGuide && hasReadLeadGuide) && (
+                    <div style={{ background: "#fff", border: "1px solid #ede9d8", borderRadius: 10, padding: "18px 20px" }}>
+                      <SectionLabel>Guide Checklist</SectionLabel>
+                      <GuideReadItem
+                        label="Read through the Chapter Lead Guide"
+                        defaultRead={hasReadLeadGuide}
+                        onOpen={() => setLeadTab("chapter-lead-guide")}
+                        onMarkRead={() => markGuideRead("lead")}
+                      />
+                      <GuideReadItem
+                        label="Read through the Hosting Guide"
+                        defaultRead={hasReadHostingGuide}
+                        onOpen={() => setLeadTab("hosting-guide")}
+                        onMarkRead={() => markGuideRead("hosting")}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
               {leadTab === "event-creator" && <EventCreator />}
