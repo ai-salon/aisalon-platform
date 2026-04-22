@@ -231,8 +231,7 @@ export default function ArticleEditor({
         await navigator.clipboard.writeText(`# ${title}\n\n${content}`);
       }
     }
-    const base = substackPublicationUrl?.replace(/\/$/, "") ?? "https://substack.com";
-    window.open(`${base}/publish/post?type=newsletter`, "_blank");
+    window.open("https://aisalon.substack.com/publish/post/", "_blank");
     setPublishLabel("Copied & opened ✓");
     setTimeout(() => setPublishLabel("Publish to Substack"), 3000);
   }, [title, content, substackPublicationUrl]);
@@ -300,7 +299,7 @@ export default function ArticleEditor({
             )}
 
             {/* Publish to Substack — superadmin only */}
-            {role === "superadmin" && substackPublicationUrl && (
+            {role === "superadmin" && (
               <button
                 onClick={publishToSubstack}
                 style={{
