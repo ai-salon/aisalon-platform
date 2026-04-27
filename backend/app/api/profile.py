@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.models.chapter import Chapter
 from app.models.user import User
 from app.schemas.profile import (
     ProfileCompleteRequest,
@@ -64,7 +65,6 @@ async def complete_profile(
 
 async def _default_title(user: User, db: AsyncSession) -> str | None:
     if user.role.value == "chapter_lead" and user.chapter_id:
-        from app.models.chapter import Chapter
         result = await db.execute(select(Chapter).where(Chapter.id == user.chapter_id))
         ch = result.scalar_one_or_none()
         if ch:

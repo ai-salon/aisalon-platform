@@ -1,6 +1,5 @@
 """Tests for profile photo upload."""
 import io
-import pytest
 from httpx import AsyncClient
 
 
