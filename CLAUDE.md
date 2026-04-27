@@ -25,9 +25,47 @@ After finishing a significant unit of work (feature, bugfix, or set of related c
 1. **Run all tests** — backend (`poetry run pytest -q`) and frontend (`npm run build`) must pass.
 2. **Merge to `develop`** — switch to `develop`, merge the feature branch, and resolve any conflicts.
 3. **Push `develop`** — `git push origin develop` so the remote stays current and CI runs.
-4. **Clean up** — delete the merged feature branch locally and remotely (`git branch -d <branch>`, `git push origin --delete <branch>`).
+4. **Verify the Railway deploy** — Railway auto-deploys `develop` to the `development` environment. After every push to `develop`, confirm the new deployment succeeded before declaring the work done. See "Verifying Railway deploys" below.
+5. **Clean up** — delete the merged feature branch locally and remotely (`git branch -d <branch>`, `git push origin --delete <branch>`).
 
 Do not leave completed work sitting on unpushed feature branches. The `develop` branch should always reflect the latest integrated state of the project.
+
+### Verifying Railway deploys
+
+After every push to `develop` (or `main`), wait for Railway to finish building and deploying, then confirm the new deployment succeeded. Local tests don't catch Postgres-specific issues (e.g. asyncpg type strictness vs. SQLite) or container/runtime problems.
+
+```bash
+cd /Users/ian/Projects/AiSalon/aisalon-platform
+railway status --json | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for env in d['environments']['edges']:
+    e = env['node']
+    for s in e['serviceInstances']['edges']:
+        n = s['node']
+        ld = n['latestDeployment']
+        if not ld: continue
+        commit = (ld.get('meta') or {}).get('commitHash', '')[:8]
+        print(f\"{e['name']:12} {n['serviceName']:10} {ld['status']:10} {ld['createdAt']}  {commit}\")
+"
+```
+
+Look for the most recent backend deployment matching your commit and confirm `status` is `SUCCESS`. If `FAILED`:
+
+```bash
+# Build logs (compile / image push errors)
+railway logs --build <deployment-id> | tail -120
+
+# Runtime logs (startup, healthcheck, alembic, app crashes)
+railway logs --deployment <deployment-id> | head -120
+```
+
+Common failure modes:
+- **Healthcheck failure** — the container started but `/health` never returned 200. Inspect runtime logs for an unhandled exception during startup or migrations.
+- **Migration crashes on Postgres but not SQLite** — asyncpg is strict about types (e.g. it rejects ISO timestamp strings for `timestamptz` columns; SQLite accepts them). Pass actual `datetime` instances, not `.isoformat()` strings, in raw-SQL migrations.
+- **Missing env var** — Railway env vars differ from local `.env`. Check the service's variables in the Railway dashboard if a `KeyError`/`ValidationError` shows up at startup.
+
+Fix the issue, push again, and re-verify. Don't move on until the latest deployment is `SUCCESS`.
 
 ## Testing and TDD
 
