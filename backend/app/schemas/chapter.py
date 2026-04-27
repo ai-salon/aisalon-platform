@@ -1,5 +1,4 @@
 from typing import Any
-import datetime
 from pydantic import BaseModel
 
 
@@ -14,20 +13,6 @@ class ChapterSummary(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class TeamMemberPublic(BaseModel):
-    id: str
-    name: str
-    role: str
-    description: str | None
-    profile_image_url: str
-    linkedin: str | None
-    is_cofounder: bool
-    display_order: int
-    created_at: datetime.datetime
-
-    model_config = {"from_attributes": True}
-
-
 class ChapterDetail(ChapterSummary):
     description: str
     about: str
@@ -36,4 +21,3 @@ class ChapterDetail(ChapterSummary):
     events_description: str
     about_blocks: Any
     events_blocks: Any
-    team_members: list[TeamMemberPublic] = []

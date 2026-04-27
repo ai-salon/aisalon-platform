@@ -27,7 +27,7 @@ const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
     title: 'Add your team',
     description: 'Add co-founders and team members to your chapter page.',
     ctaLabel: 'Manage team',
-    ctaHref: '/team',
+    ctaHref: '/people',
   },
 ]
 

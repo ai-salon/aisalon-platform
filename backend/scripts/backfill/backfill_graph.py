@@ -257,7 +257,7 @@ async def run(targets: list[dict], dry_run: bool, force: bool) -> None:
     from sqlalchemy import select
     from app.core.config import Settings
     # Import all models so SQLAlchemy can resolve inter-model relationships
-    import app.models.chapter, app.models.team_member, app.models.user  # noqa: F401
+    import app.models.chapter, app.models.user  # noqa: F401
     import app.models.api_key, app.models.job, app.models.article  # noqa: F401
     import app.models.hosting_interest, app.models.invite  # noqa: F401
     import app.models.system_setting, app.models.social_post  # noqa: F401

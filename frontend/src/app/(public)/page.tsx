@@ -112,9 +112,10 @@ function IconBlock({ icon, title, body }: { icon: string; title: string; body: R
    Page
 ───────────────────────────────────────── */
 type Member = {
-  id: string; name: string; role: string;
+  id: string; name: string; title: string | null;
   description: string | null; profile_image_url: string;
-  linkedin: string | null; is_cofounder: boolean; display_order: number;
+  linkedin: string | null; is_founder: boolean;
+  chapter_code: string | null; chapter_name: string | null;
 };
 
 type ArticleSummary = {
@@ -573,10 +574,7 @@ export default function HomePage() {
               <h2 className="section-title">The People Behind the Ai Salon</h2>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 48 }}>
-              {[...team].sort((a, b) => {
-                const p = (r: string) => r === "Founder, Executive Director" ? 0 : r.startsWith("Co-Founder") ? 1 : r.includes("Chapter Lead") ? 2 : 3;
-                return p(a.role) - p(b.role) || a.name.localeCompare(b.name);
-              }).map((m) => (
+              {team.map((m) => (
                 <div key={m.id} style={{ textAlign: "center" }}>
                   <div
                     style={{
@@ -593,7 +591,7 @@ export default function HomePage() {
                   >
                     {m.profile_image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={m.profile_image_url.startsWith("/uploads/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
                       <i className="fa fa-user" style={{ fontSize: 64, color: "#d2b356" }} aria-hidden="true" />
                     )}
@@ -607,7 +605,7 @@ export default function HomePage() {
                     )}
                   </div>
                   <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#d2b356", margin: "0 0 10px" }}>
-                    {m.role}
+                    {m.title}
                   </p>
                   {m.description && (
                     <p style={{ fontSize: 13, color: "#555", lineHeight: 1.65, margin: 0 }}>{m.description}</p>

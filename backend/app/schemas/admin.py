@@ -1,12 +1,17 @@
 from datetime import datetime, date
-from typing import Any
-from pydantic import BaseModel, field_validator
+from typing import Any, Literal
+from pydantic import BaseModel, Field, field_validator
 from app.models.api_key import APIKeyProvider
 from app.models.job import JobStatus
 from app.models.article import ArticleStatus
 
 
 # ── Chapters ──────────────────────────────────────────────────────────────────
+
+class ChapterCreate(BaseModel):
+    code: str = Field(..., min_length=1, max_length=32, pattern=r"^[a-z0-9-]+$")
+    name: str = Field(..., min_length=1, max_length=128)
+
 
 class ChapterUpdate(BaseModel):
     name: str | None = None
@@ -19,7 +24,7 @@ class ChapterUpdate(BaseModel):
     events_description: str | None = None
     about_blocks: Any | None = None
     events_blocks: Any | None = None
-    status: str | None = None
+    status: Literal["draft", "active", "archived"] | None = None
     chapter_guide: str | None = None
 
 
@@ -38,43 +43,6 @@ class ChapterResponse(BaseModel):
     events_blocks: Any
     status: str
     chapter_guide: str | None = None
-
-    model_config = {"from_attributes": True}
-
-
-# ── Team Members ──────────────────────────────────────────────────────────────
-
-class TeamMemberCreate(BaseModel):
-    name: str
-    role: str
-    chapter_id: str
-    description: str | None = None
-    profile_image_url: str = ""
-    linkedin: str | None = None
-    is_cofounder: bool = False
-    display_order: int = 0
-
-
-class TeamMemberUpdate(BaseModel):
-    name: str | None = None
-    role: str | None = None
-    description: str | None = None
-    profile_image_url: str | None = None
-    linkedin: str | None = None
-    is_cofounder: bool | None = None
-    display_order: int | None = None
-
-
-class TeamMemberResponse(BaseModel):
-    id: str
-    name: str
-    role: str
-    chapter_id: str
-    description: str | None
-    profile_image_url: str
-    linkedin: str | None
-    is_cofounder: bool
-    display_order: int
 
     model_config = {"from_attributes": True}
 

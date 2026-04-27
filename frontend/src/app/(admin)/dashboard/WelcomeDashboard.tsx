@@ -1717,7 +1717,7 @@ function RecentActivity({ token, chapterCode }: { token: string; chapterCode: st
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <SectionLabel>Your Team</SectionLabel>
-          <Link href="/team" style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600 }}>
+          <Link href="/people" style={{ fontSize: 12, color: "#56a1d2", fontWeight: 600 }}>
             Manage →
           </Link>
         </div>
@@ -1747,7 +1747,7 @@ function RecentActivity({ token, chapterCode }: { token: string; chapterCode: st
             ))}
             {team.length > 5 && (
               <p style={{ fontSize: 12, color: "#9ca3af", margin: "4px 0 0" }}>
-                +{team.length - 5} more — <Link href="/team" style={{ color: "#56a1d2" }}>view all</Link>
+                +{team.length - 5} more — <Link href="/people" style={{ color: "#56a1d2" }}>view all</Link>
               </p>
             )}
           </div>
@@ -2083,7 +2083,7 @@ const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
     title: "Add your team",
     description: "Add co-founders and team members to your chapter page.",
     ctaLabel: "Manage team",
-    ctaHref: "/team",
+    ctaHref: "/people",
   },
   {
     title: "Complete your chapter profile",

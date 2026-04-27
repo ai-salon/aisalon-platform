@@ -74,3 +74,83 @@ class TestUpdateChapter:
             headers=admin_headers,
         )
         assert r.status_code == 404
+
+
+async def test_create_chapter_requires_superadmin(
+    client: AsyncClient, lead_headers
+):
+    r = await client.post("/admin/chapters", headers=lead_headers, json={
+        "code": "tokyo", "name": "Tokyo",
+    })
+    assert r.status_code == 403
+
+
+async def test_create_chapter_succeeds_as_superadmin(
+    client: AsyncClient, admin_headers
+):
+    r = await client.post("/admin/chapters", headers=admin_headers, json={
+        "code": "tokyo", "name": "Tokyo",
+    })
+    assert r.status_code == 201
+    body = r.json()
+    assert body["code"] == "tokyo"
+    assert body["status"] == "draft"
+
+
+async def test_create_chapter_rejects_duplicate_code(
+    client: AsyncClient, admin_headers, sf_chapter
+):
+    r = await client.post("/admin/chapters", headers=admin_headers, json={
+        "code": "sf", "name": "Another SF",
+    })
+    assert r.status_code == 400
+
+
+async def test_create_chapter_rejects_invalid_code(
+    client: AsyncClient, admin_headers
+):
+    r = await client.post("/admin/chapters", headers=admin_headers, json={
+        "code": "Bad Code!", "name": "Bad",
+    })
+    assert r.status_code == 422
+
+
+async def test_patch_chapter_status_to_archived(
+    client: AsyncClient, admin_headers, sf_chapter
+):
+    r = await client.patch(
+        f"/admin/chapters/{sf_chapter.code}",
+        headers=admin_headers,
+        json={"status": "archived"},
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "archived"
+
+
+async def test_patch_chapter_status_rejects_invalid_value(
+    client: AsyncClient, admin_headers, sf_chapter
+):
+    r = await client.patch(
+        f"/admin/chapters/{sf_chapter.code}",
+        headers=admin_headers,
+        json={"status": "garbage"},
+    )
+    assert r.status_code == 422
+
+
+async def test_admin_list_chapters_includes_all_statuses(
+    client: AsyncClient, admin_headers, db_session
+):
+    from app.models.chapter import Chapter
+    for code, st in [("d", "draft"), ("a", "active"), ("z", "archived")]:
+        db_session.add(Chapter(
+            code=code, name=code, title="t", description="d",
+            tagline="t", about="a", event_link="e", calendar_embed="c",
+            events_description="e", status=st,
+        ))
+    await db_session.commit()
+    r = await client.get("/admin/chapters", headers=admin_headers)
+    assert r.status_code == 200
+    codes = [c["code"] for c in r.json()]
+    for code in ["d", "a", "z"]:
+        assert code in codes

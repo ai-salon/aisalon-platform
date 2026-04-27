@@ -64,3 +64,53 @@ class TestGetChapter:
     async def test_not_found(self, client: AsyncClient):
         r = await client.get("/chapters/notexist")
         assert r.status_code == 404
+
+
+async def test_list_chapters_excludes_draft(client, db_session):
+    from app.models.chapter import Chapter
+    db_session.add(Chapter(
+        code="draft1", name="Draft", title="t", description="d",
+        tagline="t", about="a", event_link="e", calendar_embed="c",
+        events_description="e", status="draft",
+    ))
+    await db_session.commit()
+    r = await client.get("/chapters")
+    codes = [c["code"] for c in r.json()]
+    assert "draft1" not in codes
+
+
+async def test_list_chapters_excludes_archived(client, db_session):
+    from app.models.chapter import Chapter
+    db_session.add(Chapter(
+        code="arch1", name="Arch", title="t", description="d",
+        tagline="t", about="a", event_link="e", calendar_embed="c",
+        events_description="e", status="archived",
+    ))
+    await db_session.commit()
+    r = await client.get("/chapters")
+    codes = [c["code"] for c in r.json()]
+    assert "arch1" not in codes
+
+
+async def test_get_draft_chapter_returns_404(client, db_session):
+    from app.models.chapter import Chapter
+    db_session.add(Chapter(
+        code="draft2", name="D2", title="t", description="d",
+        tagline="t", about="a", event_link="e", calendar_embed="c",
+        events_description="e", status="draft",
+    ))
+    await db_session.commit()
+    r = await client.get("/chapters/draft2")
+    assert r.status_code == 404
+
+
+async def test_get_archived_chapter_returns_404(client, db_session):
+    from app.models.chapter import Chapter
+    db_session.add(Chapter(
+        code="arch2", name="A2", title="t", description="d",
+        tagline="t", about="a", event_link="e", calendar_embed="c",
+        events_description="e", status="archived",
+    ))
+    await db_session.commit()
+    r = await client.get("/chapters/arch2")
+    assert r.status_code == 404

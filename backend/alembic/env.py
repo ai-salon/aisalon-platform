@@ -7,7 +7,6 @@ from alembic import context
 
 # Import all models so their metadata is registered
 import app.models.chapter  # noqa: F401
-import app.models.team_member  # noqa: F401
 import app.models.user  # noqa: F401
 import app.models.api_key  # noqa: F401
 import app.models.job  # noqa: F401

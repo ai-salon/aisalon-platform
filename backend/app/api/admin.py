@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy import select, func, cast, Date
 
 from app.core.database import get_db, AsyncSessionLocal
@@ -16,7 +17,6 @@ from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.models.job import Job, JobStatus
 from app.models.article import Article, ArticleStatus
 from app.models.chapter import Chapter
-from app.models.team_member import TeamMember
 from app.models.hosting_interest import HostingInterest, InterestType
 from app.models.invite import Invite
 from app.models.system_setting import SystemSetting
@@ -26,8 +26,7 @@ from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
     JobResponse,
     ArticleResponse, ArticleUpdate, ArticleCreate,
-    ChapterUpdate, ChapterResponse,
-    TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
+    ChapterCreate, ChapterUpdate, ChapterResponse,
     UserCreate, UserUpdate, UserResponse, GuideReadRequest,
     InviteCreate, InviteResponse,
     ChapterStats, CommunityStatsResponse,
@@ -194,9 +193,12 @@ async def community_stats(
             job_row[0] or 0, job_row[1] or 0, job_row[2] or 0,
         )
 
-        # Team size
+        # Team size: count active users assigned to this chapter
         team_result = await db.execute(
-            select(func.count(TeamMember.id)).where(TeamMember.chapter_id == ch.id)
+            select(func.count(User.id)).where(
+                User.chapter_id == ch.id,
+                User.is_active.is_(True),
+            )
         )
         team_size = team_result.scalar() or 0
 
@@ -547,6 +549,50 @@ async def get_transcript(
 
 # ── Chapters (admin edit) ─────────────────────────────────────────────────────
 
+@router.get("/chapters", response_model=list[ChapterResponse])
+async def list_chapters_admin(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all chapters regardless of status (superadmin view)."""
+    _require_admin(current_user)
+    result = await db.execute(select(Chapter).order_by(Chapter.name))
+    return result.scalars().all()
+
+
+@router.post("/chapters", status_code=status.HTTP_201_CREATED)
+async def create_chapter(
+    body: ChapterCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_admin(current_user)
+    existing = await db.execute(select(Chapter).where(Chapter.code == body.code))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Chapter code already exists")
+    chapter = Chapter(
+        code=body.code,
+        name=body.name,
+        title=body.name,
+        description="",
+        tagline="",
+        about="",
+        event_link="",
+        calendar_embed="",
+        events_description="",
+        status="draft",
+    )
+    db.add(chapter)
+    await db.commit()
+    await db.refresh(chapter)
+    return {
+        "id": chapter.id,
+        "code": chapter.code,
+        "name": chapter.name,
+        "status": chapter.status,
+    }
+
+
 @router.get("/chapters/{chapter_id}/guide")
 async def get_chapter_guide(
     chapter_id: str,
@@ -563,19 +609,23 @@ async def get_chapter_guide(
     return {"chapter_guide": chapter.chapter_guide}
 
 
-@router.patch("/chapters/{chapter_id}", response_model=ChapterResponse)
+@router.patch("/chapters/{identifier}", response_model=ChapterResponse)
 async def update_chapter(
-    chapter_id: str,
+    identifier: str,
     body: ChapterUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     _require_lead_or_above(current_user)
-    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    result = await db.execute(
+        select(Chapter).where(
+            (Chapter.id == identifier) | (Chapter.code == identifier)
+        )
+    )
     chapter = result.scalar_one_or_none()
     if not chapter:
         raise HTTPException(status_code=404, detail="Chapter not found")
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != chapter_id:
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != chapter.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     for field, value in body.model_dump(exclude_none=True).items():
@@ -583,85 +633,6 @@ async def update_chapter(
     await db.commit()
     await db.refresh(chapter)
     return chapter
-
-
-# ── Team members (admin CRUD) ─────────────────────────────────────────────────
-
-@router.post("/team", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
-async def create_team_member(
-    body: TeamMemberCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_lead_or_above(current_user)
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != body.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    member = TeamMember(**body.model_dump())
-    db.add(member)
-    await db.commit()
-    await db.refresh(member)
-    return member
-
-
-@router.patch("/team/{member_id}", response_model=TeamMemberResponse)
-async def update_team_member(
-    member_id: str,
-    body: TeamMemberUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_lead_or_above(current_user)
-    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
-    member = result.scalar_one_or_none()
-    if not member:
-        raise HTTPException(status_code=404, detail="Team member not found")
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    for field, value in body.model_dump(exclude_none=True).items():
-        setattr(member, field, value)
-    await db.commit()
-    await db.refresh(member)
-    return member
-
-
-@router.delete("/team/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_team_member(
-    member_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_lead_or_above(current_user)
-    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
-    member = result.scalar_one_or_none()
-    if not member:
-        raise HTTPException(status_code=404, detail="Team member not found")
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    await db.delete(member)
-    await db.commit()
-
-
-@router.post("/team/{member_id}/photo")
-async def upload_team_photo(
-    member_id: str,
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_lead_or_above(current_user)
-    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
-    member = result.scalar_one_or_none()
-    if not member:
-        raise HTTPException(status_code=404, detail="Team member not found")
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    data = await file.read()
-    key = await save_upload(file.filename or "photo", data)
-    url = f"/uploads/{key}"
-    member.profile_image_url = url
-    await db.commit()
-    return {"profile_image_url": url}
 
 
 # ── Users (superadmin only) ───────────────────────────────────────────────────
@@ -841,6 +812,70 @@ async def delete_user(
     await db.commit()
 
 
+# ── People (User profile management) ──────────────────────────────────────────
+
+@router.get("/people")
+async def admin_list_people(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    stmt = select(User).options(selectinload(User.chapter))
+    chapter_filter = _chapter_filter(current_user)
+    if chapter_filter:
+        stmt = stmt.where(User.chapter_id == chapter_filter)
+    result = await db.execute(stmt.order_by(User.display_order, User.name))
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "role": u.role.value,
+            "name": u.name,
+            "title": u.title,
+            "is_founder": u.is_founder,
+            "display_order": u.display_order,
+            "profile_image_url": u.profile_image_url,
+            "profile_completed_at": u.profile_completed_at.isoformat() if u.profile_completed_at else None,
+            "chapter_code": u.chapter.code if u.chapter else None,
+            "chapter_name": u.chapter.name if u.chapter else None,
+        }
+        for u in result.scalars().unique().all()
+    ]
+
+
+class PersonUpdate(BaseModel):
+    title: str | None = None
+    is_founder: bool | None = None
+    display_order: int | None = None
+    profile_image_url: str | None = None
+
+
+@router.patch("/people/{user_id}")
+async def admin_update_person(
+    user_id: str,
+    body: PersonUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_admin(current_user)
+    row = await db.execute(select(User).where(User.id == user_id))
+    target = row.scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if body.title is not None:
+        target.title = body.title
+    if body.is_founder is not None:
+        target.is_founder = body.is_founder
+    if body.display_order is not None:
+        target.display_order = body.display_order
+    if body.profile_image_url is not None:
+        target.profile_image_url = body.profile_image_url
+    await db.commit()
+    await db.refresh(target)
+    return {"ok": True}
+
+
 # ── Invites ───────────────────────────────────────────────────────────────────
 
 @router.post("/invites", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
@@ -856,6 +891,12 @@ async def create_invite(
             raise HTTPException(status_code=403, detail="Forbidden")
         if body.role != "host":
             raise HTTPException(status_code=403, detail="Chapter leads can only create host invites")
+    ch_result = await db.execute(select(Chapter).where(Chapter.id == body.chapter_id))
+    ch = ch_result.scalar_one_or_none()
+    if not ch:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    if ch.status == "archived":
+        raise HTTPException(status_code=400, detail="Cannot invite to an archived chapter")
     invite = Invite(
         chapter_id=body.chapter_id,
         role=body.role,
