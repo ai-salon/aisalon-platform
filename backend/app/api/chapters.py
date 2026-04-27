@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.models.chapter import Chapter
@@ -25,7 +24,6 @@ async def get_chapter(identifier: str, db: AsyncSession = Depends(get_db)):
     # Accept either code (string slug) or id (UUID)
     stmt = (
         select(Chapter)
-        .options(selectinload(Chapter.team_members))
         .where(
             (Chapter.status == "active")
             & ((Chapter.code == identifier) | (Chapter.id == identifier))

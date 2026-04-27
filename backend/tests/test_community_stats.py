@@ -6,8 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.article import Article, ArticleStatus
 from app.models.job import Job, JobStatus
-from app.models.team_member import TeamMember
+from app.models.user import User, UserRole
 from app.models.chapter import Chapter
+from app.core.security import hash_password
 
 
 async def _make_other_chapter(session: AsyncSession) -> Chapter:
@@ -39,13 +40,22 @@ class TestCommunityStats:
         db_session.add(Article(chapter_id=sf_chapter.id, title="A1", status=ArticleStatus.draft))
         db_session.add(Article(chapter_id=sf_chapter.id, title="A2", status=ArticleStatus.published))
         db_session.add(Job(chapter_id=sf_chapter.id, user_id=dummy_user_id, status=JobStatus.completed))
-        db_session.add(TeamMember(chapter_id=sf_chapter.id, name="M1", role="lead"))
+        db_session.add(User(
+            email="m1@x", username="m1", hashed_password=hash_password("x"),
+            role=UserRole.chapter_lead, chapter_id=sf_chapter.id, is_active=True,
+        ))
 
         # Seed data for Berlin
         db_session.add(Article(chapter_id=berlin.id, title="B1", status=ArticleStatus.draft))
         db_session.add(Job(chapter_id=berlin.id, user_id=dummy_user_id, status=JobStatus.failed))
-        db_session.add(TeamMember(chapter_id=berlin.id, name="M2", role="lead"))
-        db_session.add(TeamMember(chapter_id=berlin.id, name="M3", role="host"))
+        db_session.add(User(
+            email="m2@x", username="m2", hashed_password=hash_password("x"),
+            role=UserRole.chapter_lead, chapter_id=berlin.id, is_active=True,
+        ))
+        db_session.add(User(
+            email="m3@x", username="m3", hashed_password=hash_password("x"),
+            role=UserRole.host, chapter_id=berlin.id, is_active=True,
+        ))
         await db_session.commit()
 
         r = await client.get("/admin/community-stats", headers=admin_headers)

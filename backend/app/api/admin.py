@@ -16,7 +16,6 @@ from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.models.job import Job, JobStatus
 from app.models.article import Article, ArticleStatus
 from app.models.chapter import Chapter
-from app.models.team_member import TeamMember
 from app.models.hosting_interest import HostingInterest, InterestType
 from app.models.invite import Invite
 from app.models.system_setting import SystemSetting
@@ -27,7 +26,6 @@ from app.schemas.admin import (
     JobResponse,
     ArticleResponse, ArticleUpdate, ArticleCreate,
     ChapterCreate, ChapterUpdate, ChapterResponse,
-    TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
     UserCreate, UserUpdate, UserResponse, GuideReadRequest,
     InviteCreate, InviteResponse,
     ChapterStats, CommunityStatsResponse,
@@ -194,9 +192,12 @@ async def community_stats(
             job_row[0] or 0, job_row[1] or 0, job_row[2] or 0,
         )
 
-        # Team size
+        # Team size: count active users assigned to this chapter
         team_result = await db.execute(
-            select(func.count(TeamMember.id)).where(TeamMember.chapter_id == ch.id)
+            select(func.count(User.id)).where(
+                User.chapter_id == ch.id,
+                User.is_active.is_(True),
+            )
         )
         team_size = team_result.scalar() or 0
 
@@ -631,85 +632,6 @@ async def update_chapter(
     await db.commit()
     await db.refresh(chapter)
     return chapter
-
-
-# ── Team members (admin CRUD) ─────────────────────────────────────────────────
-
-@router.post("/team", response_model=TeamMemberResponse, status_code=status.HTTP_201_CREATED)
-async def create_team_member(
-    body: TeamMemberCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_lead_or_above(current_user)
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != body.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    member = TeamMember(**body.model_dump())
-    db.add(member)
-    await db.commit()
-    await db.refresh(member)
-    return member
-
-
-@router.patch("/team/{member_id}", response_model=TeamMemberResponse)
-async def update_team_member(
-    member_id: str,
-    body: TeamMemberUpdate,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_lead_or_above(current_user)
-    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
-    member = result.scalar_one_or_none()
-    if not member:
-        raise HTTPException(status_code=404, detail="Team member not found")
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-
-    for field, value in body.model_dump(exclude_none=True).items():
-        setattr(member, field, value)
-    await db.commit()
-    await db.refresh(member)
-    return member
-
-
-@router.delete("/team/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_team_member(
-    member_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_lead_or_above(current_user)
-    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
-    member = result.scalar_one_or_none()
-    if not member:
-        raise HTTPException(status_code=404, detail="Team member not found")
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    await db.delete(member)
-    await db.commit()
-
-
-@router.post("/team/{member_id}/photo")
-async def upload_team_photo(
-    member_id: str,
-    file: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    _require_lead_or_above(current_user)
-    result = await db.execute(select(TeamMember).where(TeamMember.id == member_id))
-    member = result.scalar_one_or_none()
-    if not member:
-        raise HTTPException(status_code=404, detail="Team member not found")
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != member.chapter_id:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    data = await file.read()
-    key = await save_upload(file.filename or "photo", data)
-    url = f"/uploads/{key}"
-    member.profile_image_url = url
-    await db.commit()
-    return {"profile_image_url": url}
 
 
 # ── Users (superadmin only) ───────────────────────────────────────────────────

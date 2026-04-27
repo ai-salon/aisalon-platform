@@ -13,7 +13,6 @@ from sqlalchemy import select
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 import app.models.chapter  # noqa: F401 — required for SQLAlchemy relationship resolution
-import app.models.team_member  # noqa: F401
 import app.models.api_key  # noqa: F401
 import app.models.job  # noqa: F401
 import app.models.article  # noqa: F401

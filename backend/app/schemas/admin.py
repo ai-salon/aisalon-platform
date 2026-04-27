@@ -47,43 +47,6 @@ class ChapterResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Team Members ──────────────────────────────────────────────────────────────
-
-class TeamMemberCreate(BaseModel):
-    name: str
-    role: str
-    chapter_id: str
-    description: str | None = None
-    profile_image_url: str = ""
-    linkedin: str | None = None
-    is_cofounder: bool = False
-    display_order: int = 0
-
-
-class TeamMemberUpdate(BaseModel):
-    name: str | None = None
-    role: str | None = None
-    description: str | None = None
-    profile_image_url: str | None = None
-    linkedin: str | None = None
-    is_cofounder: bool | None = None
-    display_order: int | None = None
-
-
-class TeamMemberResponse(BaseModel):
-    id: str
-    name: str
-    role: str
-    chapter_id: str
-    description: str | None
-    profile_image_url: str
-    linkedin: str | None
-    is_cofounder: bool
-    display_order: int
-
-    model_config = {"from_attributes": True}
-
-
 # ── API Keys ────────────────────────────────────────────────────────────────
 
 class APIKeySetRequest(BaseModel):

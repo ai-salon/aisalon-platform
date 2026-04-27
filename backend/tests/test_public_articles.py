@@ -56,14 +56,8 @@ class TestPublicArticleDetail:
         assert r.status_code == 404
 
 
-class TestChapterWithTeam:
-    async def test_chapter_includes_team(self, client: AsyncClient, sf_chapter, db_session):
-        from app.models.team_member import TeamMember
-        m = TeamMember(name="Alice", role="Speaker", chapter_id=sf_chapter.id)
-        db_session.add(m)
-        await db_session.commit()
+class TestChapterDetail:
+    async def test_chapter_returns_detail(self, client: AsyncClient, sf_chapter):
         r = await client.get(f"/chapters/{sf_chapter.code}")
         assert r.status_code == 200
-        assert "team_members" in r.json()
-        assert len(r.json()["team_members"]) == 1
-        assert r.json()["team_members"][0]["name"] == "Alice"
+        assert r.json()["code"] == sf_chapter.code

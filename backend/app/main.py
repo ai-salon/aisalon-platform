@@ -27,14 +27,13 @@ from app.api.graph import public_router as graph_public_router, admin_router as 
 from app.api.profile import router as profile_router
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_volunteer_roles, seed_topics
+from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_founders, seed_volunteer_roles, seed_topics
 from app.core.database import AsyncSessionLocal
 from app.models.job import Job, JobStatus
 from sqlalchemy import update
 
 # Ensure models are imported so SQLAlchemy can discover them
 import app.models.chapter  # noqa: F401
-import app.models.team_member  # noqa: F401
 import app.models.user  # noqa: F401
 import app.models.api_key  # noqa: F401
 import app.models.job  # noqa: F401
@@ -90,6 +89,7 @@ async def lifespan(app: FastAPI):
     await seed_superadmin()
     await seed_chapters()
     await seed_chapter_leads()
+    await seed_founders()
     await seed_volunteer_roles()
     await seed_topics()
     yield

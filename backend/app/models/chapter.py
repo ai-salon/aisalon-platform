@@ -29,9 +29,6 @@ class Chapter(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft")
     chapter_guide: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    team_members: Mapped[list["TeamMember"]] = relationship(  # noqa: F821
-        "TeamMember", back_populates="chapter", lazy="select"
-    )
     users: Mapped[list["User"]] = relationship(  # noqa: F821
         "User", back_populates="chapter", lazy="select"
     )
