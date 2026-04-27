@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, Boolean, ForeignKey, Enum as SAEnum, DateTime
+from sqlalchemy import String, Boolean, ForeignKey, Enum as SAEnum, DateTime, Integer, Text
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from app.models.base import Base, TimestampMixin
 
@@ -26,5 +26,15 @@ class User(Base, TimestampMixin):
     hosting_guide_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     lead_guide_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     scheduling_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+
+    # Profile fields (added 2026-04-26)
+    name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    profile_image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    linkedin: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    title: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    is_founder: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    profile_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     chapter: Mapped["Chapter | None"] = relationship("Chapter", back_populates="users")  # noqa: F821
