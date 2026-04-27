@@ -1,4 +1,7 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -30,3 +33,42 @@ async def upload_profile_photo(
     filename = file.filename or "photo.jpg"
     key = await save_upload(filename, data)
     return ProfilePhotoResponse(url=f"/uploads/{key}")
+
+
+@router.get("/me", response_model=ProfileResponse)
+async def get_my_profile(
+    current_user: User = Depends(get_current_user),
+):
+    return current_user
+
+
+@router.post("/complete", response_model=ProfileResponse)
+async def complete_profile(
+    body: ProfileCompleteRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    current_user.name = body.name
+    current_user.profile_image_url = body.profile_image_url
+    current_user.linkedin = body.linkedin
+    current_user.description = body.description
+    if current_user.profile_completed_at is None:
+        current_user.profile_completed_at = datetime.now(timezone.utc)
+    if not current_user.title:
+        current_user.title = await _default_title(current_user, db)
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+async def _default_title(user: User, db: AsyncSession) -> str | None:
+    if user.role.value == "chapter_lead" and user.chapter_id:
+        from app.models.chapter import Chapter
+        result = await db.execute(select(Chapter).where(Chapter.id == user.chapter_id))
+        ch = result.scalar_one_or_none()
+        if ch:
+            return f"{ch.name} Chapter Lead"
+    if user.role.value == "host":
+        return "Host"
+    return None
