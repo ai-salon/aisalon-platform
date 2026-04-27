@@ -1,12 +1,17 @@
 from datetime import datetime, date
-from typing import Any
-from pydantic import BaseModel, field_validator
+from typing import Any, Literal
+from pydantic import BaseModel, Field, field_validator
 from app.models.api_key import APIKeyProvider
 from app.models.job import JobStatus
 from app.models.article import ArticleStatus
 
 
 # ── Chapters ──────────────────────────────────────────────────────────────────
+
+class ChapterCreate(BaseModel):
+    code: str = Field(..., min_length=1, max_length=32, pattern=r"^[a-z0-9-]+$")
+    name: str = Field(..., min_length=1, max_length=128)
+
 
 class ChapterUpdate(BaseModel):
     name: str | None = None
@@ -19,7 +24,7 @@ class ChapterUpdate(BaseModel):
     events_description: str | None = None
     about_blocks: Any | None = None
     events_blocks: Any | None = None
-    status: str | None = None
+    status: Literal["draft", "active", "archived"] | None = None
     chapter_guide: str | None = None
 
 

@@ -26,7 +26,7 @@ from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
     JobResponse,
     ArticleResponse, ArticleUpdate, ArticleCreate,
-    ChapterUpdate, ChapterResponse,
+    ChapterCreate, ChapterUpdate, ChapterResponse,
     TeamMemberCreate, TeamMemberUpdate, TeamMemberResponse,
     UserCreate, UserUpdate, UserResponse, GuideReadRequest,
     InviteCreate, InviteResponse,
@@ -547,6 +547,50 @@ async def get_transcript(
 
 # ── Chapters (admin edit) ─────────────────────────────────────────────────────
 
+@router.get("/chapters", response_model=list[ChapterResponse])
+async def list_chapters_admin(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all chapters regardless of status (superadmin view)."""
+    _require_admin(current_user)
+    result = await db.execute(select(Chapter).order_by(Chapter.name))
+    return result.scalars().all()
+
+
+@router.post("/chapters", status_code=status.HTTP_201_CREATED)
+async def create_chapter(
+    body: ChapterCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_admin(current_user)
+    existing = await db.execute(select(Chapter).where(Chapter.code == body.code))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Chapter code already exists")
+    chapter = Chapter(
+        code=body.code,
+        name=body.name,
+        title=body.name,
+        description="",
+        tagline="",
+        about="",
+        event_link="",
+        calendar_embed="",
+        events_description="",
+        status="draft",
+    )
+    db.add(chapter)
+    await db.commit()
+    await db.refresh(chapter)
+    return {
+        "id": chapter.id,
+        "code": chapter.code,
+        "name": chapter.name,
+        "status": chapter.status,
+    }
+
+
 @router.get("/chapters/{chapter_id}/guide")
 async def get_chapter_guide(
     chapter_id: str,
@@ -563,19 +607,23 @@ async def get_chapter_guide(
     return {"chapter_guide": chapter.chapter_guide}
 
 
-@router.patch("/chapters/{chapter_id}", response_model=ChapterResponse)
+@router.patch("/chapters/{identifier}", response_model=ChapterResponse)
 async def update_chapter(
-    chapter_id: str,
+    identifier: str,
     body: ChapterUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     _require_lead_or_above(current_user)
-    result = await db.execute(select(Chapter).where(Chapter.id == chapter_id))
+    result = await db.execute(
+        select(Chapter).where(
+            (Chapter.id == identifier) | (Chapter.code == identifier)
+        )
+    )
     chapter = result.scalar_one_or_none()
     if not chapter:
         raise HTTPException(status_code=404, detail="Chapter not found")
-    if current_user.role != UserRole.superadmin and current_user.chapter_id != chapter_id:
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != chapter.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
     for field, value in body.model_dump(exclude_none=True).items():
