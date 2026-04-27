@@ -112,6 +112,29 @@ export default function ChapterEditPage() {
       </h1>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div>
+          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
+            Status
+          </label>
+          <select
+            value={(form.status as string) ?? "draft"}
+            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+            style={{
+              width: "100%",
+              padding: "10px 13px",
+              fontSize: 14,
+              border: "1.5px solid #d1d5db",
+              borderRadius: 6,
+              background: "#fff",
+              boxSizing: "border-box",
+            }}
+          >
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+
         {EDITABLE_FIELDS.map(({ key, label, multiline }) => (
           <div key={key}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
