@@ -10,7 +10,13 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
-export default function NavLinks({ chapters }: { chapters: ChapterNav[] }) {
+export default function NavLinks({
+  chapters,
+  insightsEnabled,
+}: {
+  chapters: ChapterNav[];
+  insightsEnabled: boolean;
+}) {
   const pathname = usePathname();
 
   const linkStyle = (active: boolean) => ({
@@ -57,27 +63,29 @@ export default function NavLinks({ chapters }: { chapters: ChapterNav[] }) {
         </ul>
       </li>
 
-      <li className="dropdown">
-        <Link
-          href="/insights"
-          className={`nav-link${insightsActive ? ' nav-link-active' : ''}`}
-          style={linkStyle(insightsActive)}
-        >
-          Insights <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
-        </Link>
-        <ul className="dropdown-menu" style={{ listStyle: 'none', margin: 0, padding: '10px 0' }}>
-          <li>
-            <Link href="/insights" className={pathname === '/insights' ? 'nav-dropdown-active' : ''}>
-              Articles
-            </Link>
-          </li>
-          <li>
-            <Link href="/insights/graph" className={isActive(pathname, '/insights/graph') ? 'nav-dropdown-active' : ''}>
-              Concept Graph
-            </Link>
-          </li>
-        </ul>
-      </li>
+      {insightsEnabled && (
+        <li className="dropdown">
+          <Link
+            href="/insights"
+            className={`nav-link${insightsActive ? ' nav-link-active' : ''}`}
+            style={linkStyle(insightsActive)}
+          >
+            Insights <i className="fa fa-angle-down" style={{ fontSize: 12 }} aria-hidden="true" />
+          </Link>
+          <ul className="dropdown-menu" style={{ listStyle: 'none', margin: 0, padding: '10px 0' }}>
+            <li>
+              <Link href="/insights" className={pathname === '/insights' ? 'nav-dropdown-active' : ''}>
+                Articles
+              </Link>
+            </li>
+            <li>
+              <Link href="/insights/graph" className={isActive(pathname, '/insights/graph') ? 'nav-dropdown-active' : ''}>
+                Concept Graph
+              </Link>
+            </li>
+          </ul>
+        </li>
+      )}
 
       <li className="dropdown">
         <Link

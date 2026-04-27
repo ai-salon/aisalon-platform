@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { fetchOgData, type OgData } from "@/lib/og";
+import { getPublicFlags } from "@/lib/featureFlags";
 
 export const metadata: Metadata = {
   title: "Insights – Ai Salon",
@@ -27,6 +29,8 @@ async function getChapters() {
 }
 
 export default async function InsightsPage() {
+  const flags = await getPublicFlags();
+  if (!flags.insights_enabled) notFound();
   const [articles, chapters] = await Promise.all([getArticles(), getChapters()]);
   const chapterMap: Record<string, string> = {};
   for (const c of chapters) chapterMap[c.id] = c.name;

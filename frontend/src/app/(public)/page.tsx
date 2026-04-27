@@ -134,8 +134,13 @@ export default function HomePage() {
   const [team, setTeam] = useState<Member[]>([]);
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [ogMap, setOgMap] = useState<Record<string, OgData>>({});
+  const [insightsEnabled, setInsightsEnabled] = useState(false);
 
   useEffect(() => {
+    fetch(`${API_URL}/public-feature-flags`)
+      .then((r) => r.ok ? r.json() : {})
+      .then((f: { insights_enabled?: boolean }) => setInsightsEnabled(!!f.insights_enabled))
+      .catch(() => { });
     fetch(`${API_URL}/chapters`)
       .then((r) => r.json())
       .then(setChapters)
@@ -545,11 +550,13 @@ export default function HomePage() {
                       </a>
                     );
                   })}
-                  <div style={{ marginTop: 8 }}>
-                    <Link href="/insights" style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }} data-umami-event="homepage-view-all-insights">
-                      View all insights →
-                    </Link>
-                  </div>
+                  {insightsEnabled && (
+                    <div style={{ marginTop: 8 }}>
+                      <Link href="/insights" style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }} data-umami-event="homepage-view-all-insights">
+                        View all insights →
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -49,6 +49,122 @@ const SYSTEM_SETTINGS = [
   },
 ];
 
+interface FeatureFlag {
+  name: string;
+  value: boolean;
+  description: string;
+}
+
+function FeatureFlagsSection({ token }: { token: string }) {
+  const [flags, setFlags] = useState<FeatureFlag[]>([]);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  function load() {
+    if (!token) return;
+    fetch(`${API_URL}/admin/feature-flags`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setFlags)
+      .catch(console.error);
+  }
+
+  useEffect(load, [token]);
+
+  async function toggle(flag: FeatureFlag) {
+    setSavingKey(flag.name);
+    const r = await fetch(`${API_URL}/admin/feature-flags/${flag.name}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ value: !flag.value }),
+    });
+    setSavingKey(null);
+    if (r.ok) {
+      toast.success(`${flag.name} ${!flag.value ? "enabled" : "disabled"}`);
+      load();
+    } else {
+      toast.error("Failed to update flag");
+    }
+  }
+
+  return (
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 8,
+        padding: "20px 24px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <i className="fa fa-flag" style={{ color: "#56a1d2", fontSize: 15 }} />
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>Feature Flags</span>
+      </div>
+      <p style={{ fontSize: 13, color: "#696969", marginBottom: 16 }}>
+        Toggle public-facing features. Changes apply within ~30 seconds.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {flags.length === 0 ? (
+          <p style={{ fontSize: 13, color: "#9ca3af" }}>No feature flags configured.</p>
+        ) : (
+          flags.map((flag) => (
+            <div
+              key={flag.name}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 16,
+                paddingTop: 12,
+                borderTop: "1px solid #f1f1ec",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>{flag.name}</div>
+                <div style={{ fontSize: 12, color: "#696969", marginTop: 2, lineHeight: 1.5 }}>
+                  {flag.description}
+                </div>
+              </div>
+              <button
+                onClick={() => toggle(flag)}
+                disabled={savingKey === flag.name}
+                aria-pressed={flag.value}
+                style={{
+                  position: "relative",
+                  width: 44,
+                  height: 24,
+                  borderRadius: 12,
+                  border: "none",
+                  background: flag.value ? "#56a1d2" : "#d1d5db",
+                  cursor: savingKey === flag.name ? "wait" : "pointer",
+                  flexShrink: 0,
+                  transition: "background 0.15s",
+                  padding: 0,
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: flag.value ? 22 : 2,
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: "#fff",
+                    transition: "left 0.15s",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                  }}
+                />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 function StatusBadge({ active }: { active: boolean }) {
   return (
     <span
@@ -607,6 +723,7 @@ export default function SettingsPage() {
                 Superadmin-only. Configure publishing and social integrations.
               </p>
             </div>
+            <FeatureFlagsSection token={token} />
             {SYSTEM_SETTINGS.map((cfg) => (
               <SystemSettingSection
                 key={cfg.section}

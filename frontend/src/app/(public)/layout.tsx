@@ -1,6 +1,8 @@
 import Script from 'next/script'
+import { getPublicFlags } from '@/lib/featureFlags'
 
-export default function PublicLayout({ children }: { children: React.ReactNode }) {
+export default async function PublicLayout({ children }: { children: React.ReactNode }) {
+  const flags = await getPublicFlags()
   return (
     <>
       {process.env.NEXT_PUBLIC_UMAMI_URL && process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
@@ -47,13 +49,13 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
               Get Involved
             </h4>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {[
+              {([
                 ["Attend an Event", "https://lu.ma/Ai-salon"],
-                ["Insights", "/insights"],
+                ...(flags.insights_enabled ? [["Insights", "/insights"]] as const : []),
                 ["Run a Salon", "/start"],
                 ["Volunteer", "/volunteer"],
                 ["Host or Join a Chapter", "/host"],
-              ].map(([label, href]) => (
+              ] as [string, string][]).map(([label, href]) => (
                 <li key={label} style={{ marginBottom: 12 }}>
                   <a href={href} style={{ fontSize: 14, color: "rgba(255,255,255,0.7)" }}>
                     {label}

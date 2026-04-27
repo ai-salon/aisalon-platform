@@ -7,6 +7,7 @@ import "./globals.css";
 import Providers from "./providers";
 import MobileNav from "./MobileNav";
 import NavLinks from "./NavLinks";
+import { getPublicFlags } from "@/lib/featureFlags";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const chapters = await getChapters();
+  const [chapters, flags] = await Promise.all([getChapters(), getPublicFlags()]);
   return (
     <html lang="en">
       <head>
@@ -87,7 +88,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Link>
 
             {/* Nav links — hidden on mobile */}
-            <NavLinks chapters={chapters} />
+            <NavLinks chapters={chapters} insightsEnabled={flags.insights_enabled} />
 
             {/* Nav buttons — hidden on mobile */}
             <div className="desktop-nav-buttons" style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -122,7 +123,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </div>
 
             {/* Mobile hamburger */}
-            <MobileNav chapters={chapters} />
+            <MobileNav chapters={chapters} insightsEnabled={flags.insights_enabled} />
           </div>
         </nav>
 

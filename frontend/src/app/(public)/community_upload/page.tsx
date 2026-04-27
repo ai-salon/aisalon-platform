@@ -41,7 +41,7 @@ export default function CommunityUploadPage() {
     if (!file) return;
     fd.append("file", file);
     fd.append("city", city);
-    if (topicId) fd.append("topic_id", topicId);
+    if (topicId && topicId !== "__other__") fd.append("topic_id", topicId);
     if (topicText) fd.append("topic_text", topicText);
     if (name) fd.append("name", name);
     if (email) fd.append("email", email);
@@ -129,17 +129,33 @@ export default function CommunityUploadPage() {
             Topic <span style={{ color: "#dc2626" }}>*</span>
           </label>
           {topics.length > 0 ? (
-            <select
-              required
-              value={topicId}
-              onChange={(e) => setTopicId(e.target.value)}
-              style={{ ...inputStyle, background: "white" }}
-            >
-              <option value="">Select a topic…</option>
-              {topics.map((t) => (
-                <option key={t.id} value={t.id}>{t.title}</option>
-              ))}
-            </select>
+            <>
+              <select
+                required
+                value={topicId}
+                onChange={(e) => {
+                  setTopicId(e.target.value);
+                  if (e.target.value !== "__other__") setTopicText("");
+                }}
+                style={{ ...inputStyle, background: "white" }}
+              >
+                <option value="">Select a topic…</option>
+                {topics.map((t) => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+                <option value="__other__">Other (specify)</option>
+              </select>
+              {topicId === "__other__" && (
+                <input
+                  type="text"
+                  required
+                  placeholder="What did you discuss?"
+                  value={topicText}
+                  onChange={(e) => setTopicText(e.target.value)}
+                  style={{ ...inputStyle, marginTop: 8 }}
+                />
+              )}
+            </>
           ) : (
             <input
               type="text"

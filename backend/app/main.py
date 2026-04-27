@@ -22,6 +22,7 @@ from app.api.hosting_interest import router as hosting_interest_router
 from app.api.volunteer import router as volunteer_router
 from app.api.topics import router as topics_router
 from app.api.community import router as community_router
+from app.api.feature_flags import router as feature_flags_router
 from app.api.graph import public_router as graph_public_router, admin_router as graph_admin_router
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
@@ -151,6 +152,7 @@ app.include_router(hosting_interest_router)
 app.include_router(volunteer_router)
 app.include_router(topics_router)
 app.include_router(community_router)
+app.include_router(feature_flags_router)
 app.include_router(graph_public_router)
 app.include_router(graph_admin_router)
 

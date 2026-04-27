@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { fetchOgData, type OgData } from "@/lib/og";
+import { getPublicFlags } from "@/lib/featureFlags";
 import { InteractiveLogo } from "@/components/InteractiveLogo";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -73,6 +74,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
   const chapter = await getChapter(code);
   if (!chapter) notFound();
 
+  const flags = await getPublicFlags();
   const articles = await getChapterArticles(chapter.id);
   const ogResults = await Promise.allSettled(
     articles.map((a) => a.substack_url ? fetchOgData(a.substack_url) : Promise.resolve({ image: null, description: null }))
@@ -296,11 +298,13 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                 );
               })}
             </div>
-            <div style={{ marginTop: 24, textAlign: "center" }}>
-              <Link href="/insights" style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}>
-                View all community insights →
-              </Link>
-            </div>
+            {flags.insights_enabled && (
+              <div style={{ marginTop: 24, textAlign: "center" }}>
+                <Link href="/insights" style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none" }}>
+                  View all community insights →
+                </Link>
+              </div>
+            )}
           </div>
         </section>
       )}

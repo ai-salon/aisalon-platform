@@ -6,7 +6,13 @@ import Link from "next/link";
 
 type ChapterNav = { code: string; name: string };
 
-export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
+export default function MobileNav({
+  chapters,
+  insightsEnabled,
+}: {
+  chapters: ChapterNav[];
+  insightsEnabled: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -71,10 +77,12 @@ export default function MobileNav({ chapters }: { chapters: ChapterNav[] }) {
               <NavLink href="/#team" icon="fa-users">Team</NavLink>
             </NavSection>
 
-            <NavSection label="Explore">
-              <NavLink href="/insights" icon="fa-newspaper-o">Articles</NavLink>
-              <NavLink href="/insights/graph" icon="fa-share-alt">Concept Graph</NavLink>
-            </NavSection>
+            {insightsEnabled && (
+              <NavSection label="Explore">
+                <NavLink href="/insights" icon="fa-newspaper-o">Articles</NavLink>
+                <NavLink href="/insights/graph" icon="fa-share-alt">Concept Graph</NavLink>
+              </NavSection>
+            )}
 
             <NavSection label="Chapters">
               {chapters.map((ch) => (
