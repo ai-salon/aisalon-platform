@@ -8,16 +8,17 @@ import { InteractiveLogo } from "@/components/InteractiveLogo";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type Member = {
-  id: string; name: string; role: string;
+  id: string; name: string; title: string | null;
   description: string | null; profile_image_url: string;
-  linkedin: string | null; is_cofounder: boolean;
+  linkedin: string | null; is_founder: boolean;
+  chapter_code: string | null; chapter_name: string | null;
 };
 
 type Chapter = {
   id: string; code: string; name: string; title: string;
   description: string; tagline: string; about: string;
   event_link: string; calendar_embed: string; events_description: string;
-  status: string; team_members: Member[];
+  status: string;
 };
 
 type ArticleSummary = {
@@ -85,16 +86,17 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
     ogMap[a.id] = r.status === "fulfilled" ? r.value : { image: null, description: null };
   });
 
-  const rolePriority = (r: string) => {
-    if (r === "Founder, Executive Director") return 0;
-    if (r.startsWith("Co-Founder")) return 1;
-    if (r.includes("Chapter Lead")) return 2;
-    return 3;
-  };
-  const sortedMembers = [...chapter.team_members].sort((a, b) => {
-    const rCmp = rolePriority(a.role) - rolePriority(b.role);
-    return rCmp !== 0 ? rCmp : a.name.localeCompare(b.name);
-  });
+  async function getChapterTeam(code: string): Promise<Member[]> {
+    try {
+      const r = await fetch(`${API_URL}/team`, { cache: "no-store" });
+      if (!r.ok) return [];
+      const all: Member[] = await r.json();
+      return all.filter((m) => m.chapter_code === code);
+    } catch {
+      return [];
+    }
+  }
+  const sortedMembers = await getChapterTeam(chapter.code);
 
   return (
     <div>
@@ -335,7 +337,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                   >
                     {m.profile_image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={m.profile_image_url.startsWith("/uploads/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
                       <i className="fa fa-user" style={{ fontSize: 64, color: "#d2b356" }} aria-hidden="true" />
                     )}
@@ -351,7 +353,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
                   </div>
                   {/* Role */}
                   <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#d2b356", margin: "0 0 10px" }}>
-                    {m.role}
+                    {m.title}
                   </p>
                   {/* Description */}
                   {m.description && (
