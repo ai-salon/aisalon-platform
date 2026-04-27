@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import SidebarNav from "./SidebarNav";
 
 export const dynamic = "force-dynamic";
@@ -19,20 +20,41 @@ async function getChapterName(token: string, chapterId: string): Promise<string 
   }
 }
 
+async function isProfileIncomplete(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/profile/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return false;
+    const me = await res.json();
+    return !me.profile_completed_at;
+  } catch {
+    return false;
+  }
+}
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Attempt to pre-load the chapter name for the sidebar badge.
   // SidebarNav reads session client-side, so auth failure here doesn't hide the sidebar.
   let chapterName: string | undefined;
+  let token: string | undefined;
   try {
     const { auth } = await import("@/lib/auth");
     const session = await auth();
-    const token = (session as { accessToken?: string } | null)?.accessToken;
+    token = (session as { accessToken?: string } | null)?.accessToken;
     const chapterId = (session?.user as { chapterId?: string } | undefined)?.chapterId;
     if (token && chapterId) {
       chapterName = await getChapterName(token, chapterId);
     }
   } catch {
     // Non-fatal — sidebar will still render without chapter name
+  }
+
+  // Gate admin pages on profile completion. Outside the try/catch because
+  // redirect() throws a NEXT_REDIRECT error that must not be swallowed.
+  if (token && (await isProfileIncomplete(token))) {
+    redirect("/profile/complete");
   }
 
   return (

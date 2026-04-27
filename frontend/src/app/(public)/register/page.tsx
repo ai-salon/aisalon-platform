@@ -74,7 +74,7 @@ function RegisterForm() {
         // Registration succeeded but auto-login failed — redirect to login
         router.push("/login");
       } else {
-        router.push("/dashboard");
+        router.push("/profile/complete");
       }
     } catch {
       setError("Something went wrong.");
