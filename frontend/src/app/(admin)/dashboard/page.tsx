@@ -39,7 +39,7 @@ export default async function DashboardPage() {
     fetchJson<ApiKey[]>(`${API_URL}/admin/api-keys`, token),
     fetchJson<Job[]>(`${API_URL}/admin/jobs`, token),
     fetchJson<Article[]>(`${API_URL}/admin/articles`, token),
-    fetchJson<TeamMember[]>(`${API_URL}/admin/team`, token),
+    fetchJson<TeamMember[]>(`${API_URL}/admin/people`, token),
     fetchJson<ChapterRecord[]>(`${API_URL}/chapters`, token),
     fetchJson<MeResponse>(`${API_URL}/admin/me`, token),
     fetchJson<ChapterLead[]>(`${API_URL}/admin/chapter-leads`, token),
