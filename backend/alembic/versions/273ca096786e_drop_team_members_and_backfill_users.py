@@ -25,7 +25,7 @@ def _slugify(name: str) -> str:
 
 def upgrade() -> None:
     bind = op.get_bind()
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
 
     insp = sa.inspect(bind)
     if "team_members" not in insp.get_table_names():
