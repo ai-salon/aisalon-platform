@@ -27,6 +27,14 @@ def upgrade() -> None:
     bind = op.get_bind()
     now = datetime.now(timezone.utc)
 
+    # Ensure 'host' is a valid UserRole value on Postgres.
+    # The initial migration created the enum with only ('superadmin', 'chapter_lead');
+    # the model added 'host' later but no migration backfilled the enum value.
+    # SQLite stores enums as plain strings, so this is a Postgres-only fix.
+    if bind.dialect.name == "postgresql":
+        with op.get_context().autocommit_block():
+            bind.execute(sa.text("ALTER TYPE userrole ADD VALUE IF NOT EXISTS 'host'"))
+
     insp = sa.inspect(bind)
     if "team_members" not in insp.get_table_names():
         return
