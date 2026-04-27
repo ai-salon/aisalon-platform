@@ -904,6 +904,12 @@ async def create_invite(
             raise HTTPException(status_code=403, detail="Forbidden")
         if body.role != "host":
             raise HTTPException(status_code=403, detail="Chapter leads can only create host invites")
+    ch_result = await db.execute(select(Chapter).where(Chapter.id == body.chapter_id))
+    ch = ch_result.scalar_one_or_none()
+    if not ch:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    if ch.status == "archived":
+        raise HTTPException(status_code=400, detail="Cannot invite to an archived chapter")
     invite = Invite(
         chapter_id=body.chapter_id,
         role=body.role,
