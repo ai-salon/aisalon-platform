@@ -12,7 +12,11 @@ router = APIRouter(prefix="/chapters", tags=["chapters"])
 
 @router.get("", response_model=list[ChapterSummary])
 async def list_chapters(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Chapter).order_by(Chapter.name))
+    result = await db.execute(
+        select(Chapter)
+        .where(Chapter.status == "active")
+        .order_by(Chapter.name)
+    )
     return result.scalars().all()
 
 
@@ -22,7 +26,10 @@ async def get_chapter(identifier: str, db: AsyncSession = Depends(get_db)):
     stmt = (
         select(Chapter)
         .options(selectinload(Chapter.team_members))
-        .where((Chapter.code == identifier) | (Chapter.id == identifier))
+        .where(
+            (Chapter.status == "active")
+            & ((Chapter.code == identifier) | (Chapter.id == identifier))
+        )
     )
     result = await db.execute(stmt)
     chapter = result.scalar_one_or_none()
