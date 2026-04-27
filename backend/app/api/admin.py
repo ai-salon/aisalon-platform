@@ -4,6 +4,7 @@ from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy import select, func, cast, Date
 
 from app.core.database import get_db, AsyncSessionLocal
@@ -809,6 +810,70 @@ async def delete_user(
         raise HTTPException(status_code=404, detail="User not found")
     await db.delete(user)
     await db.commit()
+
+
+# ── People (User profile management) ──────────────────────────────────────────
+
+@router.get("/people")
+async def admin_list_people(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    stmt = select(User).options(selectinload(User.chapter))
+    chapter_filter = _chapter_filter(current_user)
+    if chapter_filter:
+        stmt = stmt.where(User.chapter_id == chapter_filter)
+    result = await db.execute(stmt.order_by(User.display_order, User.name))
+    return [
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "role": u.role.value,
+            "name": u.name,
+            "title": u.title,
+            "is_founder": u.is_founder,
+            "display_order": u.display_order,
+            "profile_image_url": u.profile_image_url,
+            "profile_completed_at": u.profile_completed_at.isoformat() if u.profile_completed_at else None,
+            "chapter_code": u.chapter.code if u.chapter else None,
+            "chapter_name": u.chapter.name if u.chapter else None,
+        }
+        for u in result.scalars().unique().all()
+    ]
+
+
+class PersonUpdate(BaseModel):
+    title: str | None = None
+    is_founder: bool | None = None
+    display_order: int | None = None
+    profile_image_url: str | None = None
+
+
+@router.patch("/people/{user_id}")
+async def admin_update_person(
+    user_id: str,
+    body: PersonUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_admin(current_user)
+    row = await db.execute(select(User).where(User.id == user_id))
+    target = row.scalar_one_or_none()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    if body.title is not None:
+        target.title = body.title
+    if body.is_founder is not None:
+        target.is_founder = body.is_founder
+    if body.display_order is not None:
+        target.display_order = body.display_order
+    if body.profile_image_url is not None:
+        target.profile_image_url = body.profile_image_url
+    await db.commit()
+    await db.refresh(target)
+    return {"ok": True}
 
 
 # ── Invites ───────────────────────────────────────────────────────────────────
