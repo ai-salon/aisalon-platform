@@ -1,5 +1,7 @@
 """Startup seed: superadmin + chapters + chapter leads + founders + topics + volunteer roles."""
 from datetime import datetime, timezone
+from pathlib import Path
+import re
 import secrets
 from sqlalchemy import select
 
@@ -15,6 +17,8 @@ from app.models.topic import Topic
 logger = get_logger(__name__)
 
 _P = "/images/people"
+
+_TOPICS_DIR = Path(__file__).resolve().parents[2] / "docs" / "topics"
 
 
 def _now():
@@ -447,151 +451,46 @@ async def seed_volunteer_roles() -> None:
         await db.commit()
 
 
-_TOPICS = [
-    dict(
-        title="AI and the Future of Work",
-        content="""\
-## Description
-
-Examines how AI and automation reshape roles, skill demands, and organizational structures—empowering transformative change but also disrupting traditional career paths.
-
-**Conversation Topics**
-
-- AI as coworker: assistant, collaborator, or competitor?
-- Reskilling at scale: bootcamps, micro-credentials, lifelong learning
-- Hybrid teams: humans steering high-level strategy, AI handling routine
-- Universal basic income vs. guaranteed upskilling
-
-**Evocative Questions**
-
-- What tasks should remain human-only, and why?
-- How do we design workplaces that blend intuition and algorithms?
-- Will AI create more fulfilling jobs or hollow out work entirely?
-
-## Links
-
-**Ai Salon Archive Substacks**
-
-- [HumanX Ai Salon: The Future of Work](https://aisalon.substack.com/p/humanx-ai-salon-the-future-of-work)
-- [Personal and Career Impact](https://aisalon.substack.com/p/personal-and-career-impact)\
-""",
-    ),
-    dict(
-        title="AI Ethics and Governance",
-        content="""\
-## Description
-
-Explores the frameworks, principles, and policies shaping how AI is developed and deployed—who decides the rules, who benefits, and who bears the risks.
-
-**Conversation Topics**
-
-- Algorithmic bias: detecting and correcting it in high-stakes systems
-- Regulation vs. innovation: where should governments draw the line?
-- AI in decisions that affect people: hiring, lending, criminal justice
-- Who owns AI systems—and who should they answer to?
-
-**Evocative Questions**
-
-- Can a machine be held accountable for harm?
-- What values should be baked into AI systems, and who gets to choose?
-- Is it possible to have ethical AI in an unequal world?\
-""",
-    ),
-    dict(
-        title="AI in Creative Arts",
-        content="""\
-## Description
-
-AI is generating art, music, and writing—raising questions about authorship, originality, and the value we place on human expression in an age of machine-generated content.
-
-**Conversation Topics**
-
-- What makes something "art"—process, intent, or result?
-- Copyright and ownership: who holds rights to AI-generated work?
-- AI as collaborator vs. replacement for human artists
-- The economics of creativity when anyone can generate images or music
-
-**Evocative Questions**
-
-- When an AI creates a painting, is something lost that we can't name?
-- How do you decide whether to use AI tools in your own creative work?
-- What should we preserve about human-made art, and why?\
-""",
-    ),
-    dict(
-        title="AI and Personal Privacy",
-        content="""\
-## Description
-
-AI systems collect and analyze vast amounts of personal data. Explore the tension between personalization and privacy, the rise of surveillance, and what digital autonomy means in the AI era.
-
-**Conversation Topics**
-
-- Where does helpful personalization become invasive surveillance?
-- Data ownership: should individuals control what's used to train AI?
-- Facial recognition, emotion detection, and the public/private divide
-- Privacy by design vs. opt-in consent frameworks
-
-**Evocative Questions**
-
-- How comfortable are you with AI knowing your habits and behaviors?
-- What would it take to feel truly in control of your digital self?
-- Is privacy even possible in an AI-saturated world?\
-""",
-    ),
-    dict(
-        title="AI and Education",
-        content="""\
-## Description
-
-From personalized tutoring to automated grading, AI is reshaping how we learn and teach—raising questions about critical thinking, equity, and the future of knowledge itself.
-
-**Conversation Topics**
-
-- AI tutors: deeper personalization or shallow substitution for human teachers?
-- Academic integrity in an age of AI-generated writing
-- Teaching critical thinking when AI can answer any question convincingly
-- Skills that become more valuable—not less—as AI advances
-
-**Evocative Questions**
-
-- What is the purpose of education when knowledge is instantly accessible?
-- Will AI tutors make learning more equitable or widen existing gaps?
-- How should we redefine what it means to be "educated"?\
-""",
-    ),
-    dict(
-        title="AI and Health",
-        content="""\
-## Description
-
-AI is diagnosing diseases, accelerating drug discovery, and personalizing treatment—but also introducing new risks around bias, access, and the future of the doctor-patient relationship.
-
-**Conversation Topics**
-
-- Diagnostic AI: when to trust it, when to question it
-- Equity in health AI: ensuring tools work for all populations
-- Mental health support: chatbots, therapists, and the limits of technology
-- How AI changes the relationship between patients and doctors
-
-**Evocative Questions**
-
-- Would you trust an AI to diagnose a medical condition?
-- What should remain irreducibly human in healthcare?
-- Who should be liable when an AI medical tool gets it wrong?\
-""",
-    ),
-]
+def _parse_topic_file(path: Path) -> dict:
+    text = path.read_text(encoding="utf-8").strip()
+    lines = text.splitlines()
+    title = ""
+    body_start = 0
+    for i, line in enumerate(lines):
+        m = re.match(r"^#\s+(.+)", line)
+        if m:
+            title = m.group(1).strip()
+            body_start = i + 1
+            break
+    while body_start < len(lines) and not lines[body_start].strip():
+        body_start += 1
+    return {"title": title, "content": "\n".join(lines[body_start:]).strip()}
 
 
 async def seed_topics() -> None:
-    """Create initial conversation topics (idempotent)."""
+    """Upsert conversation topics from docs/topics/*.md (idempotent)."""
+    if not _TOPICS_DIR.exists():
+        logger.warning("topics_dir_missing", path=str(_TOPICS_DIR))
+        return
+
+    md_files = sorted(_TOPICS_DIR.glob("*.md"))
     async with AsyncSessionLocal() as db:
-        for topic_data in _TOPICS:
-            result = await db.execute(
-                select(Topic).where(Topic.title == topic_data["title"])
-            )
-            if not result.scalar_one_or_none():
-                db.add(Topic(**topic_data))
-                logger.info("Seeded topic: %s", topic_data["title"])
+        for path in md_files:
+            parsed = _parse_topic_file(path)
+            if not parsed["title"]:
+                logger.warning("topic_no_title", file=path.name)
+                continue
+
+            result = await db.execute(select(Topic).where(Topic.title == parsed["title"]))
+            topic = result.scalar_one_or_none()
+            if topic:
+                topic.content = parsed["content"]
+                topic.is_active = True
+            else:
+                db.add(Topic(
+                    title=parsed["title"],
+                    content=parsed["content"],
+                    is_active=True,
+                ))
+                logger.info("Seeded topic: %s", parsed["title"])
         await db.commit()
