@@ -9,7 +9,7 @@ from app.core.security import hash_password
 
 async def _make_completed_user(
     db, *, email, name, role, chapter_id=None, is_founder=False,
-    title=None, display_order=0,
+    title=None, display_order=0, hide_from_team=False,
 ):
     u = User(
         email=email,
@@ -23,6 +23,7 @@ async def _make_completed_user(
         title=title or role.value,
         is_founder=is_founder,
         display_order=display_order,
+        hide_from_team=hide_from_team,
         profile_completed_at=datetime.now(timezone.utc),
     )
     db.add(u)
@@ -129,6 +130,18 @@ async def test_team_excludes_users_with_incomplete_profile(
     r = await client.get("/team")
     names = [m["name"] for m in r.json() if m.get("name")]
     assert "incomplete" not in names
+
+
+async def test_team_excludes_hide_from_team_users(
+    client: AsyncClient, db_session, sf_chapter
+):
+    await _make_completed_user(
+        db_session, email="ghost@x", name="Ghost Lead", role=UserRole.chapter_lead,
+        chapter_id=sf_chapter.id, hide_from_team=True,
+    )
+    r = await client.get("/team")
+    names = [m["name"] for m in r.json()]
+    assert "Ghost Lead" not in names
 
 
 async def test_team_sort_order_founders_first(

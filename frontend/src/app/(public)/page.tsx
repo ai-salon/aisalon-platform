@@ -187,7 +187,7 @@ export default function HomePage() {
             {/* Gold rule */}
             <div className="banner-text-rule" style={{ width: 40, height: 4, background: "#d2b356", marginBottom: 28 }} />
 
-            <h1>The Global AI Commons</h1>
+            <h1>The AI Commons</h1>
             <h2>AI will impact everyone – everyone should impact AI</h2>
 
             {/* Gold rule */}

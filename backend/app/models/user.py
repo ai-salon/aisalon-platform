@@ -36,5 +36,6 @@ class User(Base, TimestampMixin):
     is_founder: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     profile_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    hide_from_team: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     chapter: Mapped["Chapter | None"] = relationship("Chapter", back_populates="users")  # noqa: F821

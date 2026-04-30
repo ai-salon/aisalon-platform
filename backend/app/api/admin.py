@@ -819,7 +819,6 @@ async def admin_list_people(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    _require_lead_or_above(current_user)
     stmt = select(User).options(selectinload(User.chapter))
     chapter_filter = _chapter_filter(current_user)
     if chapter_filter:
@@ -837,6 +836,7 @@ async def admin_list_people(
             "display_order": u.display_order,
             "profile_image_url": u.profile_image_url,
             "profile_completed_at": u.profile_completed_at.isoformat() if u.profile_completed_at else None,
+            "hide_from_team": u.hide_from_team,
             "chapter_code": u.chapter.code if u.chapter else None,
             "chapter_name": u.chapter.name if u.chapter else None,
         }
@@ -849,6 +849,7 @@ class PersonUpdate(BaseModel):
     is_founder: bool | None = None
     display_order: int | None = None
     profile_image_url: str | None = None
+    hide_from_team: bool | None = None
 
 
 @router.patch("/people/{user_id}")
@@ -871,6 +872,8 @@ async def admin_update_person(
         target.display_order = body.display_order
     if body.profile_image_url is not None:
         target.profile_image_url = body.profile_image_url
+    if body.hide_from_team is not None:
+        target.hide_from_team = body.hide_from_team
     await db.commit()
     await db.refresh(target)
     return {"ok": True}

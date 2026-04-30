@@ -17,6 +17,7 @@ from app.models.chapter import Chapter
 from app.models.login_event import UserLoginEvent
 from app.schemas.auth import (
     LoginRequest, RegisterRequest, TokenResponse, UserOut, InviteInfoResponse,
+    ChangePasswordRequest,
 )
 
 logger = get_logger(__name__)
@@ -136,3 +137,22 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
 @router.get("/admin/me", response_model=UserOut)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/auth/change-password", status_code=204)
+@limiter.limit("10/15minutes")
+async def change_password(
+    request: Request,
+    body: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not verify_password(body.current_password, current_user.hashed_password):
+        logger.warning("change_password_wrong_current", user_id=current_user.id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+    current_user.hashed_password = hash_password(body.new_password)
+    await db.commit()
+    logger.info("change_password_success", user_id=current_user.id)

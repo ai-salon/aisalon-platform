@@ -6,6 +6,11 @@ startup seed hooks don't cover.
 
 Currently:
 - Upserts Article rows from docs/substack-articles.md (keyed on substack_url).
+- Deletes the orphaned `cecilia-callas` user produced by the team_members
+  drop migration (the seed creates `cecilia` separately).
+- Marks profile-less base chapter users (e.g. `sf@aisalon.xyz` when no lead
+  profile is seeded) as `hide_from_team=True` so they never surface on the
+  public Team page even if a profile is later filled in by accident.
 
 Run locally:
     cd backend && poetry run python scripts/fresh_deploy_backfill.py
@@ -33,8 +38,10 @@ import app.models.topic  # noqa: F401, E402
 import app.models.user  # noqa: F401, E402
 import app.models.volunteer  # noqa: F401, E402
 from app.core.database import AsyncSessionLocal  # noqa: E402
+from app.core.seed import _CHAPTERS  # noqa: E402
 from app.models.article import Article, ArticleStatus  # noqa: E402
 from app.models.chapter import Chapter  # noqa: E402
+from app.models.user import User  # noqa: E402
 
 ARTICLES_MD = Path(__file__).resolve().parents[1] / "docs" / "substack-articles.md"
 
@@ -133,9 +140,66 @@ async def backfill_substack_articles() -> tuple[int, int, int]:
     return created, updated, skipped
 
 
+async def backfill_cecilia_dedup() -> None:
+    """Resolve the cecilia / cecilia-callas duplicate from the team_members migration.
+
+    The historical migration `273ca096786e_drop_team_members_and_backfill_users`
+    created a slugified `cecilia-callas` user. The seed `_FOUNDERS` entry then
+    created a second `cecilia` user. This function leaves only `cecilia`.
+    Idempotent.
+    """
+    async with AsyncSessionLocal() as db:
+        slug_row = await db.execute(select(User).where(User.username == "cecilia-callas"))
+        slug_user = slug_row.scalar_one_or_none()
+        if not slug_user:
+            print("cecilia dedup: no `cecilia-callas` row found, nothing to do")
+            return
+
+        canonical_row = await db.execute(select(User).where(User.username == "cecilia"))
+        canonical = canonical_row.scalar_one_or_none()
+
+        if canonical:
+            await db.delete(slug_user)
+            await db.commit()
+            print(f"cecilia dedup: deleted orphaned `cecilia-callas` ({slug_user.id})")
+        else:
+            slug_user.username = "cecilia"
+            slug_user.email = "cecilia@aisalon.placeholder"
+            await db.commit()
+            print(f"cecilia dedup: renamed `cecilia-callas` -> `cecilia` ({slug_user.id})")
+
+
+async def backfill_hide_profile_less_base_users() -> None:
+    """Mark profile-less chapter base users (`username=<code>`) as hide_from_team.
+
+    The seed creates a base user per chapter regardless of whether a lead
+    person is attached. Where no lead profile is set (e.g. SF, London), the
+    account is a ghost admin login — it should never appear on the public
+    Team page. Setting `hide_from_team=True` makes that explicit even if
+    profile fields are populated by mistake later. Idempotent.
+    """
+    chapter_codes = {ch["code"] for ch in _CHAPTERS}
+    hidden = 0
+    async with AsyncSessionLocal() as db:
+        for code in chapter_codes:
+            row = await db.execute(select(User).where(User.username == code))
+            user = row.scalar_one_or_none()
+            if not user:
+                continue
+            if user.profile_completed_at:
+                continue  # Carries a real profile (e.g. Apurba on berlin@) — leave visible
+            if not user.hide_from_team:
+                user.hide_from_team = True
+                hidden += 1
+        await db.commit()
+    print(f"base-user hide: {hidden} profile-less base user(s) marked hide_from_team")
+
+
 async def main() -> None:
     print(f"=== fresh_deploy_backfill (DATABASE_URL={'set' if os.getenv('DATABASE_URL') else 'sqlite (local)'}) ===\n")
     await backfill_substack_articles()
+    await backfill_cecilia_dedup()
+    await backfill_hide_profile_less_base_users()
     print("\nDone.")
 
 

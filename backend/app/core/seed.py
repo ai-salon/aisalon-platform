@@ -108,6 +108,7 @@ _CHAPTERS = [
         ),
         status="active",
         lead_profile=dict(
+            username="sharat",
             name="Sharat Satyanarayana",
             title="Bangalore Chapter Lead",
             description="",
@@ -131,6 +132,7 @@ _CHAPTERS = [
         ),
         status="active",
         lead_profile=dict(
+            username="francis",
             name="Francis Sani",
             title="Lagos Chapter Lead",
             description="",
@@ -154,6 +156,7 @@ _CHAPTERS = [
         ),
         status="active",
         lead_profile=dict(
+            username="mikhail",
             name="Mikhail Klassen",
             title="Vancouver Chapter Lead",
             description=(
@@ -180,6 +183,7 @@ _CHAPTERS = [
         ),
         status="active",
         lead_profile=dict(
+            username="pascale",
             name="Pascale Speck",
             title="Zurich Chapter Lead",
             description="",
@@ -203,6 +207,7 @@ _CHAPTERS = [
         ),
         status="active",
         lead_profile=dict(
+            username="rupi",
             name="Rupi Sureshkumar",
             title="New York City Chapter Lead",
             description="",
@@ -274,7 +279,14 @@ async def seed_chapters() -> None:
 
 
 async def seed_chapter_leads() -> None:
-    """Create one chapter_lead user per chapter with profile populated from lead_profile."""
+    """Create one base chapter_lead user per chapter (a 'ghost' admin login).
+
+    These accounts (sf@aisalon.xyz, berlin@aisalon.xyz, ...) exist for every
+    chapter regardless of who actually leads it. They are hidden from the
+    public Team page (`hide_from_team=True`) and carry no profile data.
+    Real chapter-lead person accounts are seeded separately by
+    `seed_chapter_lead_profiles()`.
+    """
     base_pw = settings.BASE_PASSWORD
     async with AsyncSessionLocal() as db:
         for ch in _CHAPTERS:
@@ -286,7 +298,6 @@ async def seed_chapter_leads() -> None:
 
             user_row = await db.execute(select(User).where(User.username == code))
             user = user_row.scalar_one_or_none()
-            profile = ch.get("lead_profile")
 
             if not user:
                 user = User(
@@ -296,18 +307,64 @@ async def seed_chapter_leads() -> None:
                     role=UserRole.chapter_lead,
                     chapter_id=chapter.id,
                     is_active=True,
+                    hide_from_team=True,
                 )
                 db.add(user)
                 await db.flush()
-                logger.info("Seeded chapter lead: %s", code)
+                logger.info("Seeded base chapter user: %s", code)
 
-            if profile and not user.profile_completed_at:
-                user.name = profile["name"]
-                user.title = profile["title"]
-                user.description = profile.get("description") or None
-                user.profile_image_url = profile["profile_image_url"]
-                user.linkedin = profile.get("linkedin") or None
-                user.profile_completed_at = _now()
+        await db.commit()
+
+
+async def seed_chapter_lead_profiles() -> None:
+    """Create a separate user account for each named chapter-lead person.
+
+    For chapters whose `_CHAPTERS` entry has a `lead_profile` dict with a
+    `username` key (e.g. Apurba for Berlin, Mikhail for Vancouver), seed an
+    account at `<username>@aisalon.xyz` with password `{BASE_PASSWORD}{username}`,
+    role=chapter_lead, scoped to that chapter, with the profile fields filled
+    in. Idempotent: skips entries whose target user already has
+    `profile_completed_at` set.
+    """
+    base_pw = settings.BASE_PASSWORD
+    async with AsyncSessionLocal() as db:
+        for ch in _CHAPTERS:
+            profile = ch.get("lead_profile")
+            if not profile or not profile.get("username"):
+                continue
+
+            ch_row = await db.execute(select(Chapter).where(Chapter.code == ch["code"]))
+            chapter = ch_row.scalar_one_or_none()
+            if not chapter:
+                continue
+
+            username = profile["username"]
+            user_row = await db.execute(select(User).where(User.username == username))
+            user = user_row.scalar_one_or_none()
+
+            if not user:
+                user = User(
+                    username=username,
+                    email=f"{username}@aisalon.xyz",
+                    hashed_password=hash_password(f"{base_pw}{username}"),
+                    role=UserRole.chapter_lead,
+                    chapter_id=chapter.id,
+                    is_active=True,
+                )
+                db.add(user)
+                await db.flush()
+                logger.info("Seeded chapter lead person: %s", username)
+
+            if user.profile_completed_at:
+                continue
+
+            user.name = profile["name"]
+            user.title = profile["title"]
+            user.description = profile.get("description") or None
+            user.profile_image_url = profile["profile_image_url"]
+            user.linkedin = profile.get("linkedin") or None
+            user.hide_from_team = False
+            user.profile_completed_at = _now()
 
         await db.commit()
 

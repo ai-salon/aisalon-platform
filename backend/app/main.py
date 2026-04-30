@@ -27,7 +27,14 @@ from app.api.graph import public_router as graph_public_router, admin_router as 
 from app.api.profile import router as profile_router
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
-from app.core.seed import seed_superadmin, seed_chapters, seed_chapter_leads, seed_founders, seed_volunteer_roles, seed_topics
+from app.core.seed import (
+    seed_superadmin,
+    seed_chapters,
+    seed_chapter_leads,
+    seed_founders,
+    seed_volunteer_roles,
+    seed_topics,
+)
 from app.core.database import AsyncSessionLocal
 from app.models.job import Job, JobStatus
 from sqlalchemy import update

@@ -360,6 +360,120 @@ function SystemSettingSection({
   );
 }
 
+function ChangePasswordSection({ token }: { token: string }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (next !== confirm) {
+      toast.error("New passwords don't match");
+      return;
+    }
+    if (next.length < 12) {
+      toast.error("New password must be at least 12 characters");
+      return;
+    }
+    setSaving(true);
+    const r = await fetch(`${API_URL}/auth/change-password`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ current_password: current, new_password: next }),
+    });
+    setSaving(false);
+    if (r.status === 204) {
+      toast.success("Password updated");
+      setCurrent(""); setNext(""); setConfirm("");
+      return;
+    }
+    const body = await r.json().catch(() => ({}));
+    if (r.status === 400) {
+      toast.error(body.detail ?? "Current password is incorrect");
+    } else if (r.status === 422) {
+      toast.error("New password doesn't meet strength requirements");
+    } else {
+      toast.error("Failed to update password");
+    }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    padding: "9px 12px",
+    fontSize: 14,
+    border: "1.5px solid #d1d5db",
+    borderRadius: 6,
+    width: "100%",
+    boxSizing: "border-box",
+  };
+
+  return (
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 8,
+        padding: "20px 24px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <i className="fa fa-lock" style={{ color: "#56a1d2", fontSize: 15 }} />
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>Change Password</span>
+      </div>
+      <p style={{ fontSize: 13, color: "#696969", marginBottom: 16 }}>
+        At least 12 characters, including upper- and lower-case letters and a number.
+      </p>
+      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <input
+          type="password"
+          autoComplete="current-password"
+          placeholder="Current password"
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+          required
+          style={inputStyle}
+        />
+        <input
+          type="password"
+          autoComplete="new-password"
+          placeholder="New password"
+          value={next}
+          onChange={(e) => setNext(e.target.value)}
+          required
+          style={inputStyle}
+        />
+        <input
+          type="password"
+          autoComplete="new-password"
+          placeholder="Confirm new password"
+          value={confirm}
+          onChange={(e) => setConfirm(e.target.value)}
+          required
+          style={inputStyle}
+        />
+        <button
+          type="submit"
+          disabled={saving || !current || !next || !confirm}
+          style={{
+            alignSelf: "flex-start",
+            fontSize: 13,
+            fontWeight: 700,
+            padding: "9px 18px",
+            borderRadius: 6,
+            background: "#56a1d2",
+            color: "#fff",
+            border: "none",
+            cursor: saving ? "wait" : "pointer",
+            opacity: !current || !next || !confirm ? 0.5 : 1,
+          }}
+        >
+          {saving ? "Updating…" : "Update password"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const [keys, setKeys] = useState<{ provider: string; has_key: boolean }[]>([]);
@@ -478,8 +592,14 @@ export default function SettingsPage() {
     <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 30px" }}>
       <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: "0 0 6px" }}>Settings</h1>
       <p style={{ fontSize: 14, color: "#696969", marginBottom: 40 }}>
-        Manage your API keys. Keys are encrypted at rest and never returned in responses.
+        Manage your account, API keys, and platform configuration.
       </p>
+
+      {token && (
+        <div style={{ marginBottom: 32 }}>
+          <ChangePasswordSection token={token} />
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {PROVIDERS.map((provider) => {

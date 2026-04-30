@@ -18,6 +18,7 @@ async def list_team(db: AsyncSession = Depends(get_db)):
         .options(selectinload(User.chapter))
         .outerjoin(Chapter, User.chapter_id == Chapter.id)
         .where(User.profile_completed_at.is_not(None))
+        .where(User.hide_from_team.is_(False))
         .where(
             (User.is_founder.is_(True))
             | ((User.role == UserRole.chapter_lead) & (Chapter.status == "active"))

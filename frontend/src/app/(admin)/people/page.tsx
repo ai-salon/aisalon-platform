@@ -23,6 +23,8 @@ interface Person {
 export default function PeoplePage() {
   const { data: session } = useSession();
   const token = (session as unknown as { accessToken?: string })?.accessToken;
+  const userRole = (session?.user as unknown as { role?: string } | undefined)?.role;
+  const canEdit = userRole === "superadmin";
   const [people, setPeople] = useState<Person[]>([]);
 
   async function refresh() {
@@ -52,7 +54,7 @@ export default function PeoplePage() {
 
   return (
     <main className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">People</h1>
+      <h1 className="text-2xl font-semibold mb-4">Team</h1>
       <table className="w-full border-collapse">
         <thead>
           <tr className="text-left text-sm text-salon-muted border-b">
@@ -62,7 +64,7 @@ export default function PeoplePage() {
             <th>Role</th>
             <th>Chapter</th>
             <th>Founder</th>
-            <th>Order</th>
+            {canEdit && <th>Order</th>}
             <th>Profile</th>
           </tr>
         </thead>
@@ -83,36 +85,46 @@ export default function PeoplePage() {
               </td>
               <td>{p.name || p.username || p.email}</td>
               <td>
-                <input
-                  defaultValue={p.title || ""}
-                  onBlur={(e) => {
-                    if (e.target.value !== (p.title || "")) {
-                      update(p.id, { title: e.target.value });
-                    }
-                  }}
-                  className="border rounded px-2 py-1 text-sm w-full"
-                />
+                {canEdit ? (
+                  <input
+                    defaultValue={p.title || ""}
+                    onBlur={(e) => {
+                      if (e.target.value !== (p.title || "")) {
+                        update(p.id, { title: e.target.value });
+                      }
+                    }}
+                    className="border rounded px-2 py-1 text-sm w-full"
+                  />
+                ) : (
+                  <span className="text-sm">{p.title || "—"}</span>
+                )}
               </td>
               <td>{p.role}</td>
               <td>{p.chapter_name || "—"}</td>
               <td>
-                <input
-                  type="checkbox"
-                  checked={p.is_founder}
-                  onChange={(e) => update(p.id, { is_founder: e.target.checked })}
-                />
+                {canEdit ? (
+                  <input
+                    type="checkbox"
+                    checked={p.is_founder}
+                    onChange={(e) => update(p.id, { is_founder: e.target.checked })}
+                  />
+                ) : (
+                  <span className="text-sm">{p.is_founder ? "Yes" : "—"}</span>
+                )}
               </td>
-              <td>
-                <input
-                  type="number"
-                  defaultValue={p.display_order}
-                  onBlur={(e) => {
-                    const v = Number(e.target.value);
-                    if (v !== p.display_order) update(p.id, { display_order: v });
-                  }}
-                  className="border rounded px-2 py-1 w-16 text-sm"
-                />
-              </td>
+              {canEdit && (
+                <td>
+                  <input
+                    type="number"
+                    defaultValue={p.display_order}
+                    onBlur={(e) => {
+                      const v = Number(e.target.value);
+                      if (v !== p.display_order) update(p.id, { display_order: v });
+                    }}
+                    className="border rounded px-2 py-1 w-16 text-sm"
+                  />
+                </td>
+              )}
               <td>{p.profile_completed_at ? "Complete" : "Incomplete"}</td>
             </tr>
           ))}

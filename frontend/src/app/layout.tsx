@@ -32,7 +32,7 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Ai Salon – The Global AI Commons",
+  title: "Ai Salon – The AI Commons",
   description:
     "The Ai Salon is a global community bringing together scientists, founders, builders, and the curious to shape the future of AI through meaningful conversation.",
 };

@@ -47,3 +47,21 @@ class UserOut(BaseModel):
 class InviteInfoResponse(BaseModel):
     chapter_name: str
     role: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        if len(v) < 12:
+            raise ValueError("Password must be at least 12 characters")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password must contain at least one uppercase letter")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password must contain at least one lowercase letter")
+        if not re.search(r"\d", v):
+            raise ValueError("Password must contain at least one number")
+        return v

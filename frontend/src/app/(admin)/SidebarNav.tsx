@@ -38,11 +38,10 @@ function buildNav(userRole: string): NavEntry[] {
   const isChapterLead = userRole === 'chapter_lead'
   const isHost = userRole === 'host'
 
-  const teamChildren: NavItem[] = [
-    { href: '/people', label: 'People', icon: 'fa-users' },
-    ...(!isHost ? [{ href: '/hosting-interest', label: 'Host Interest', icon: 'fa-star' }] : []),
-    ...(!isHost ? [{ href: '/volunteer-roles', label: 'Volunteer Roles', icon: 'fa-hand-paper-o' }] : []),
-    ...(!isHost ? [{ href: '/volunteer-applications', label: 'Volunteer Applications', icon: 'fa-envelope-open-o' }] : []),
+  const teamMgmtChildren: NavItem[] = [
+    { href: '/hosting-interest', label: 'Host Interest', icon: 'fa-star' },
+    { href: '/volunteer-roles', label: 'Volunteer Roles', icon: 'fa-hand-paper-o' },
+    { href: '/volunteer-applications', label: 'Volunteer Applications', icon: 'fa-envelope-open-o' },
   ]
 
   const adminChildren: NavItem[] = [
@@ -63,7 +62,8 @@ function buildNav(userRole: string): NavEntry[] {
     { href: '/articles', label: 'Articles', icon: 'fa-file-text-o' },
     ...(isSuperadmin ? [{ href: '/chapters', label: 'Chapters', icon: 'fa-map-marker' }] : []),
     ...(isChapterLead ? [{ href: '/chapters', label: 'My Chapter', icon: 'fa-map-marker' }] : []),
-    ...(!isHost ? [{ group: true as const, label: 'Team', icon: 'fa-users', children: teamChildren }] : []),
+    { href: '/people', label: 'Team', icon: 'fa-users' },
+    ...(!isHost ? [{ group: true as const, label: 'Team Management', icon: 'fa-users-cog', children: teamMgmtChildren }] : []),
     ...(isSuperadmin ? [{ group: true as const, label: 'Admin', icon: 'fa-shield', children: adminChildren }] : []),
     { href: '/topics', label: 'Topics', icon: 'fa-lightbulb-o' },
     { href: '/settings', label: 'Settings', icon: 'fa-cog' },

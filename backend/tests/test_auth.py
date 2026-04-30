@@ -169,3 +169,66 @@ class TestRegister:
             "password": "SecurePass123!",
         })
         assert r.status_code == 409
+
+
+class TestChangePassword:
+    async def test_no_token_is_401(self, client: AsyncClient):
+        r = await client.post(
+            "/auth/change-password",
+            json={"current_password": "secret", "new_password": "NewPass1234"},
+        )
+        assert r.status_code == 401
+
+    async def test_success_rotates_password(self, client: AsyncClient, db_session: AsyncSession):
+        await _seed_user(db_session, password="OldPass12345")
+        login = await client.post(
+            "/auth/login", json={"identifier": "ian@aisalon.xyz", "password": "OldPass12345"}
+        )
+        token = login.json()["access_token"]
+
+        r = await client.post(
+            "/auth/change-password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"current_password": "OldPass12345", "new_password": "NewPass67890"},
+        )
+        assert r.status_code == 204
+
+        # Old password no longer works
+        old = await client.post(
+            "/auth/login", json={"identifier": "ian@aisalon.xyz", "password": "OldPass12345"}
+        )
+        assert old.status_code == 401
+
+        # New password works
+        new = await client.post(
+            "/auth/login", json={"identifier": "ian@aisalon.xyz", "password": "NewPass67890"}
+        )
+        assert new.status_code == 200
+
+    async def test_wrong_current_password_is_400(self, client: AsyncClient, db_session: AsyncSession):
+        await _seed_user(db_session, password="OldPass12345")
+        login = await client.post(
+            "/auth/login", json={"identifier": "ian@aisalon.xyz", "password": "OldPass12345"}
+        )
+        token = login.json()["access_token"]
+
+        r = await client.post(
+            "/auth/change-password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"current_password": "WrongOld12345", "new_password": "NewPass67890"},
+        )
+        assert r.status_code == 400
+
+    async def test_weak_new_password_is_422(self, client: AsyncClient, db_session: AsyncSession):
+        await _seed_user(db_session, password="OldPass12345")
+        login = await client.post(
+            "/auth/login", json={"identifier": "ian@aisalon.xyz", "password": "OldPass12345"}
+        )
+        token = login.json()["access_token"]
+
+        r = await client.post(
+            "/auth/change-password",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"current_password": "OldPass12345", "new_password": "short"},
+        )
+        assert r.status_code == 422
