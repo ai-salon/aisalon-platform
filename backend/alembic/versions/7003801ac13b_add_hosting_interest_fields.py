@@ -20,12 +20,37 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Upgrade schema."""
-    op.add_column('hosting_interest', sa.Column('salons_attended', sa.Text(), nullable=True))
-    op.add_column('hosting_interest', sa.Column('facilitated_before', sa.Text(), nullable=True))
-    op.add_column('hosting_interest', sa.Column('themes_interested', sa.Text(), nullable=True))
-    op.add_column('hosting_interest', sa.Column('why_hosting', sa.Text(), nullable=True))
-    op.add_column('hosting_interest', sa.Column('hosting_frequency', sa.String(length=64), nullable=True))
-    op.add_column('hosting_interest', sa.Column('space_options', sa.Text(), nullable=True))
+    conn = op.get_bind()
+    inspector = sa.inspect(conn)
+    if 'hosting_interest' not in inspector.get_table_names():
+        # Table was never created (migration 1206ff71cd86 was skipped on this DB).
+        # Create it with the full schema including the columns added here.
+        op.create_table(
+            'hosting_interest',
+            sa.Column('id', sa.String(length=36), nullable=False),
+            sa.Column('name', sa.String(length=256), nullable=False),
+            sa.Column('email', sa.String(length=256), nullable=False),
+            sa.Column('city', sa.String(length=256), nullable=False),
+            sa.Column('interest_type', sa.String(length=32), nullable=False),
+            sa.Column('existing_chapter', sa.String(length=256), nullable=True),
+            sa.Column('message', sa.Text(), nullable=True),
+            sa.Column('salons_attended', sa.Text(), nullable=True),
+            sa.Column('facilitated_before', sa.Text(), nullable=True),
+            sa.Column('themes_interested', sa.Text(), nullable=True),
+            sa.Column('why_hosting', sa.Text(), nullable=True),
+            sa.Column('hosting_frequency', sa.String(length=64), nullable=True),
+            sa.Column('space_options', sa.Text(), nullable=True),
+            sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+            sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+            sa.PrimaryKeyConstraint('id'),
+        )
+    else:
+        op.add_column('hosting_interest', sa.Column('salons_attended', sa.Text(), nullable=True))
+        op.add_column('hosting_interest', sa.Column('facilitated_before', sa.Text(), nullable=True))
+        op.add_column('hosting_interest', sa.Column('themes_interested', sa.Text(), nullable=True))
+        op.add_column('hosting_interest', sa.Column('why_hosting', sa.Text(), nullable=True))
+        op.add_column('hosting_interest', sa.Column('hosting_frequency', sa.String(length=64), nullable=True))
+        op.add_column('hosting_interest', sa.Column('space_options', sa.Text(), nullable=True))
 
 
 def downgrade() -> None:
