@@ -848,7 +848,11 @@ async def admin_list_people(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    stmt = select(User).options(selectinload(User.chapter))
+    stmt = (
+        select(User)
+        .options(selectinload(User.chapter))
+        .where(User.hide_from_team.is_(False))
+    )
     chapter_filter = _chapter_filter(current_user)
     if chapter_filter:
         stmt = stmt.where(User.chapter_id == chapter_filter)

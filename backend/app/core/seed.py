@@ -44,7 +44,6 @@ _CHAPTERS = [
             "AI's impact on technology, society, and the future."
         ),
         status="active",
-        lead_profile=None,
     ),
     dict(
         code="berlin",
@@ -64,16 +63,6 @@ _CHAPTERS = [
             "potential through intimate salons and cross-cultural dialogue."
         ),
         status="active",
-        lead_profile=dict(
-            name="Apurba Kundu",
-            title="Berlin Chapter Lead",
-            description=(
-                "Apurba is a tech lawyer by training and currently a public policy "
-                "master's student navigating trustworthy AI governance."
-            ),
-            profile_image_url=f"{_P}/apurba_kundu.jpeg",
-            linkedin="https://www.linkedin.com/in/apurba-kundu-3a445a26/",
-        ),
     ),
     dict(
         code="london", name="London", title="The London Ai Salon",
@@ -90,7 +79,6 @@ _CHAPTERS = [
             "spanning finance, policy, research, and the arts."
         ),
         status="active",
-        lead_profile=None,
     ),
     dict(
         code="bangalore", name="Bangalore", title="The Bangalore Ai Salon",
@@ -107,14 +95,6 @@ _CHAPTERS = [
             "one of the world's fastest-growing economies."
         ),
         status="active",
-        lead_profile=dict(
-            username="sharat",
-            name="Sharat Satyanarayana",
-            title="Bangalore Chapter Lead",
-            description="",
-            profile_image_url=f"{_P}/sharat_satyanarayana.jpeg",
-            linkedin="https://www.linkedin.com/in/sharats/",
-        ),
     ),
     dict(
         code="lagos", name="Lagos", title="The Lagos Ai Salon",
@@ -131,14 +111,6 @@ _CHAPTERS = [
             "— and benefit from — the global AI transformation."
         ),
         status="active",
-        lead_profile=dict(
-            username="francis",
-            name="Francis Sani",
-            title="Lagos Chapter Lead",
-            description="",
-            profile_image_url=f"{_P}/francis_sani.jpeg",
-            linkedin="https://www.linkedin.com/in/francis-sani-o-83534ba9/",
-        ),
     ),
     dict(
         code="vancouver", name="Vancouver", title="The Vancouver Ai Salon",
@@ -155,17 +127,6 @@ _CHAPTERS = [
             "development with Canadian values at the forefront."
         ),
         status="active",
-        lead_profile=dict(
-            username="mikhail",
-            name="Mikhail Klassen",
-            title="Vancouver Chapter Lead",
-            description=(
-                "Mikhail is an AI engineer, physicist, and entrepreneur passionate "
-                "about AI's impact on science and society."
-            ),
-            profile_image_url=f"{_P}/mikhail_klassen.jpeg",
-            linkedin="https://www.linkedin.com/in/mikhailklassen/",
-        ),
     ),
     dict(
         code="zurich", name="Zurich", title="The Zurich Ai Salon",
@@ -182,14 +143,6 @@ _CHAPTERS = [
             "deep-tech innovation creates a rich setting for exploring AI's future."
         ),
         status="active",
-        lead_profile=dict(
-            username="pascale",
-            name="Pascale Speck",
-            title="Zurich Chapter Lead",
-            description="",
-            profile_image_url=f"{_P}/pascale_speck.jpeg",
-            linkedin="",
-        ),
     ),
     dict(
         code="nyc", name="New York City", title="The New York City Ai Salon",
@@ -206,14 +159,6 @@ _CHAPTERS = [
             "a uniquely rich context for conversations about AI's future."
         ),
         status="active",
-        lead_profile=dict(
-            username="rupi",
-            name="Rupi Sureshkumar",
-            title="New York City Chapter Lead",
-            description="",
-            profile_image_url=f"{_P}/rupi_sureshkumar.jpeg",
-            linkedin="https://www.linkedin.com/in/rupi-sureshkumar/",
-        ),
     ),
 ]
 
@@ -269,12 +214,11 @@ async def seed_superadmin() -> None:
 async def seed_chapters() -> None:
     async with AsyncSessionLocal() as db:
         for ch in _CHAPTERS:
-            data = {k: v for k, v in ch.items() if k != "lead_profile"}
-            result = await db.execute(select(Chapter).where(Chapter.code == data["code"]))
+            result = await db.execute(select(Chapter).where(Chapter.code == ch["code"]))
             existing = result.scalar_one_or_none()
             if not existing:
-                db.add(Chapter(**data))
-                logger.info("Seeded chapter: %s", data["name"])
+                db.add(Chapter(**ch))
+                logger.info("Seeded chapter: %s", ch["name"])
         await db.commit()
 
 
@@ -283,9 +227,9 @@ async def seed_chapter_leads() -> None:
 
     These accounts (sf@aisalon.xyz, berlin@aisalon.xyz, ...) exist for every
     chapter regardless of who actually leads it. They are hidden from the
-    public Team page (`hide_from_team=True`) and carry no profile data.
-    Real chapter-lead person accounts are seeded separately by
-    `seed_chapter_lead_profiles()`.
+    Team page (`hide_from_team=True`) and carry no profile data. Real
+    chapter-lead person accounts are added separately as each lead's info
+    arrives.
     """
     base_pw = settings.BASE_PASSWORD
     async with AsyncSessionLocal() as db:
@@ -312,59 +256,6 @@ async def seed_chapter_leads() -> None:
                 db.add(user)
                 await db.flush()
                 logger.info("Seeded base chapter user: %s", code)
-
-        await db.commit()
-
-
-async def seed_chapter_lead_profiles() -> None:
-    """Create a separate user account for each named chapter-lead person.
-
-    For chapters whose `_CHAPTERS` entry has a `lead_profile` dict with a
-    `username` key (e.g. Apurba for Berlin, Mikhail for Vancouver), seed an
-    account at `<username>@aisalon.xyz` with password `{BASE_PASSWORD}{username}`,
-    role=chapter_lead, scoped to that chapter, with the profile fields filled
-    in. Idempotent: skips entries whose target user already has
-    `profile_completed_at` set.
-    """
-    base_pw = settings.BASE_PASSWORD
-    async with AsyncSessionLocal() as db:
-        for ch in _CHAPTERS:
-            profile = ch.get("lead_profile")
-            if not profile or not profile.get("username"):
-                continue
-
-            ch_row = await db.execute(select(Chapter).where(Chapter.code == ch["code"]))
-            chapter = ch_row.scalar_one_or_none()
-            if not chapter:
-                continue
-
-            username = profile["username"]
-            user_row = await db.execute(select(User).where(User.username == username))
-            user = user_row.scalar_one_or_none()
-
-            if not user:
-                user = User(
-                    username=username,
-                    email=f"{username}@aisalon.xyz",
-                    hashed_password=hash_password(f"{base_pw}{username}"),
-                    role=UserRole.chapter_lead,
-                    chapter_id=chapter.id,
-                    is_active=True,
-                )
-                db.add(user)
-                await db.flush()
-                logger.info("Seeded chapter lead person: %s", username)
-
-            if user.profile_completed_at:
-                continue
-
-            user.name = profile["name"]
-            user.title = profile["title"]
-            user.description = profile.get("description") or None
-            user.profile_image_url = profile["profile_image_url"]
-            user.linkedin = profile.get("linkedin") or None
-            user.hide_from_team = False
-            user.profile_completed_at = _now()
 
         await db.commit()
 

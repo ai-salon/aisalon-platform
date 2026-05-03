@@ -61,7 +61,7 @@ async def test_host_cannot_patch_person(
     assert r.status_code == 403
 
 
-async def test_patch_person_can_set_hide_from_team(
+async def test_hide_from_team_excludes_from_people_listing(
     client: AsyncClient, admin_headers, host_user
 ):
     r = await client.patch(
@@ -71,5 +71,5 @@ async def test_patch_person_can_set_hide_from_team(
     )
     assert r.status_code == 200
     listed = await client.get("/admin/people", headers=admin_headers)
-    target = next(p for p in listed.json() if p["id"] == host_user.id)
-    assert target["hide_from_team"] is True
+    ids = {p["id"] for p in listed.json()}
+    assert host_user.id not in ids
