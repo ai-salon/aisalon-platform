@@ -75,7 +75,7 @@ export default function PeoplePage() {
                 {p.profile_image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={p.profile_image_url.startsWith("/") ? `${API_URL}${p.profile_image_url}` : p.profile_image_url}
+                    src={p.profile_image_url.startsWith("/uploads/") ? `${API_URL}${p.profile_image_url}` : p.profile_image_url}
                     alt=""
                     className="w-10 h-10 rounded-full object-cover"
                   />

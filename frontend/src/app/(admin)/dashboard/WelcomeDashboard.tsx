@@ -11,7 +11,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function TeamAvatar({ url, name, size = 28 }: { url: string; name: string; size?: number }) {
   const [broken, setBroken] = useState(false);
-  const src = url.startsWith("/") ? `${API_URL}${url}` : url;
+  const src = url.startsWith("/uploads/") ? `${API_URL}${url}` : url;
   if (!url || broken) {
     return (
       <div style={{ width: size, height: size, borderRadius: "50%", background: "#f0ebe0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.43, flexShrink: 0 }}>
