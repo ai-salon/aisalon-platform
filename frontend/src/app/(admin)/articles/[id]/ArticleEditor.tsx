@@ -192,6 +192,24 @@ export default function ArticleEditor({
     setPublishingArticle(false);
   }, [initial.id, token]);
 
+  const revertToDraft = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_URL}/admin/articles/${initial.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: "draft" }),
+      });
+      if (r.ok) {
+        setArticleStatus("draft");
+        toast.success("Article reverted to draft");
+      } else {
+        toast.error("Failed to revert article");
+      }
+    } catch {
+      toast.error("Failed to revert article");
+    }
+  }, [initial.id, token]);
+
   const copyForSubstack = useCallback(async () => {
     const previewDiv = previewRef.current;
     if (!previewDiv) return;
@@ -272,6 +290,30 @@ export default function ArticleEditor({
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {/* Revert to draft — only for published */}
+            {articleStatus === "published" && (
+              <button
+                onClick={revertToDraft}
+                style={{
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  background: "transparent",
+                  color: "#6b7280",
+                  border: "1.5px solid #d1d5db",
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <i className="fa fa-undo" />
+                Revert to Draft
+              </button>
+            )}
+
             {/* Publish (mark as done) — only for drafts */}
             {articleStatus === "draft" && (
               <button

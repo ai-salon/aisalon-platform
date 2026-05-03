@@ -3,14 +3,17 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import SignOutButton from './SignOutButton'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 
 interface NavItem {
   href: string
   label: string
   icon: string
   external?: boolean
+  badge?: number
 }
 
 interface NavGroup {
@@ -33,7 +36,7 @@ const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
   host: { bg: '#f0fdf4', color: '#166534' },
 }
 
-function buildNav(userRole: string): NavEntry[] {
+function buildNav(userRole: string, draftCount: number): NavEntry[] {
   const isSuperadmin = userRole === 'superadmin'
   const isChapterLead = userRole === 'chapter_lead'
   const isHost = userRole === 'host'
@@ -59,11 +62,11 @@ function buildNav(userRole: string): NavEntry[] {
   return [
     { href: '/dashboard', label: 'Dashboard', icon: 'fa-th-large' },
     { href: '/upload', label: 'Upload Conversations', icon: 'fa-upload' },
-    { href: '/articles', label: 'Articles', icon: 'fa-file-text-o' },
+    { href: '/articles', label: 'Articles', icon: 'fa-file-text-o', badge: draftCount > 0 ? draftCount : undefined },
     ...(isSuperadmin ? [{ href: '/chapters', label: 'Chapters', icon: 'fa-map-marker' }] : []),
     ...(isChapterLead ? [{ href: '/chapters', label: 'My Chapter', icon: 'fa-map-marker' }] : []),
     { href: '/people', label: 'Team', icon: 'fa-users' },
-    ...(!isHost ? [{ group: true as const, label: 'Team Management', icon: 'fa-users-cog', children: teamMgmtChildren }] : []),
+    ...(!isHost ? [{ group: true as const, label: 'Team Management', icon: 'fa-id-badge', children: teamMgmtChildren }] : []),
     ...(isSuperadmin ? [{ group: true as const, label: 'Admin', icon: 'fa-shield', children: adminChildren }] : []),
     { href: '/topics', label: 'Topics', icon: 'fa-lightbulb-o' },
     { href: '/settings', label: 'Settings', icon: 'fa-cog' },
@@ -163,13 +166,26 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
 export default function SidebarNav({ chapterName }: { chapterName?: string }) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
+  const [draftCount, setDraftCount] = useState(0)
+
+  const token = (session as unknown as { accessToken?: string })?.accessToken
+
+  useEffect(() => {
+    if (!token) return
+    fetch(`${API_URL}/admin/articles/draft-count`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : { count: 0 }))
+      .then((d) => setDraftCount(d.count ?? 0))
+      .catch(() => {})
+  }, [token])
 
   if (status === 'loading' || !session) return null
 
   const userRole: string = (session.user as { role?: string } | undefined)?.role ?? ''
   const roleLabel = ROLE_LABELS[userRole] ?? userRole.toUpperCase()
   const roleColor = ROLE_COLORS[userRole] ?? { bg: '#f3f4f6', color: '#4b5563' }
-  const nav = buildNav(userRole)
+  const nav = buildNav(userRole, draftCount)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -227,7 +243,15 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
                 style={{ width: 16, textAlign: 'center', color: '#56a1d2' }}
                 aria-hidden="true"
               />
-              {entry.label}
+              <span style={{ flex: 1 }}>{entry.label}</span>
+              {entry.badge !== undefined && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10,
+                  background: '#d2b356', color: '#fff', lineHeight: '16px',
+                }}>
+                  {entry.badge}
+                </span>
+              )}
             </Link>
           )
         })}

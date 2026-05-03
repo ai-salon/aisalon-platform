@@ -80,7 +80,9 @@ export default function PeoplePage() {
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gray-200" />
+                  <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                    <i className="fa fa-user" style={{ color: "#9ca3af", fontSize: 16 }} aria-hidden="true" />
+                  </div>
                 )}
               </td>
               <td>{p.name || p.username || p.email}</td>

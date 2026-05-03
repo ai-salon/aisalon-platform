@@ -131,7 +131,115 @@ export default function ArticlesPage() {
   if (status === "loading" || articles === null) return null;
 
   const transcripts = articles.filter((a) => !!a.anonymized_transcript);
+  const draftArticles = articles.filter((a) => a.status === "draft");
+  const publishedArticles = articles.filter((a) => a.status !== "draft");
   const visibleArticles = tab === "transcripts" ? transcripts : articles;
+
+  function renderArticleCard(article: Article) {
+    const style = STATUS_STYLES[article.status] ?? STATUS_STYLES.draft;
+    const href =
+      tab === "transcripts"
+        ? `/articles/${article.id}?tab=transcript`
+        : `/articles/${article.id}`;
+    const og = ogMap[article.id];
+    const displayDate = article.publish_date
+      ? new Date(article.publish_date + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+      : new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    return (
+      <Link key={article.id} href={href} style={{ textDecoration: "none" }}>
+        <div
+          style={{
+            background: article.status === "draft" ? "#fffbeb" : "#fff",
+            borderRadius: 8,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+            border: article.status === "draft" ? "1px solid #fde68a" : "none",
+            display: "flex",
+            overflow: "hidden",
+            transition: "box-shadow 0.15s",
+            cursor: "pointer",
+          }}
+        >
+          {og?.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={og.image} alt="" style={{ width: 110, flexShrink: 0, objectFit: "cover" }} />
+          )}
+          <div style={{ flex: 1, padding: "16px 20px", minWidth: 0 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 4px", lineHeight: 1.3 }}>
+              {article.title}
+            </h3>
+            {og?.description && (
+              <p style={{
+                fontSize: 12, color: "#696969", margin: "0 0 6px", lineHeight: 1.5,
+                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+              }}>
+                {og.description}
+              </p>
+            )}
+            <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>{displayDate}</p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px" }}>
+            {tab === "transcripts" && (
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "3px 10px",
+                  borderRadius: 12,
+                  background: "#f0f9ff",
+                  color: "#0369a1",
+                  flexShrink: 0,
+                }}
+              >
+                transcript
+              </span>
+            )}
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "3px 10px",
+                borderRadius: 12,
+                background: style.bg,
+                color: style.color,
+                textTransform: "capitalize",
+                flexShrink: 0,
+              }}
+            >
+              {article.status}
+            </span>
+            <button
+              onClick={(e) => handleDelete(e, article)}
+              disabled={deleting === article.id}
+              title="Delete"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: deleting === article.id ? "default" : "pointer",
+                padding: "4px 8px",
+                borderRadius: 6,
+                color: "#9ca3af",
+                fontSize: 15,
+                transition: "color 0.15s, background 0.15s",
+                opacity: deleting === article.id ? 0.4 : 1,
+                display: "flex",
+                alignItems: "center",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = "#ef4444";
+                e.currentTarget.style.background = "#fef2f2";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = "#9ca3af";
+                e.currentTarget.style.background = "none";
+              }}
+            >
+              <i className="fa fa-trash-o" />
+            </button>
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 30px" }}>
@@ -244,110 +352,26 @@ export default function ArticlesPage() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {visibleArticles.map((article) => {
-            const style = STATUS_STYLES[article.status] ?? STATUS_STYLES.draft;
-            const href =
-              tab === "transcripts"
-                ? `/articles/${article.id}?tab=transcript`
-                : `/articles/${article.id}`;
-            const og = ogMap[article.id];
-            const displayDate = article.publish_date
-              ? new Date(article.publish_date + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
-              : new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-            return (
-              <Link key={article.id} href={href} style={{ textDecoration: "none" }}>
-                <div
-                  style={{
-                    background: "#fff",
-                    borderRadius: 8,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                    display: "flex",
-                    overflow: "hidden",
-                    transition: "box-shadow 0.15s",
-                    cursor: "pointer",
-                  }}
-                >
-                  {og?.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={og.image} alt="" style={{ width: 110, flexShrink: 0, objectFit: "cover" }} />
-                  )}
-                  <div style={{ flex: 1, padding: "16px 20px", minWidth: 0 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: "#111", margin: "0 0 4px", lineHeight: 1.3 }}>
-                      {article.title}
-                    </h3>
-                    {og?.description && (
-                      <p style={{
-                        fontSize: 12, color: "#696969", margin: "0 0 6px", lineHeight: 1.5,
-                        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-                      }}>
-                        {og.description}
-                      </p>
-                    )}
-                    <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>{displayDate}</p>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {tab === "transcripts" && (
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          padding: "3px 10px",
-                          borderRadius: 12,
-                          background: "#f0f9ff",
-                          color: "#0369a1",
-                          flexShrink: 0,
-                        }}
-                      >
-                        transcript
-                      </span>
-                    )}
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        padding: "3px 10px",
-                        borderRadius: 12,
-                        background: style.bg,
-                        color: style.color,
-                        textTransform: "capitalize",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {article.status}
-                    </span>
-                    <button
-                      onClick={(e) => handleDelete(e, article)}
-                      disabled={deleting === article.id}
-                      title="Delete"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: deleting === article.id ? "default" : "pointer",
-                        padding: "4px 8px",
-                        borderRadius: 6,
-                        color: "#9ca3af",
-                        fontSize: 15,
-                        transition: "color 0.15s, background 0.15s",
-                        opacity: deleting === article.id ? 0.4 : 1,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "#ef4444";
-                        e.currentTarget.style.background = "#fef2f2";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "#9ca3af";
-                        e.currentTarget.style.background = "none";
-                      }}
-                    >
-                      <i className="fa fa-trash-o" />
-                    </button>
-                  </div>
+          {tab === "articles" && draftArticles.length > 0 && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#a07a20", textTransform: "uppercase", letterSpacing: 1 }}>
+                  <i className="fa fa-clock-o" style={{ marginRight: 5 }} />
+                  Needs Publishing ({draftArticles.length})
+                </span>
+              </div>
+              {draftArticles.map((article) => renderArticleCard(article))}
+              {publishedArticles.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 1 }}>
+                    Published ({publishedArticles.length})
+                  </span>
                 </div>
-              </Link>
-            );
-          })}
+              )}
+              {publishedArticles.map((article) => renderArticleCard(article))}
+            </>
+          )}
+          {(tab !== "articles" || draftArticles.length === 0) && visibleArticles.map((article) => renderArticleCard(article))}
         </div>
       )}
       {showModal && (

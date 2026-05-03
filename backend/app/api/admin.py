@@ -1,4 +1,5 @@
 """Admin API endpoints: api-keys, jobs, articles, chapters, team."""
+import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form, status
@@ -438,6 +439,19 @@ async def list_articles(
     return result.scalars().all()
 
 
+@router.get("/articles/draft-count")
+async def get_draft_article_count(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    stmt = select(func.count(Article.id)).where(Article.status == ArticleStatus.draft)
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id:
+        stmt = stmt.where(Article.chapter_id == chapter_id)
+    result = await db.execute(stmt)
+    return {"count": result.scalar() or 0}
+
+
 @router.get("/articles/{article_id}", response_model=ArticleResponse)
 async def get_article(
     article_id: str,
@@ -583,6 +597,21 @@ async def create_chapter(
         status="draft",
     )
     db.add(chapter)
+    await db.flush()
+
+    ghost_email = f"{chapter.code}@aisalon.xyz"
+    existing_ghost = await db.execute(select(User).where(User.email == ghost_email))
+    if not existing_ghost.scalar_one_or_none():
+        ghost = User(
+            email=ghost_email,
+            username=chapter.code,
+            hashed_password=hash_password(secrets.token_urlsafe(24)),
+            role=UserRole.chapter_lead,
+            chapter_id=chapter.id,
+            is_active=True,
+        )
+        db.add(ghost)
+
     await db.commit()
     await db.refresh(chapter)
     return {

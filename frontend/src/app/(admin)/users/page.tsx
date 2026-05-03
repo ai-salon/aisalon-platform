@@ -135,7 +135,7 @@ export default function UsersPage() {
   if (status === "loading" || userRole !== "superadmin") return null;
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 30px" }}>
+    <div style={{ padding: "40px 30px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 32 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Users</h1>
@@ -233,7 +233,7 @@ export default function UsersPage() {
       )}
 
       {/* User list */}
-      <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "hidden" }}>
+      <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)", overflow: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
