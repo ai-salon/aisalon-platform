@@ -335,12 +335,10 @@ function ValueRow({
 function HostingGuide() {
   return (
     <div>
-      <Accordion icon="✅" title="Setup Checklist" defaultOpen>
+      <Accordion icon="🚀" title="Getting Started Checklist" defaultOpen>
         <p style={{ fontSize: 13, color: "#696969", marginBottom: 14, lineHeight: 1.6 }}>
-          Work through these steps before your first event, then use the per-event checklist for every salon you run.
+          One-time onboarding for new hosts. Work through these before your first salon.
         </p>
-
-        <SectionLabel>Before your first event</SectionLabel>
         <CheckItem link="https://docs.google.com/forms/d/e/1FAIpQLScOHdporrmJFLXZ1RvuRAH7At5_O9HcD1PUI4ObO0E4dexUZw/viewform">
           Fill out the hosting interest form
         </CheckItem>
@@ -354,9 +352,14 @@ function HostingGuide() {
           Join the &ldquo;Ai Salon Hosts: Global&rdquo; WhatsApp group (Ian will invite you during your 1:1)
         </CheckItem>
         <CheckItem>Connect with a co-host to support you on your first event</CheckItem>
+        <CheckItem>Host your first event</CheckItem>
+        <CheckItem link="/upload">Upload your first recording</CheckItem>
+      </Accordion>
 
-        <div style={{ height: 14 }} />
-        <SectionLabel>⭐ For every event</SectionLabel>
+      <Accordion icon="✅" title="Per-Event Checklist" defaultOpen>
+        <p style={{ fontSize: 13, color: "#696969", marginBottom: 14, lineHeight: 1.6 }}>
+          Use this checklist for every salon you run.
+        </p>
         <CheckItem>Secure a space and choose a theme</CheckItem>
         <CheckItem link="https://lu.ma/">
           Create a Luma event, add to the Ai Salon calendar, add contact@aisalon.xyz as co-host
@@ -1148,6 +1151,17 @@ We'll explore questions like:
             <li>Enable <strong>Approval Required</strong> and hide address until approved</li>
             <li>Add <strong>contact@aisalon.xyz</strong> as a co-host</li>
             <li>Add the 3 registration questions above</li>
+            <li>
+              Submit to the{" "}
+              <a
+                href="https://luma.com/ai-salon"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: "#56a1d2" }}
+              >
+                Ai Salon calendar
+              </a>
+            </li>
             {lumaTag && (
               <li>
                 Tag with <strong>{lumaTag}</strong> so it appears on the{" "}
