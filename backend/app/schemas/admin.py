@@ -56,7 +56,9 @@ class APIKeySetRequest(BaseModel):
 
 class APIKeyResponse(BaseModel):
     provider: str
-    has_key: bool
+    has_key: bool  # effective: user OR system env var
+    user_has_key: bool = False
+    system_has_key: bool = False
 
 
 # ── Jobs ─────────────────────────────────────────────────────────────────────

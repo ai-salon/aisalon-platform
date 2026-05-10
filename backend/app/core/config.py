@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""
     LOG_LEVEL: str = "INFO"
 
+    # Optional system-wide fallbacks for the audio-processing pipeline.
+    # When set, users without their own key in UserAPIKey use this value instead.
+    ASSEMBLYAI_API_KEY: str = ""
+    GOOGLE_API_KEY: str = ""
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @model_validator(mode="after")

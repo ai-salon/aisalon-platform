@@ -17,7 +17,7 @@ async function fetchJson<T>(url: string, token: string): Promise<T | null> {
   }
 }
 
-interface ApiKey { provider: string; has_key: boolean }
+interface ApiKey { provider: string; has_key: boolean; user_has_key?: boolean; system_has_key?: boolean }
 interface Job { id: string; input_filename: string; status: string; created_at: string }
 interface Article { id: string; title: string; status: string; created_at: string }
 interface TeamMember { id: string; chapter_id: string }

@@ -25,6 +25,15 @@ StepCallback = Callable[[str], Awaitable[None]]
 _executor = ThreadPoolExecutor(max_workers=1)
 
 
+def system_key_for(provider: APIKeyProvider) -> str:
+    """Return the env-var-configured key for `provider`, or '' if unset."""
+    if provider == APIKeyProvider.assemblyai:
+        return settings.ASSEMBLYAI_API_KEY
+    if provider == APIKeyProvider.google:
+        return settings.GOOGLE_API_KEY
+    return ""
+
+
 class BaseProcessor(ABC):
     @abstractmethod
     async def process(
@@ -50,11 +59,14 @@ class SocraticProcessor(BaseProcessor):
             )
         )
         row = result.scalar_one_or_none()
-        if not row:
-            raise ValueError(
-                f"{provider.value.title()} API key not configured. Set it in Settings."
-            )
-        return decrypt_key(row.encrypted_key, settings.SECRET_KEY)
+        if row:
+            return decrypt_key(row.encrypted_key, settings.SECRET_KEY)
+        env_key = system_key_for(provider)
+        if env_key:
+            return env_key
+        raise ValueError(
+            f"{provider.value.title()} API key not configured. Set it in Settings."
+        )
 
     async def process(
         self,

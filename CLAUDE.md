@@ -233,6 +233,8 @@ Tailwind v4 tokens (use these, not hex values directly):
 - `BASE_PASSWORD` — base for seeded chapter lead passwords (default: `impact`)
 - `SENTRY_DSN` — Sentry project DSN for error tracking (optional, no-op when empty)
 - `LOG_LEVEL` — structlog level: DEBUG, INFO, WARNING, ERROR (default: `INFO`)
+- `ASSEMBLYAI_API_KEY` — optional system-wide fallback. Used when a user has not set their own key in `UserAPIKey`.
+- `GOOGLE_API_KEY` — optional system-wide fallback. Same fallback semantics as above.
 
 **Frontend** (`.env.local`):
 - `NEXT_PUBLIC_API_URL` — backend API URL (default: `http://localhost:8000`)

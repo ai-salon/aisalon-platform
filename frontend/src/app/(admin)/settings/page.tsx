@@ -182,6 +182,30 @@ function StatusBadge({ active }: { active: boolean }) {
   );
 }
 
+function ApiKeyStatusBadge({ userHas, systemHas }: { userHas: boolean; systemHas: boolean }) {
+  if (userHas) {
+    return <StatusBadge active={true} />;
+  }
+  if (systemHas) {
+    return (
+      <span
+        title="A system-wide key is configured by your admin — you don't need to set your own."
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          padding: "2px 8px",
+          borderRadius: 12,
+          background: "#eef6fd",
+          color: "#1d4ed8",
+        }}
+      >
+        System default
+      </span>
+    );
+  }
+  return <StatusBadge active={false} />;
+}
+
 function SystemSettingSection({
   section,
   icon,
@@ -476,7 +500,7 @@ function ChangePasswordSection({ token }: { token: string }) {
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
-  const [keys, setKeys] = useState<{ provider: string; has_key: boolean }[]>([]);
+  const [keys, setKeys] = useState<{ provider: string; has_key: boolean; user_has_key: boolean; system_has_key: boolean }[]>([]);
   const [editing, setEditing] = useState<Provider | null>(null);
   const [helpOpen, setHelpOpen] = useState<Provider | null>(null);
   const [value, setValue] = useState("");
@@ -525,8 +549,12 @@ export default function SettingsPage() {
 
   useEffect(() => { loadSystemSettings(); }, [token, isSuperadmin]);
 
-  function hasKey(provider: Provider) {
-    return keys.some((k) => k.provider === provider && k.has_key);
+  function userHasKey(provider: Provider) {
+    return keys.some((k) => k.provider === provider && k.user_has_key);
+  }
+
+  function systemHasKey(provider: Provider) {
+    return keys.some((k) => k.provider === provider && k.system_has_key);
   }
 
   async function handleSave(provider: Provider) {
@@ -621,7 +649,10 @@ export default function SettingsPage() {
                   <span style={{ fontSize: 15, fontWeight: 700, color: "#111" }}>
                     {help.label}
                   </span>
-                  <StatusBadge active={hasKey(provider)} />
+                  <ApiKeyStatusBadge
+                    userHas={userHasKey(provider)}
+                    systemHas={systemHasKey(provider)}
+                  />
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
@@ -637,9 +668,13 @@ export default function SettingsPage() {
                       cursor: "pointer",
                     }}
                   >
-                    {hasKey(provider) ? "Update" : "Set key"}
+                    {userHasKey(provider)
+                      ? "Update"
+                      : systemHasKey(provider)
+                        ? "Override"
+                        : "Set key"}
                   </button>
-                  {hasKey(provider) && (
+                  {userHasKey(provider) && (
                     <button
                       onClick={() => handleDelete(provider)}
                       style={{
@@ -658,6 +693,14 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
+
+              {/* System-default hint */}
+              {!userHasKey(provider) && systemHasKey(provider) && (
+                <p style={{ fontSize: 12, color: "#1d4ed8", marginTop: 8, lineHeight: 1.5 }}>
+                  A system-wide {help.label} key is configured. You can use it as-is or override
+                  with your own key.
+                </p>
+              )}
 
               {/* Key input */}
               {editing === provider && (

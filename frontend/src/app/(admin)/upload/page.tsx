@@ -23,7 +23,7 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const [apiKeys, setApiKeys] = useState<string[]>([]);
+  const [apiKeys, setApiKeys] = useState<string[]>([]);  // providers with effective key (user OR system)
   const [keysLoaded, setKeysLoaded] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
   const [articleByJob, setArticleByJob] = useState<Record<string, string>>({});
@@ -53,11 +53,11 @@ export default function UploadPage() {
           setChapterId(data[0].id);
         }
       });
-    // Fetch API keys
+    // Fetch API keys (only providers whose effective key is set count as configured)
     fetch(`${API_URL}/admin/api-keys`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((data) => {
-        setApiKeys(data.map((k: any) => k.provider));
+        setApiKeys(data.filter((k: any) => k.has_key).map((k: any) => k.provider));
         setKeysLoaded(true);
       })
       .catch(() => setKeysLoaded(true));

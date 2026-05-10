@@ -34,7 +34,7 @@ from app.schemas.admin import (
     SystemSettingRequest, SystemSettingResponse,
 )
 from app.services.storage import save_upload
-from app.services.processor import SocraticProcessor
+from app.services.processor import SocraticProcessor, system_key_for
 
 logger = get_logger(__name__)
 
@@ -247,10 +247,22 @@ async def list_api_keys(
     current_user: User = Depends(get_current_user),
 ):
     result = await db.execute(
-        select(UserAPIKey).where(UserAPIKey.user_id == current_user.id)
+        select(UserAPIKey.provider).where(UserAPIKey.user_id == current_user.id)
     )
-    keys = result.scalars().all()
-    return [APIKeyResponse(provider=k.provider, has_key=True) for k in keys]
+    user_providers = {row[0] for row in result}
+    out: list[APIKeyResponse] = []
+    for provider in APIKeyProvider:
+        user_has = provider in user_providers
+        system_has = bool(system_key_for(provider))
+        out.append(
+            APIKeyResponse(
+                provider=provider.value,
+                has_key=user_has or system_has,
+                user_has_key=user_has,
+                system_has_key=system_has,
+            )
+        )
+    return out
 
 
 @router.post("/api-keys", response_model=APIKeyResponse)
