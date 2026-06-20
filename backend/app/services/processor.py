@@ -87,7 +87,7 @@ class SocraticProcessor(BaseProcessor):
 
         await _step("Generating article…")
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def run_generator() -> tuple[str, str]:
             import os
