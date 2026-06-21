@@ -69,12 +69,18 @@ class TestSetApiKey:
         assert r.json()["provider"] == "assemblyai"
 
     async def test_key_value_not_exposed(self, client: AsyncClient, admin_headers):
-        await client.post("/admin/api-keys",
-                          json={"provider": "anthropic", "key": "sk-secret"},
-                          headers=admin_headers)
+        # Use a real provider so the key is actually stored — otherwise the
+        # "not exposed" assertion passes vacuously against an empty store.
+        post = await client.post("/admin/api-keys",
+                                 json={"provider": "assemblyai", "key": "sk-secret"},
+                                 headers=admin_headers)
+        assert post.status_code == 200
         r = await client.get("/admin/api-keys", headers=admin_headers)
-        body = str(r.json())
-        assert "sk-secret" not in body
+        listed = r.json()
+        # Confirm the key was stored for that provider...
+        assert any(k["provider"] == "assemblyai" for k in listed)
+        # ...and that the raw secret value is never echoed back.
+        assert "sk-secret" not in str(listed)
 
     async def test_update_overwrites(self, client: AsyncClient, admin_headers):
         await client.post("/admin/api-keys",

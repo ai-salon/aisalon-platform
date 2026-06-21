@@ -129,7 +129,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         chapter_id=str(invite.chapter_id),
     )
     token = create_access_token(
-        {"sub": user.id, "email": user.email, "role": user.role}
+        {"sub": user.id, "email": user.email, "role": user.role.value}
     )
     return TokenResponse(access_token=token)
 

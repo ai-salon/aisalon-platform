@@ -137,6 +137,13 @@ class TestRegister:
         assert r.status_code == 201
         assert "access_token" in r.json()
 
+        # The JWT role claim must be the plain string value (e.g. "host"), not a
+        # serialized UserRole enum — matching the login token's shape.
+        from app.core.security import decode_token
+        claims = decode_token(r.json()["access_token"])
+        assert claims["role"] == "host"
+        assert isinstance(claims["role"], str)
+
         # Verify can login with username
         login = await client.post("/auth/login", json={"identifier": "newhost", "password": "SecurePass123!"})
         assert login.status_code == 200

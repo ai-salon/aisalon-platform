@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 43200  # 30 days — matches NextAuth session maxAge
     UPLOAD_DIR: str = "uploads"
 
+    # Max bytes accepted for an uploaded audio file (default 500 MB)
+    MAX_UPLOAD_BYTES: int = 500 * 1024 * 1024
+    # Hard cap on a single article-generation job before it is failed (default 30 min)
+    JOB_TIMEOUT_SECONDS: int = 1800
+
     ADMIN_PASSWORD: str = "changeme123"
     BASE_PASSWORD: str = "impact"
 

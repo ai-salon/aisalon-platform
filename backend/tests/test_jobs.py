@@ -60,6 +60,42 @@ class TestCreateJob:
         assert r.status_code == 403
 
 
+class TestCreateJobValidation:
+    async def test_rejects_non_audio_file(
+        self, client: AsyncClient, admin_headers, sf_chapter
+    ):
+        r = await client.post(
+            "/admin/jobs",
+            files={"file": ("notes.pdf", io.BytesIO(b"%PDF-1.4 fake"), "application/pdf")},
+            data={"chapter_id": sf_chapter.id},
+            headers=admin_headers,
+        )
+        assert r.status_code == 400
+
+    async def test_rejects_oversized_file(
+        self, client: AsyncClient, admin_headers, sf_chapter
+    ):
+        with patch.object(settings, "MAX_UPLOAD_BYTES", 4):
+            r = await client.post(
+                "/admin/jobs",
+                files={"file": _audio_file()},  # 16 bytes > 4
+                data={"chapter_id": sf_chapter.id},
+                headers=admin_headers,
+            )
+        assert r.status_code == 413
+
+    async def test_accepts_audio_by_extension_when_octet_stream(
+        self, client: AsyncClient, admin_headers, sf_chapter
+    ):
+        r = await client.post(
+            "/admin/jobs",
+            files={"file": ("talk.m4a", io.BytesIO(b"fake"), "application/octet-stream")},
+            data={"chapter_id": sf_chapter.id},
+            headers=admin_headers,
+        )
+        assert r.status_code == 201
+
+
 class TestListJobs:
     async def test_requires_auth(self, client: AsyncClient):
         r = await client.get("/admin/jobs")

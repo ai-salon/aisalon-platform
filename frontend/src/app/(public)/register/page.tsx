@@ -7,6 +7,17 @@ import Image from "next/image";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
+// FastAPI 422 responses put validation errors in `detail` as an array of
+// objects, while explicit HTTPExceptions use a plain string. Render either as text.
+function extractDetail(body: unknown, fallback: string): string {
+  const detail = (body as { detail?: unknown })?.detail;
+  if (Array.isArray(detail)) {
+    return detail.map((e) => (e as { msg?: string })?.msg ?? String(e)).join(", ");
+  }
+  if (typeof detail === "string") return detail;
+  return fallback;
+}
+
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,7 +40,7 @@ function RegisterForm() {
       .then(async (res) => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          setInviteError(body.detail ?? "Invalid or expired invite.");
+          setInviteError(extractDetail(body, "Invalid or expired invite."));
           return;
         }
         const data = await res.json();
@@ -57,7 +68,7 @@ function RegisterForm() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(body.detail ?? "Registration failed.");
+        setError(extractDetail(body, "Registration failed."));
         setLoading(false);
         return;
       }
@@ -191,7 +202,7 @@ function RegisterForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={12}
                   autoComplete="new-password"
                   style={{
                     width: "100%",
@@ -204,6 +215,10 @@ function RegisterForm() {
                     boxSizing: "border-box",
                   }}
                 />
+                <p style={{ fontSize: 12, color: "#696969", marginTop: 6 }}>
+                  At least 12 characters, with an uppercase letter, a lowercase
+                  letter, and a number.
+                </p>
               </div>
 
               {error && (

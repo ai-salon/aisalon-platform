@@ -313,6 +313,31 @@ async def delete_api_key(
 
 # ── Jobs ──────────────────────────────────────────────────────────────────────
 
+# Audio/video containers AssemblyAI can transcribe. content_type is client-supplied
+# and spoofable, so we accept an "audio/" or "video/" prefix OR a known extension —
+# enough to reject obvious mistakes (PDFs, images, text) before burning API credits.
+ALLOWED_AUDIO_EXTENSIONS = {
+    ".mp3", ".m4a", ".wav", ".ogg", ".oga", ".flac", ".aac",
+    ".webm", ".mp4", ".mov", ".mpeg", ".mpga", ".opus", ".wma",
+}
+
+
+def _validate_audio_upload(file: UploadFile, size: int) -> None:
+    if size > settings.MAX_UPLOAD_BYTES:
+        limit_mb = settings.MAX_UPLOAD_BYTES // (1024 * 1024)
+        raise HTTPException(
+            status_code=413, detail=f"File too large (max {limit_mb} MB)"
+        )
+    ext = Path(file.filename or "").suffix.lower()
+    ctype = (file.content_type or "").lower()
+    if not (ctype.startswith(("audio/", "video/")) or ext in ALLOWED_AUDIO_EXTENSIONS):
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file type. Upload an audio recording "
+            "(mp3, m4a, wav, etc.).",
+        )
+
+
 @router.post("/jobs", response_model=JobResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     background_tasks: BackgroundTasks,
@@ -326,7 +351,13 @@ async def create_job(
         if current_user.chapter_id != chapter_id:
             raise HTTPException(status_code=403, detail="Forbidden")
 
+    # Reject early on the content-length-derived size when available, before
+    # the whole body is buffered into memory.
+    if file.size is not None:
+        _validate_audio_upload(file, file.size)
+
     data = await file.read()
+    _validate_audio_upload(file, len(data))
     storage_key = await save_upload(file.filename or "upload", data)
 
     job = Job(

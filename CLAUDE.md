@@ -121,7 +121,7 @@ npm run lint    # ESLint (next/core-web-vitals)
 - **`core/config.py`** — `Settings` (pydantic-settings); key vars: `FRONTEND_URL`, `DATABASE_URL`, `SECRET_KEY`, `UPLOAD_DIR`, `ADMIN_PASSWORD`, `BASE_PASSWORD`
 - **`core/database.py`** — async SQLAlchemy engine + session factory
 - **`core/deps.py`** — JWT bearer auth, `get_current_user` dependency
-- **`core/security.py`** — password hashing, JWT create/decode (HS256, 7-day TTL)
+- **`core/security.py`** — password hashing, JWT create/decode (HS256, 30-day TTL, matches NextAuth session maxAge)
 - **`core/encryption.py`** — Fernet encryption for stored API keys (SHA256 of `SECRET_KEY`)
 - **`models/`** — SQLAlchemy ORM models; all use UUID PKs and `TimestampMixin` (created_at, updated_at)
 - **`schemas/`** — Pydantic request/response schemas

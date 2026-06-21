@@ -139,7 +139,19 @@ class SocraticProcessor(BaseProcessor):
                     os.environ["GOOGLE_API_KEY"] = prev_google
                 shutil.rmtree(work_dir, ignore_errors=True)
 
-        article_md, anon_transcript, meta = await loop.run_in_executor(_executor, run_generator)
+        timeout = settings.JOB_TIMEOUT_SECONDS
+        try:
+            article_md, anon_transcript, meta = await asyncio.wait_for(
+                loop.run_in_executor(_executor, run_generator), timeout=timeout
+            )
+        except (asyncio.TimeoutError, TimeoutError):
+            # The executor thread cannot be force-killed, but failing here frees
+            # the awaiting coroutine and surfaces a clear error to the host so the
+            # job stops showing as "processing" forever.
+            raise TimeoutError(
+                f"Article generation exceeded the {timeout // 60}-minute time "
+                "limit and was stopped. Try a shorter recording or resubmit."
+            ) from None
 
         # Extract title from the first meaningful heading in the article body.
         # SocraticAI formats the file as: editor note → article body → # Notes from
