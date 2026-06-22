@@ -16,6 +16,7 @@ interface Article {
   title: string;
   content_md: string;
   anonymized_transcript?: string | null;
+  source_filename?: string | null;
   substack_url?: string | null;
   status: "draft" | "scheduled" | "published";
   chapter_id: string;
@@ -139,6 +140,7 @@ export default function ArticleEditor({
   const [copyLabel, setCopyLabel] = useState("Copy for Substack");
   const [publishLabel, setPublishLabel] = useState("Publish to Substack");
   const [publishingArticle, setPublishingArticle] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const previewRef = useRef<HTMLDivElement>(null);
 
   const save = useCallback(
@@ -208,6 +210,24 @@ export default function ArticleEditor({
     } catch {
       toast.error("Failed to revert article");
     }
+  }, [initial.id, token]);
+
+  const regenerate = useCallback(async () => {
+    setRegenerating(true);
+    try {
+      const r = await fetch(`${API_URL}/admin/articles/${initial.id}/regenerate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (r.ok) {
+        toast.success("Regenerating from transcript — track it in Upload › Processing History");
+      } else {
+        toast.error("Could not start regeneration");
+      }
+    } catch {
+      toast.error("Could not start regeneration");
+    }
+    setRegenerating(false);
   }, [initial.id, token]);
 
   const copyForSubstack = useCallback(async () => {
@@ -290,6 +310,32 @@ export default function ArticleEditor({
 
           {/* Action buttons */}
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {/* Regenerate from transcript — available whenever a transcript exists */}
+            {hasTranscript && (
+              <button
+                onClick={regenerate}
+                disabled={regenerating}
+                title="Generate a fresh article from the saved transcript using the current model (creates a new draft)"
+                style={{
+                  padding: "7px 16px",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  background: "transparent",
+                  color: "#6b7280",
+                  border: "1.5px solid #d1d5db",
+                  borderRadius: 6,
+                  cursor: regenerating ? "default" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <i className="fa fa-refresh" />
+                {regenerating ? "Starting…" : "Regenerate"}
+              </button>
+            )}
+
             {/* Revert to draft — only for published */}
             {articleStatus === "published" && (
               <button
@@ -454,6 +500,17 @@ export default function ArticleEditor({
               day: "numeric",
             })}
           </span>
+          {initial.source_filename && (
+            <span
+              title="Original uploaded file"
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}
+            >
+              <i className="fa fa-file-audio-o" style={{ fontSize: 11, flexShrink: 0 }} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 260 }}>
+                {initial.source_filename}
+              </span>
+            </span>
+          )}
         </div>
 
         {/* ── Substack URL ── */}
