@@ -23,6 +23,11 @@ class Article(Base, TimestampMixin):
     title: Mapped[str] = mapped_column(String(512), nullable=False)
     content_md: Mapped[str] = mapped_column(Text, nullable=False, default="")
     anonymized_transcript: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # SHA-256 hex of the source audio, inherited from the producing job. Queried by the
+    # duplicate-upload check. Null for legacy articles (audio already deleted).
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # Original uploaded filename, denormalized from Job.input_filename at creation.
+    source_filename: Mapped[str | None] = mapped_column(String(512), nullable=True)
     substack_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     meta: Mapped[Any | None] = mapped_column(JSON, nullable=True)
     status: Mapped[ArticleStatus] = mapped_column(String(32), nullable=False, default=ArticleStatus.draft)

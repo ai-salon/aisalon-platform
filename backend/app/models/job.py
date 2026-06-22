@@ -23,6 +23,12 @@ class Job(Base, TimestampMixin):
     status: Mapped[JobStatus] = mapped_column(String(32), nullable=False, default=JobStatus.pending)
     input_filename: Mapped[str | None] = mapped_column(String(512), nullable=True)
     input_storage_key: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # SHA-256 hex of the uploaded bytes; used to detect duplicate uploads. Copied from
+    # the source article for regenerate jobs (which have no audio of their own).
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # Set only for regenerate-from-transcript jobs: the article whose stored transcript
+    # is reused. Plain id (no FK) to avoid a circular jobs<->articles constraint.
+    source_article_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     output_data: Mapped[Any | None] = mapped_column(JSON, nullable=True)
     step: Mapped[str | None] = mapped_column(String(128), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
