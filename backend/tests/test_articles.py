@@ -1,10 +1,12 @@
 """Tests for /admin/articles endpoints."""
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.article import Article, ArticleStatus
 from app.models.chapter import Chapter
+from app.models.job import Job
 
 
 async def _seed_article(session: AsyncSession, chapter_id: str, title: str = "Test Article") -> Article:
@@ -252,3 +254,71 @@ class TestCreateArticle:
         )
         assert r.status_code == 201
         assert r.json()["chapter_id"] == sf_chapter.id
+
+
+async def _seed_regenerable(session, chapter_id, transcript="a long stored transcript",
+                            content_hash="abc123", source_filename="2025-06-22-salon.m4a"):
+    art = Article(
+        chapter_id=chapter_id, title="Source Article", content_md="# Source\n\nx.",
+        status=ArticleStatus.draft, anonymized_transcript=transcript,
+        content_hash=content_hash, source_filename=source_filename,
+    )
+    session.add(art)
+    await session.commit()
+    await session.refresh(art)
+    return art
+
+
+class TestArticleSourceFilename:
+    async def test_get_article_exposes_source_filename(
+        self, client: AsyncClient, admin_headers, db_session: AsyncSession, sf_chapter
+    ):
+        art = await _seed_regenerable(db_session, sf_chapter.id, source_filename="june-salon.m4a")
+        r = await client.get(f"/admin/articles/{art.id}", headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["source_filename"] == "june-salon.m4a"
+
+
+class TestRegenerateArticle:
+    async def test_regenerate_creates_transcript_job(
+        self, client: AsyncClient, admin_headers, db_session: AsyncSession, sf_chapter
+    ):
+        art = await _seed_regenerable(db_session, sf_chapter.id)
+        r = await client.post(f"/admin/articles/{art.id}/regenerate", headers=admin_headers)
+        assert r.status_code == 201
+        body = r.json()
+        assert body["status"] == "pending"
+        assert body["source_article_id"] == art.id
+
+        job = (await db_session.execute(
+            select(Job).where(Job.id == body["id"]))).scalar_one()
+        assert job.source_article_id == art.id
+        assert job.input_storage_key is None
+        assert job.content_hash == "abc123"
+        assert job.input_filename == "2025-06-22-salon.m4a"
+
+    async def test_regenerate_requires_transcript(
+        self, client: AsyncClient, admin_headers, db_session: AsyncSession, sf_chapter
+    ):
+        art = await _seed_article(db_session, sf_chapter.id)  # no transcript
+        r = await client.post(f"/admin/articles/{art.id}/regenerate", headers=admin_headers)
+        assert r.status_code == 400
+
+    async def test_regenerate_not_found(self, client: AsyncClient, admin_headers):
+        r = await client.post("/admin/articles/nonexistent-id/regenerate", headers=admin_headers)
+        assert r.status_code == 404
+
+    async def test_regenerate_chapter_scoped(
+        self, client: AsyncClient, lead_headers, db_session: AsyncSession, sf_chapter
+    ):
+        other = await _make_other_chapter(db_session)
+        art = await _seed_regenerable(db_session, other.id)
+        r = await client.post(f"/admin/articles/{art.id}/regenerate", headers=lead_headers)
+        assert r.status_code == 403
+
+    async def test_regenerate_requires_auth(
+        self, client: AsyncClient, db_session: AsyncSession, sf_chapter
+    ):
+        art = await _seed_regenerable(db_session, sf_chapter.id)
+        r = await client.post(f"/admin/articles/{art.id}/regenerate")
+        assert r.status_code == 401

@@ -24,6 +24,24 @@ StepCallback = Callable[[str], Awaitable[None]]
 
 _executor = ThreadPoolExecutor(max_workers=1)
 
+# Headings SocraticAI appends after the article body; skipped when picking the title.
+_SECTION_HEADERS = {"Notes from the Conversation", "Open Questions", "Pull Quotes", "Moments"}
+
+
+def _extract_title(article_md: str) -> str:
+    """Pick the article title: first heading that isn't a known analysis-section marker.
+
+    SocraticAI formats the file as: editor note → article body → # Notes from the
+    Conversation → # Open Questions → # Pull Quotes. The body may use ## headings rather
+    than a # title, so we scan for any heading that isn't one of the section markers.
+    """
+    for line in article_md.strip().splitlines():
+        if line.startswith("#"):
+            candidate = line.lstrip("#").strip()
+            if candidate and candidate not in _SECTION_HEADERS:
+                return candidate
+    return "Untitled"
+
 
 def system_key_for(provider: APIKeyProvider) -> str:
     """Return the env-var-configured key for `provider`, or '' if unset."""
@@ -153,23 +171,100 @@ class SocraticProcessor(BaseProcessor):
                 "limit and was stopped. Try a shorter recording or resubmit."
             ) from None
 
-        # Extract title from the first meaningful heading in the article body.
-        # SocraticAI formats the file as: editor note → article body → # Notes from
-        # the Conversation → # Open Questions → # Pull Quotes. The article body may
-        # use ## headings rather than a # title, so we scan for any heading that isn't
-        # one of the known analysis section markers.
-        _SECTION_HEADERS = {"Notes from the Conversation", "Open Questions", "Pull Quotes", "Moments"}
-        title = "Untitled"
-        for line in article_md.strip().splitlines():
-            if line.startswith("#"):
-                candidate = line.lstrip("#").strip()
-                if candidate and candidate not in _SECTION_HEADERS:
-                    title = candidate
-                    break
-
         return {
-            "title": title,
+            "title": _extract_title(article_md),
             "content_md": article_md.strip(),
             "anonymized_transcript": anon_transcript,
+            "meta": meta,
+        }
+
+    async def process_from_transcript(
+        self,
+        transcript_text: str,
+        source_filename: str | None,
+        chapter_id: str,
+        user_id: str,
+        db: AsyncSession,
+        on_step: StepCallback | None = None,
+    ) -> dict:
+        """Regenerate an article from an already-anonymized transcript.
+
+        Skips transcription + anonymization entirely: feeds the stored transcript to the
+        generator as a text input (anonymize=False) and runs only the LLM steps. Needs the
+        Google key only — no AssemblyAI key required.
+        """
+        async def _step(label: str) -> None:
+            if on_step:
+                await on_step(label)
+
+        google_key = await self._get_key(db, user_id, APIKeyProvider.google)
+
+        # Name the temp transcript file after the source so the article header can still
+        # parse the event date from the filename; fall back to a generic stem.
+        stem = Path(source_filename).stem if source_filename else "transcript"
+
+        await _step("Regenerating article from transcript…")
+
+        loop = asyncio.get_running_loop()
+
+        def run_generator() -> tuple[str, dict]:
+            import os
+            import shutil
+            import tempfile
+
+            import socraticai.config as sc_config
+            import socraticai.core.utils as sc_utils
+            from socraticai.content.article.article_generator import ArticleGenerator
+
+            work_dir = tempfile.mkdtemp(prefix="socratic_")
+            sc_config.DATA_DIRECTORY = work_dir
+            sc_utils.DATA_DIRECTORY = work_dir
+            for subdir in ("inputs", "transcripts", "processed", "outputs/articles"):
+                Path(work_dir, subdir).mkdir(parents=True, exist_ok=True)
+
+            # Write the already-anonymized transcript as a text input. A non-audio input
+            # makes ArticleGenerator skip transcription + anonymization.
+            transcript_path = Path(work_dir, "inputs", f"{stem}.txt")
+            transcript_path.write_text(transcript_text)
+
+            prev_google = os.environ.get("GOOGLE_API_KEY")
+            os.environ["GOOGLE_API_KEY"] = google_key
+            try:
+                generator = ArticleGenerator(model=settings.ARTICLE_LLM_MODEL)
+                article_path, meta_path = generator.generate(
+                    input_paths=str(transcript_path), anonymize=False
+                )
+                article_md = Path(article_path).read_text()
+                import json as _json
+                meta: dict = {}
+                if meta_path and Path(meta_path).exists():
+                    try:
+                        meta = _json.loads(Path(meta_path).read_text())
+                    except Exception:
+                        pass
+                return article_md, meta
+            finally:
+                if prev_google is None:
+                    os.environ.pop("GOOGLE_API_KEY", None)
+                else:
+                    os.environ["GOOGLE_API_KEY"] = prev_google
+                shutil.rmtree(work_dir, ignore_errors=True)
+
+        timeout = settings.JOB_TIMEOUT_SECONDS
+        try:
+            article_md, meta = await asyncio.wait_for(
+                loop.run_in_executor(_executor, run_generator), timeout=timeout
+            )
+        except (asyncio.TimeoutError, TimeoutError):
+            raise TimeoutError(
+                f"Article generation exceeded the {timeout // 60}-minute time "
+                "limit and was stopped."
+            ) from None
+
+        return {
+            "title": _extract_title(article_md),
+            "content_md": article_md.strip(),
+            # The input transcript is already anonymized; pass it straight through.
+            "anonymized_transcript": transcript_text,
             "meta": meta,
         }
