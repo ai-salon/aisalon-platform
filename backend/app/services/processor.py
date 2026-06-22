@@ -117,7 +117,7 @@ class SocraticProcessor(BaseProcessor):
                 aai.settings.api_key = assemblyai_key
                 # Pass model explicitly so the constructor doesn't try to init
                 # a default Anthropic chain (which would fail with AuthenticationError)
-                generator = ArticleGenerator(model="gemini-3-flash-preview")
+                generator = ArticleGenerator(model=settings.ARTICLE_LLM_MODEL)
                 article_path, meta_path = generator.generate(input_paths=audio_path, anonymize=True)
                 article_md = Path(article_path).read_text()
                 # Read anonymized transcript before the work dir is cleaned up

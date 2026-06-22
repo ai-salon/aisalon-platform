@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     ASSEMBLYAI_API_KEY: str = ""
     GOOGLE_API_KEY: str = ""
 
+    # LLM model used for article generation. Env-overridable so the model can be
+    # swapped without a deploy. The platform always passes this explicitly to
+    # SocraticAI's ArticleGenerator.
+    ARTICLE_LLM_MODEL: str = "gemini-3.1-flash-lite"
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
     @model_validator(mode="after")
