@@ -23,6 +23,7 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [duplicate, setDuplicate] = useState<any | null>(null);  // 409 detail from /admin/jobs
   const [apiKeys, setApiKeys] = useState<string[]>([]);  // providers with effective key (user OR system)
   const [keysLoaded, setKeysLoaded] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
@@ -79,6 +80,25 @@ export default function UploadPage() {
     return jobsData;
   };
 
+  const startPolling = () => {
+    if (intervalRef.current) return;
+    intervalRef.current = setInterval(async () => {
+      const refreshed = await fetchJobs();
+      if (refreshed && refreshed.every((j: any) => TERMINAL.has(j.status))) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+      }
+    }, 5000);
+  };
+
+  // Refresh the jobs panel and resume polling if anything is still active.
+  const refreshAfterStart = async () => {
+    setFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    const jobsData = await fetchJobs();
+    if (jobsData && jobsData.some((j: any) => !TERMINAL.has(j.status))) startPolling();
+  };
+
   useEffect(() => {
     if (!token) return;
     fetchJobs().then((jobsData) => {
@@ -100,39 +120,70 @@ export default function UploadPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  async function postJob(force: boolean) {
+    const form = new FormData();
+    form.append("file", file as File);
+    form.append("chapter_id", chapterId);
+    if (force) form.append("force", "true");
+    return fetch(`${API_URL}/admin/jobs`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file || !chapterId) return;
     setUploading(true);
     setError("");
-    const form = new FormData();
-    form.append("file", file);
-    form.append("chapter_id", chapterId);
-    const r = await fetch(`${API_URL}/admin/jobs`, {
+    setDuplicate(null);
+    const r = await postJob(false);
+    setUploading(false);
+    if (r.status === 409) {
+      const body = await r.json().catch(() => ({}));
+      setDuplicate(body.detail ?? { code: "duplicate_upload", message: "This file was already uploaded." });
+      return;
+    }
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      setError(typeof body.detail === "string" ? body.detail : "Upload failed.");
+      return;
+    }
+    await refreshAfterStart();
+  }
+
+  // Duplicate detected → regenerate a fresh article from the existing transcript.
+  async function handleRegenerate(articleId: string) {
+    setUploading(true);
+    setError("");
+    setDuplicate(null);
+    const r = await fetch(`${API_URL}/admin/articles/${articleId}/regenerate`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-      body: form,
     });
     setUploading(false);
     if (!r.ok) {
-      const body = await r.json().catch(() => ({}));
-      setError(body.detail ?? "Upload failed.");
+      setError("Could not start regeneration.");
       return;
     }
-    // Reset form and refresh jobs panel
-    setFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    const jobsData = await fetchJobs();
-    // Start polling if not already
-    if (jobsData && jobsData.some((j: any) => !TERMINAL.has(j.status)) && !intervalRef.current) {
-      intervalRef.current = setInterval(async () => {
-        const refreshed = await fetchJobs();
-        if (refreshed && refreshed.every((j: any) => TERMINAL.has(j.status))) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-        }
-      }, 5000);
+    await refreshAfterStart();
+  }
+
+  // Duplicate detected → re-run the full pipeline anyway (re-transcribe from scratch).
+  async function handleForceReupload() {
+    if (!file || !chapterId) return;
+    setUploading(true);
+    setError("");
+    setDuplicate(null);
+    const r = await postJob(true);
+    setUploading(false);
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      setError(typeof body.detail === "string" ? body.detail : "Upload failed.");
+      return;
     }
+    await refreshAfterStart();
   }
 
   const availableChapters = userRole === "chapter_lead"
@@ -195,6 +246,97 @@ export default function UploadPage() {
 
         {/* LEFT: Upload form */}
         <div>
+          {/* Duplicate-upload prompt */}
+          {duplicate && (
+            <div
+              style={{
+                background: "#fffbeb",
+                border: "1.5px solid #f59e0b",
+                borderRadius: 8,
+                padding: "14px 18px",
+                marginBottom: 24,
+              }}
+            >
+              {duplicate.code === "duplicate_processing" ? (
+                <>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#92400e", margin: "0 0 4px" }}>
+                    This file is already being processed.
+                  </p>
+                  <p style={{ fontSize: 12, color: "#a16207", margin: "0 0 12px" }}>
+                    Check the processing history on the right.
+                  </p>
+                  <button
+                    onClick={() => setDuplicate(null)}
+                    style={{
+                      fontSize: 12, fontWeight: 700, color: "#92400e",
+                      background: "transparent", border: "1.5px solid #f59e0b",
+                      padding: "6px 14px", borderRadius: 6, cursor: "pointer",
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#92400e", margin: "0 0 4px" }}>
+                    This file has already been turned into an article
+                    {duplicate.existing_article?.title ? `: “${duplicate.existing_article.title}”` : ""}.
+                  </p>
+                  <p style={{ fontSize: 12, color: "#a16207", margin: "0 0 12px" }}>
+                    Regenerate a fresh article from the existing transcript (no re-transcription needed),
+                    or re-transcribe from scratch.
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    {duplicate.existing_article?.id && (
+                      <button
+                        onClick={() => handleRegenerate(duplicate.existing_article.id)}
+                        disabled={uploading}
+                        style={{
+                          fontSize: 12, fontWeight: 700, color: "#fff",
+                          background: "#f59e0b", border: "none",
+                          padding: "7px 14px", borderRadius: 6,
+                          cursor: uploading ? "default" : "pointer",
+                        }}
+                      >
+                        {uploading ? "Starting…" : "Regenerate from transcript"}
+                      </button>
+                    )}
+                    <button
+                      onClick={handleForceReupload}
+                      disabled={uploading || !file}
+                      style={{
+                        fontSize: 12, fontWeight: 700, color: "#92400e",
+                        background: "transparent", border: "1.5px solid #f59e0b",
+                        padding: "6px 14px", borderRadius: 6,
+                        cursor: uploading || !file ? "default" : "pointer",
+                      }}
+                    >
+                      Re-transcribe from scratch
+                    </button>
+                    {duplicate.existing_article?.id && (
+                      <Link
+                        href={`/articles/${duplicate.existing_article.id}`}
+                        style={{ fontSize: 12, fontWeight: 600, color: "#56a1d2", textDecoration: "none" }}
+                      >
+                        View existing →
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => setDuplicate(null)}
+                      style={{
+                        fontSize: 12, fontWeight: 600, color: "#a16207",
+                        background: "transparent", border: "none",
+                        padding: "6px 8px", cursor: "pointer", marginLeft: "auto",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {/* Cost notice */}
           <div
             style={{

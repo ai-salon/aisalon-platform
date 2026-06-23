@@ -235,6 +235,7 @@ Tailwind v4 tokens (use these, not hex values directly):
 - `LOG_LEVEL` — structlog level: DEBUG, INFO, WARNING, ERROR (default: `INFO`)
 - `ASSEMBLYAI_API_KEY` — optional system-wide fallback. Used when a user has not set their own key in `UserAPIKey`.
 - `GOOGLE_API_KEY` — optional system-wide fallback. Same fallback semantics as above.
+- `ARTICLE_LLM_MODEL` — LLM model used for article generation (default: `gemini-3.1-flash-lite`). Passed explicitly to SocraticAI's `ArticleGenerator`; change to swap models without a code deploy.
 
 **Frontend** (`.env.local`):
 - `NEXT_PUBLIC_API_URL` — backend API URL (default: `http://localhost:8000`)

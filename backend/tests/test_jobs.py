@@ -1,21 +1,55 @@
 """Tests for /admin/jobs endpoints."""
+import hashlib
 import io
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.admin import run_job
 from app.core.config import settings
 from app.core.security import hash_password
+from app.models.article import Article, ArticleStatus
 from app.models.job import Job, JobStatus
 from app.models.chapter import Chapter
 from app.models.user import User, UserRole
 
+_AUDIO_BYTES = b"fake audio bytes"
+
 
 def _audio_file():
-    return ("recording.mp3", io.BytesIO(b"fake audio bytes"), "audio/mpeg")
+    return ("recording.mp3", io.BytesIO(_AUDIO_BYTES), "audio/mpeg")
+
+
+def _sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+async def _seed_processed_article(session, chapter_id, content_hash,
+                                  transcript="a fairly long anonymized transcript",
+                                  title="Prior Article"):
+    """An article that already came out of the pipeline (has a stored transcript)."""
+    art = Article(
+        chapter_id=chapter_id, title=title, content_md="x",
+        status=ArticleStatus.draft, anonymized_transcript=transcript,
+        content_hash=content_hash,
+    )
+    session.add(art)
+    await session.commit()
+    await session.refresh(art)
+    return art
+
+
+async def _other_chapter(session):
+    ch = Chapter(code="berlin", name="Berlin", title="t", description="d",
+                 tagline="t", about="a", event_link="e", calendar_embed="c",
+                 events_description="e", status="active")
+    session.add(ch)
+    await session.commit()
+    await session.refresh(ch)
+    return ch
 
 
 class TestCreateJob:
@@ -220,3 +254,111 @@ class TestRunJobFileCleanup:
             await run_job(job.id)
 
         assert audio_file.exists()
+
+
+class TestRunJobArticleMetadata:
+    """run_job should stamp the produced article with the source filename + hash."""
+
+    async def _make_job(self, db_session, chapter, tmp_path):
+        user = User(email="meta@test.com", hashed_password=hash_password("x"),
+                    role=UserRole.superadmin, is_active=True)
+        db_session.add(user)
+        await db_session.commit()
+        await db_session.refresh(user)
+        (tmp_path / "k").mkdir()
+        (tmp_path / "k" / "recording.mp3").write_bytes(b"fake audio")
+        job = Job(chapter_id=chapter.id, user_id=user.id, input_filename="recording.mp3",
+                  input_storage_key="k/recording.mp3", content_hash="deadbeef",
+                  status=JobStatus.pending)
+        db_session.add(job)
+        await db_session.commit()
+        await db_session.refresh(job)
+        return job
+
+    async def test_article_inherits_filename_and_hash(
+        self, tmp_path: Path, db_session: AsyncSession, sf_chapter: Chapter, client
+    ):
+        job = await self._make_job(db_session, sf_chapter, tmp_path)
+        mock_result = {"title": "T", "content_md": "body", "anonymized_transcript": "anon"}
+        with patch("app.api.admin.SocraticProcessor") as mock_proc, \
+             patch.object(settings, "UPLOAD_DIR", str(tmp_path)):
+            mock_proc.return_value.process = AsyncMock(return_value=mock_result)
+            await run_job(job.id)
+
+        article = (await db_session.execute(
+            select(Article).where(Article.job_id == job.id))).scalar_one()
+        assert article.source_filename == "recording.mp3"
+        assert article.content_hash == "deadbeef"
+
+
+class TestDuplicateUpload:
+    async def test_duplicate_returns_409(self, client, admin_headers, db_session, sf_chapter):
+        art = await _seed_processed_article(db_session, sf_chapter.id, _sha(_AUDIO_BYTES))
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id}, headers=admin_headers)
+        assert r.status_code == 409
+        detail = r.json()["detail"]
+        assert detail["code"] == "duplicate_upload"
+        assert detail["existing_article"]["id"] == art.id
+        assert detail["existing_article"]["title"] == "Prior Article"
+
+    async def test_duplicate_creates_no_job(self, client, admin_headers, db_session, sf_chapter):
+        await _seed_processed_article(db_session, sf_chapter.id, _sha(_AUDIO_BYTES))
+        await client.post("/admin/jobs", files={"file": _audio_file()},
+                          data={"chapter_id": sf_chapter.id}, headers=admin_headers)
+        r = await client.get("/admin/jobs", headers=admin_headers)
+        assert r.json() == []
+
+    async def test_force_bypasses_dedup(self, client, admin_headers, db_session, sf_chapter):
+        await _seed_processed_article(db_session, sf_chapter.id, _sha(_AUDIO_BYTES))
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id, "force": "true"},
+                              headers=admin_headers)
+        assert r.status_code == 201
+
+    async def test_different_bytes_not_duplicate(self, client, admin_headers, db_session, sf_chapter):
+        await _seed_processed_article(db_session, sf_chapter.id, _sha(b"different content"))
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id}, headers=admin_headers)
+        assert r.status_code == 201
+
+    async def test_article_without_transcript_not_matched(
+        self, client, admin_headers, db_session, sf_chapter
+    ):
+        # An article carrying the hash but no transcript can't be regenerated → not a dup.
+        await _seed_processed_article(db_session, sf_chapter.id, _sha(_AUDIO_BYTES), transcript=None)
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id}, headers=admin_headers)
+        assert r.status_code == 201
+
+    async def test_dedup_chapter_scoped_for_lead(
+        self, client, lead_headers, db_session, sf_chapter
+    ):
+        other = await _other_chapter(db_session)
+        await _seed_processed_article(db_session, other.id, _sha(_AUDIO_BYTES))
+        # Lead uploads identical bytes to their own chapter → different chapter, not a dup.
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id}, headers=lead_headers)
+        assert r.status_code == 201
+
+    async def test_superadmin_dedup_is_global(
+        self, client, admin_headers, db_session, sf_chapter
+    ):
+        other = await _other_chapter(db_session)
+        await _seed_processed_article(db_session, other.id, _sha(_AUDIO_BYTES))
+        # Superadmin has no chapter filter → matches across chapters.
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id}, headers=admin_headers)
+        assert r.status_code == 409
+
+    async def test_inflight_job_is_duplicate(
+        self, client, admin_headers, db_session, sf_chapter, superadmin
+    ):
+        job = Job(chapter_id=sf_chapter.id, user_id=superadmin.id,
+                  status=JobStatus.processing, content_hash=_sha(_AUDIO_BYTES))
+        db_session.add(job)
+        await db_session.commit()
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id}, headers=admin_headers)
+        assert r.status_code == 409
+        assert r.json()["detail"]["code"] == "duplicate_processing"

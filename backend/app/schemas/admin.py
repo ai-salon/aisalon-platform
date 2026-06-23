@@ -69,6 +69,7 @@ class JobResponse(BaseModel):
     step: str | None
     chapter_id: str
     input_filename: str | None
+    source_article_id: str | None = None
     error_message: str | None
     created_at: datetime
 
@@ -82,6 +83,8 @@ class ArticleResponse(BaseModel):
     title: str
     content_md: str
     anonymized_transcript: str | None
+    source_filename: str | None = None
+    content_hash: str | None = None
     substack_url: str | None
     status: ArticleStatus
     chapter_id: str

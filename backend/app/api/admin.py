@@ -1,4 +1,5 @@
 """Admin API endpoints: api-keys, jobs, articles, chapters, team."""
+import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -62,6 +63,49 @@ def _chapter_filter(user: User):
     return None
 
 
+async def _find_duplicate(db: AsyncSession, content_hash: str, user: User) -> dict | None:
+    """Detect a prior upload of the same file content (chapter-scoped; superadmin global).
+
+    Returns a 409 detail dict, or None if this content is new. Prefers an existing
+    article (whose stored transcript can be regenerated) over an in-flight job.
+    """
+    chapter_id = _chapter_filter(user)
+
+    art_stmt = select(Article).where(
+        Article.content_hash == content_hash,
+        Article.anonymized_transcript.is_not(None),
+        Article.anonymized_transcript != "",
+    )
+    if chapter_id:
+        art_stmt = art_stmt.where(Article.chapter_id == chapter_id)
+    art = (await db.execute(art_stmt.order_by(Article.created_at.desc()))).scalars().first()
+    if art is not None:
+        return {
+            "code": "duplicate_upload",
+            "message": "This file has already been turned into an article.",
+            "existing_article": {
+                "id": art.id,
+                "title": art.title,
+                "status": getattr(art.status, "value", art.status),
+            },
+        }
+
+    job_stmt = select(Job).where(
+        Job.content_hash == content_hash,
+        Job.status.in_([JobStatus.pending, JobStatus.processing]),
+    )
+    if chapter_id:
+        job_stmt = job_stmt.where(Job.chapter_id == chapter_id)
+    job = (await db.execute(job_stmt.order_by(Job.created_at.desc()))).scalars().first()
+    if job is not None:
+        return {
+            "code": "duplicate_processing",
+            "message": "This file is already being processed.",
+            "job_id": job.id,
+        }
+    return None
+
+
 # ── Background job runner ─────────────────────────────────────────────────────
 
 async def run_job(job_id: str) -> None:
@@ -86,13 +130,30 @@ async def run_job(job_id: str) -> None:
         article = None
         try:
             processor = SocraticProcessor()
-            article_data = await processor.process(
-                storage_key=job.input_storage_key or "",
-                chapter_id=job.chapter_id,
-                user_id=job.user_id,
-                db=db,
-                on_step=set_step,
-            )
+            if job.source_article_id:
+                # Regenerate from a prior article's stored transcript — no audio, no
+                # re-transcription.
+                src = (await db.execute(
+                    select(Article).where(Article.id == job.source_article_id)
+                )).scalar_one_or_none()
+                if src is None or not src.anonymized_transcript:
+                    raise ValueError("Source article has no transcript to regenerate from")
+                article_data = await processor.process_from_transcript(
+                    transcript_text=src.anonymized_transcript,
+                    source_filename=job.input_filename,
+                    chapter_id=job.chapter_id,
+                    user_id=job.user_id,
+                    db=db,
+                    on_step=set_step,
+                )
+            else:
+                article_data = await processor.process(
+                    storage_key=job.input_storage_key or "",
+                    chapter_id=job.chapter_id,
+                    user_id=job.user_id,
+                    db=db,
+                    on_step=set_step,
+                )
             article = Article(
                 job_id=job.id,
                 user_id=job.user_id,
@@ -100,6 +161,8 @@ async def run_job(job_id: str) -> None:
                 title=article_data["title"],
                 content_md=article_data["content_md"],
                 anonymized_transcript=article_data.get("anonymized_transcript"),
+                source_filename=job.input_filename,
+                content_hash=job.content_hash,
                 meta=article_data.get("meta") or None,
                 status=ArticleStatus.draft,
             )
@@ -343,6 +406,7 @@ async def create_job(
     background_tasks: BackgroundTasks,
     chapter_id: str = Form(...),
     file: UploadFile = File(...),
+    force: bool = Form(False),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -358,6 +422,15 @@ async def create_job(
 
     data = await file.read()
     _validate_audio_upload(file, len(data))
+
+    content_hash = hashlib.sha256(data).hexdigest()
+    # Unless explicitly forced, refuse to re-process a file we already have. The
+    # caller can regenerate from the existing transcript instead (see the 409 detail).
+    if not force:
+        dup = await _find_duplicate(db, content_hash, current_user)
+        if dup is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=dup)
+
     storage_key = await save_upload(file.filename or "upload", data)
 
     job = Job(
@@ -366,6 +439,7 @@ async def create_job(
         status=JobStatus.pending,
         input_filename=file.filename,
         input_storage_key=storage_key,
+        content_hash=content_hash,
     )
     db.add(job)
     await db.commit()
@@ -508,6 +582,48 @@ async def get_article(
     if current_user.role != UserRole.superadmin and article.chapter_id != current_user.chapter_id:
         raise HTTPException(status_code=403, detail="Forbidden")
     return article
+
+
+@router.post(
+    "/articles/{article_id}/regenerate",
+    response_model=JobResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def regenerate_article(
+    article_id: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Regenerate a fresh article from an existing article's stored transcript.
+
+    Reuses the anonymized transcript (no re-transcription) and runs only the LLM steps
+    with the current model. Produces a new draft alongside the original (keep-both).
+    """
+    result = await db.execute(select(Article).where(Article.id == article_id))
+    article = result.scalar_one_or_none()
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+    if current_user.role != UserRole.superadmin and article.chapter_id != current_user.chapter_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if not article.anonymized_transcript:
+        raise HTTPException(status_code=400, detail="No stored transcript to regenerate from")
+
+    job = Job(
+        user_id=current_user.id,
+        chapter_id=article.chapter_id,
+        status=JobStatus.pending,
+        input_filename=article.source_filename,
+        input_storage_key=None,
+        content_hash=article.content_hash,
+        source_article_id=article.id,
+    )
+    db.add(job)
+    await db.commit()
+    await db.refresh(job)
+    logger.info("regenerate_requested", job_id=job.id, source_article_id=article.id)
+    background_tasks.add_task(run_job, job.id)
+    return job
 
 
 @router.patch("/articles/{article_id}", response_model=ArticleResponse)
