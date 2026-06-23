@@ -5221,8 +5221,8 @@ tiktoken = "^0.8.0"
 [package.source]
 type = "git"
 url = "https://github.com/ai-salon/SocraticAI.git"
-reference = "ac5a6de"
-resolved_reference = "ac5a6def974221ebec2634714a9c8ca2bd62caf4"
+reference = "ff33f73"
+resolved_reference = "ff33f732ab1f45daa31c42ded2a08c5309a23abe"
 
 [[package]]
 name = "soupsieve"
@@ -6650,4 +6650,4 @@ dev = ["pytest", "setuptools"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.11"
-content-hash = "31b92022bdf0f4e202c5d9901e82ead6bc047c9205df594538ac1322d3623afd"
+content-hash = "cfc2154664230cbc9a6d3e49d22ae3b0b35cd5e60492005ceebf4904caacee8c"
