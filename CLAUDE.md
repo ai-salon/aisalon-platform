@@ -162,7 +162,7 @@ Three helpers in `api/admin.py` used on every admin endpoint:
 ### Background Job Pipeline
 
 Upload → `POST /admin/jobs` creates Job (pending) + calls `BackgroundTasks.add_task(run_job, job_id)`:
-1. Reads AssemblyAI + Google API keys from `UserAPIKey` table (decrypts at runtime)
+1. Resolves AssemblyAI + Google keys via `system_settings.resolve_provider_key` (per-user `UserAPIKey` → admin `SystemSetting` → env var) and the model via `resolve_model`
 2. Runs `SocraticProcessor.process()` in `ThreadPoolExecutor(max_workers=1)` to avoid blocking the async event loop
 3. SocraticAI creates a temp directory, sets `sc_config.DATA_DIRECTORY`, calls `generator.generate(anonymize=True)`
 4. On success: creates `Article` (draft) with title, content_md, anonymized_transcript; job → completed
@@ -233,9 +233,11 @@ Tailwind v4 tokens (use these, not hex values directly):
 - `BASE_PASSWORD` — base for seeded chapter lead passwords (default: `impact`)
 - `SENTRY_DSN` — Sentry project DSN for error tracking (optional, no-op when empty)
 - `LOG_LEVEL` — structlog level: DEBUG, INFO, WARNING, ERROR (default: `INFO`)
-- `ASSEMBLYAI_API_KEY` — optional system-wide fallback. Used when a user has not set their own key in `UserAPIKey`.
-- `GOOGLE_API_KEY` — optional system-wide fallback. Same fallback semantics as above.
-- `ARTICLE_LLM_MODEL` — LLM model used for article generation (default: `gemini-3.1-flash-lite`). Passed explicitly to SocraticAI's `ArticleGenerator`; change to swap models without a code deploy.
+- `ASSEMBLYAI_API_KEY` — optional env-var fallback. Resolution order (see `services/system_settings.resolve_provider_key`): per-user `UserAPIKey` → admin `SystemSetting` (`assemblyai_api_key`, set in **Settings ▸ AI Processing**, superadmin) → this env var.
+- `GOOGLE_API_KEY` — optional env-var fallback. Same resolution order (`SystemSetting` key `google_api_key`).
+- `ARTICLE_LLM_MODEL` — default LLM model for article generation (default: `gemini-3.1-flash-lite`). Admin-overridable at runtime via `SystemSetting` `article_llm_model` (**Settings ▸ AI Processing**, verified with a live test call before save). Resolution order (`resolve_model`): setting → this env var → SocraticAI default. Passed explicitly to SocraticAI's `ArticleGenerator`.
+
+Admin-managed keys + model are configured by a superadmin in **Settings ▸ AI Processing** (`GET /admin/processing-config`, `POST /admin/processing/test` to verify, then `POST /admin/system-settings` to persist). Hosts/chapter leads no longer set their own keys; `UserAPIKey` is retained (no UI) and still wins if present.
 
 **Frontend** (`.env.local`):
 - `NEXT_PUBLIC_API_URL` — backend API URL (default: `http://localhost:8000`)
