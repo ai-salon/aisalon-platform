@@ -13,19 +13,16 @@ Admin:
   GET  /admin/graph/backfill/status       — poll backfill progress
 """
 
-import asyncio
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
-from app.core.encryption import decrypt_key
 from app.core.logging import get_logger
-from app.models.api_key import APIKeyProvider, UserAPIKey
+from app.models.api_key import APIKeyProvider
 from app.models.article import Article, ArticleStatus
 from app.models.graph import GraphEdge, GraphMergeCandidate, GraphNode
 from app.models.user import User, UserRole
@@ -41,6 +38,7 @@ from app.schemas.graph import (
     NodeEditRequest,
 )
 from app.services.graph import GraphIngestionService
+from app.services.system_settings import resolve_provider_key
 
 logger = get_logger(__name__)
 
@@ -61,21 +59,14 @@ def _require_admin(user: User) -> None:
 
 
 async def _get_google_key(user_id: str, db: AsyncSession) -> str:
-    from app.core.config import settings
-
-    result = await db.execute(
-        select(UserAPIKey).where(
-            UserAPIKey.user_id == user_id,
-            UserAPIKey.provider == APIKeyProvider.google,
-        )
-    )
-    row = result.scalar_one_or_none()
-    if not row:
+    """Resolve the Google key (user → admin system key → env); 422 if none set."""
+    key = await resolve_provider_key(db, APIKeyProvider.google, user_id=user_id)
+    if not key:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Google API key not configured. Add it in Settings.",
+            detail="Google API key not configured. Ask an admin to set it in Settings.",
         )
-    return decrypt_key(row.encrypted_key, settings.SECRET_KEY)
+    return key
 
 
 def _node_to_summary(node: GraphNode) -> GraphNodeSummary:

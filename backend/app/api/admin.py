@@ -12,7 +12,7 @@ from sqlalchemy import select, func, cast, Date
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
 from app.core.config import settings
-from app.core.encryption import encrypt_key, decrypt_key
+from app.core.encryption import encrypt_key
 from app.core.logging import get_logger
 from app.models.user import User, UserRole
 from app.models.api_key import UserAPIKey, APIKeyProvider
@@ -33,9 +33,19 @@ from app.schemas.admin import (
     InviteCreate, InviteResponse,
     ChapterStats, CommunityStatsResponse,
     SystemSettingRequest, SystemSettingResponse,
+    ProcessingConfigResponse, ProcessingTestRequest, ProcessingTestResponse,
 )
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor, system_key_for
+from app.services import key_verification
+from app.services.system_settings import (
+    get_setting,
+    set_setting,
+    resolve_provider_key,
+    resolve_model,
+    ASSEMBLYAI_API_KEY as SETTING_ASSEMBLYAI,
+    GOOGLE_API_KEY as SETTING_GOOGLE,
+)
 
 logger = get_logger(__name__)
 
@@ -183,21 +193,16 @@ async def run_job(job_id: str) -> None:
 
         await db.commit()
 
-        # Trigger graph ingestion if we have an article and meta
+        # Trigger graph ingestion if we have an article and meta. Uses the same
+        # tiered key resolution as the pipeline (user → admin system key → env), so
+        # ingestion works with the admin-managed Google key, not just a personal one.
         if job.status == JobStatus.completed and article is not None and article.meta:
             try:
-                from app.core.encryption import decrypt_key
-                from app.models.api_key import APIKeyProvider
-                google_key_result = await db.execute(
-                    select(UserAPIKey).where(
-                        UserAPIKey.user_id == job.user_id,
-                        UserAPIKey.provider == APIKeyProvider.google,
-                    )
+                google_key = await resolve_provider_key(
+                    db, APIKeyProvider.google, user_id=job.user_id
                 )
-                google_key_row = google_key_result.scalar_one_or_none()
-                if google_key_row:
+                if google_key:
                     from app.services.graph import GraphIngestionService
-                    google_key = decrypt_key(google_key_row.encrypted_key, settings.SECRET_KEY)
                     svc = GraphIngestionService(db, google_key)
                     await svc.ingest_article(
                         article_id=article.id,
@@ -206,6 +211,8 @@ async def run_job(job_id: str) -> None:
                         meta=article.meta,
                     )
                     job_log.info("graph_ingestion_complete", article_id=article.id)
+                else:
+                    job_log.warning("graph_ingestion_skipped_no_key", article_id=article.id)
             except Exception as exc:
                 job_log.warning("graph_ingestion_failed", error=str(exc))
 
@@ -1182,16 +1189,7 @@ async def set_system_setting(
     current_user: User = Depends(get_current_user),
 ):
     _require_admin(current_user)
-    result = await db.execute(
-        select(SystemSetting).where(SystemSetting.key == body.key)
-    )
-    existing = result.scalar_one_or_none()
-    encrypted = encrypt_key(body.value, settings.SECRET_KEY)
-    if existing:
-        existing.encrypted_value = encrypted
-    else:
-        db.add(SystemSetting(key=body.key, encrypted_value=encrypted))
-    await db.commit()
+    await set_setting(db, body.key, body.value)
     return SystemSettingResponse(key=body.key, has_value=True)
 
 
@@ -1233,17 +1231,65 @@ async def get_substack_publication_url(
     current_user: User = Depends(get_current_user),
 ):
     _require_admin(current_user)
-    pub_url = await _get_setting(db, "substack_publication_url")
+    pub_url = await get_setting(db, "substack_publication_url")
     return {"publication_url": pub_url}
 
 
-async def _get_setting(db: AsyncSession, key: str) -> str | None:
-    result = await db.execute(
-        select(SystemSetting).where(SystemSetting.key == key)
+# ── AI Processing config: admin-managed keys + model (superadmin only) ─────────
+
+@router.get("/processing-config", response_model=ProcessingConfigResponse)
+async def get_processing_config(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Report whether system keys are set and the effective processing model.
+
+    Keys are never echoed — only set/not-set. The model value is non-secret and returned
+    so the admin UI can show the current selection.
+    """
+    _require_admin(current_user)
+    assemblyai_set = bool(await get_setting(db, SETTING_ASSEMBLYAI)) or bool(settings.ASSEMBLYAI_API_KEY)
+    google_set = bool(await get_setting(db, SETTING_GOOGLE)) or bool(settings.GOOGLE_API_KEY)
+    model, source = await resolve_model(db)
+    return ProcessingConfigResponse(
+        assemblyai_set=assemblyai_set,
+        google_set=google_set,
+        model=model,
+        model_source=source,
     )
-    s = result.scalar_one_or_none()
-    if not s:
-        return None
-    return decrypt_key(s.encrypted_value, settings.SECRET_KEY)
+
+
+@router.post("/processing/test", response_model=ProcessingTestResponse)
+async def test_processing_config(
+    body: ProcessingTestRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Run a live verification of a candidate key or model before it is saved.
+
+    The check runs in a thread executor (sync external SDKs). For a model test we resolve
+    the currently-saved Google system key, so the model is exercised exactly as a real job
+    would (an unsupported model fails here rather than silently at job time).
+    """
+    _require_admin(current_user)
+    import asyncio
+
+    loop = asyncio.get_running_loop()
+    if body.target == "assemblyai":
+        ok, message = await loop.run_in_executor(
+            None, key_verification.verify_assemblyai_key, body.value
+        )
+    elif body.target == "google":
+        ok, message = await loop.run_in_executor(
+            None, key_verification.verify_google_key, body.value
+        )
+    elif body.target == "model":
+        google_key = await resolve_provider_key(db, APIKeyProvider.google)
+        ok, message = await loop.run_in_executor(
+            None, key_verification.verify_model, body.value, google_key
+        )
+    else:
+        raise HTTPException(status_code=422, detail="Unknown test target")
+    return ProcessingTestResponse(ok=ok, message=message)
 
 

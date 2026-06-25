@@ -13,12 +13,11 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Awaitable, Callable
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.encryption import decrypt_key
-from app.models.api_key import UserAPIKey, APIKeyProvider
+from app.models.api_key import APIKeyProvider
+from app.services.system_settings import resolve_model, resolve_provider_key
 
 StepCallback = Callable[[str], Awaitable[None]]
 
@@ -70,21 +69,14 @@ class SocraticProcessor(BaseProcessor):
     """Wraps ArticleGenerator.generate() exactly as the CLI does."""
 
     async def _get_key(self, db: AsyncSession, user_id: str, provider: APIKeyProvider) -> str:
-        result = await db.execute(
-            select(UserAPIKey).where(
-                UserAPIKey.user_id == user_id,
-                UserAPIKey.provider == provider,
+        """Resolve a provider key (user → admin system key → env); raise if none set."""
+        key = await resolve_provider_key(db, provider, user_id=user_id)
+        if not key:
+            raise ValueError(
+                f"{provider.value.title()} API key not configured. "
+                "Ask an admin to set it in Settings."
             )
-        )
-        row = result.scalar_one_or_none()
-        if row:
-            return decrypt_key(row.encrypted_key, settings.SECRET_KEY)
-        env_key = system_key_for(provider)
-        if env_key:
-            return env_key
-        raise ValueError(
-            f"{provider.value.title()} API key not configured. Set it in Settings."
-        )
+        return key
 
     async def process(
         self,
@@ -100,6 +92,7 @@ class SocraticProcessor(BaseProcessor):
 
         assemblyai_key = await self._get_key(db, user_id, APIKeyProvider.assemblyai)
         google_key = await self._get_key(db, user_id, APIKeyProvider.google)
+        model, _ = await resolve_model(db)
 
         audio_path = str(Path(settings.UPLOAD_DIR) / storage_key)
 
@@ -135,7 +128,7 @@ class SocraticProcessor(BaseProcessor):
                 aai.settings.api_key = assemblyai_key
                 # Pass model explicitly so the constructor doesn't try to init
                 # a default Anthropic chain (which would fail with AuthenticationError)
-                generator = ArticleGenerator(model=settings.ARTICLE_LLM_MODEL)
+                generator = ArticleGenerator(model=model)
                 article_path, meta_path = generator.generate(input_paths=audio_path, anonymize=True)
                 article_md = Path(article_path).read_text()
                 # Read anonymized transcript before the work dir is cleaned up
@@ -198,6 +191,7 @@ class SocraticProcessor(BaseProcessor):
                 await on_step(label)
 
         google_key = await self._get_key(db, user_id, APIKeyProvider.google)
+        model, _ = await resolve_model(db)
 
         # Name the temp transcript file after the source so the article header can still
         # parse the event date from the filename; fall back to a generic stem.
@@ -230,7 +224,7 @@ class SocraticProcessor(BaseProcessor):
             prev_google = os.environ.get("GOOGLE_API_KEY")
             os.environ["GOOGLE_API_KEY"] = google_key
             try:
-                generator = ArticleGenerator(model=settings.ARTICLE_LLM_MODEL)
+                generator = ArticleGenerator(model=model)
                 article_path, meta_path = generator.generate(
                     input_paths=str(transcript_path), anonymize=False
                 )

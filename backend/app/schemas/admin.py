@@ -210,3 +210,22 @@ class SystemSettingRequest(BaseModel):
 class SystemSettingResponse(BaseModel):
     key: str
     has_value: bool
+
+
+# ── Processing config (admin-managed keys + model) ────────────────────────────
+
+class ProcessingConfigResponse(BaseModel):
+    assemblyai_set: bool
+    google_set: bool
+    model: str
+    model_source: str  # "setting" | "env" | "default"
+
+
+class ProcessingTestRequest(BaseModel):
+    target: str  # "assemblyai" | "google" | "model"
+    value: str
+
+
+class ProcessingTestResponse(BaseModel):
+    ok: bool
+    message: str
