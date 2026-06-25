@@ -23,6 +23,7 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);  // 0-100 upload-transfer percent
   const [error, setError] = useState("");
   const [duplicate, setDuplicate] = useState<any | null>(null);  // 409 detail from /admin/jobs
   const [jobs, setJobs] = useState<any[]>([]);
@@ -129,15 +130,42 @@ export default function UploadPage() {
     setFile(f);
   }
 
-  async function postJob(force: boolean) {
+  // POST the upload via XMLHttpRequest (not fetch) so we can report client→server
+  // upload progress, which dominates the wait for large recordings. Resolves a
+  // small fetch-Response-like shape so callers stay unchanged; never rejects.
+  function postJob(
+    force: boolean,
+  ): Promise<{ status: number; ok: boolean; json: () => Promise<any> }> {
     const form = new FormData();
     form.append("file", file as File);
     form.append("chapter_id", chapterId);
     if (force) form.append("force", "true");
-    return fetch(`${API_URL}/admin/jobs`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: form,
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_URL}/admin/jobs`);
+      xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) setProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      // Bytes are on the server; it's now hashing/queuing — show the bar full.
+      xhr.upload.onload = () => setProgress(100);
+      xhr.onload = () => {
+        const status = xhr.status;
+        resolve({
+          status,
+          ok: status >= 200 && status < 300,
+          json: async () => {
+            try {
+              return JSON.parse(xhr.responseText);
+            } catch {
+              return {};
+            }
+          },
+        });
+      };
+      xhr.onerror = () =>
+        resolve({ status: 0, ok: false, json: async () => ({ detail: "Upload failed." }) });
+      xhr.send(form);
     });
   }
 
@@ -145,6 +173,7 @@ export default function UploadPage() {
     e.preventDefault();
     if (!file || !chapterId) return;
     setUploading(true);
+    setProgress(0);
     setError("");
     setDuplicate(null);
     const r = await postJob(false);
@@ -165,6 +194,7 @@ export default function UploadPage() {
   // Duplicate detected → regenerate a fresh article from the existing transcript.
   async function handleRegenerate(articleId: string) {
     setUploading(true);
+    setProgress(0);
     setError("");
     setDuplicate(null);
     const r = await fetch(`${API_URL}/admin/articles/${articleId}/regenerate`, {
@@ -183,6 +213,7 @@ export default function UploadPage() {
   async function handleForceReupload() {
     if (!file || !chapterId) return;
     setUploading(true);
+    setProgress(0);
     setError("");
     setDuplicate(null);
     const r = await postJob(true);
@@ -406,6 +437,26 @@ export default function UploadPage() {
 
               {error && <p style={{ fontSize: 13, color: "#ef4444", margin: 0 }}>{error}</p>}
 
+              {uploading && progress > 0 && (
+                <div aria-label="Upload progress">
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#696969", marginBottom: 6 }}>
+                    <span>{progress < 100 ? "Uploading…" : "Processing…"}</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div style={{ height: 8, background: "#ede9d8", borderRadius: 999, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        width: `${progress}%`,
+                        height: "100%",
+                        background: progress < 100 ? "#56a1d2" : "#d2b356",
+                        borderRadius: 999,
+                        transition: "width 0.2s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
               <button
                 type="submit"
                 disabled={!file || !chapterId || uploading}
@@ -421,7 +472,11 @@ export default function UploadPage() {
                   alignSelf: "flex-start",
                 }}
               >
-                {uploading ? "Uploading…" : "Begin Upload"}
+                {uploading
+                  ? progress > 0 && progress < 100
+                    ? `Uploading… ${progress}%`
+                    : "Uploading…"
+                  : "Begin Upload"}
               </button>
             </div>
           </form>
