@@ -46,12 +46,23 @@ async def test_profile_complete_requires_name(client: AsyncClient, host_headers)
     assert r.status_code == 422
 
 
-async def test_profile_complete_requires_image(client: AsyncClient, host_headers):
+async def test_profile_complete_allows_empty_image(client: AsyncClient, host_headers):
     r = await client.post("/profile/complete", headers=host_headers, json={
         "name": "Bob",
         "profile_image_url": "",
     })
-    assert r.status_code == 422
+    assert r.status_code == 200
+    body = r.json()
+    assert body["profile_image_url"] is None
+    assert body["profile_completed_at"] is not None
+
+
+async def test_profile_complete_allows_omitted_image(client: AsyncClient, host_headers):
+    r = await client.post("/profile/complete", headers=host_headers, json={
+        "name": "Bob",
+    })
+    assert r.status_code == 200
+    assert r.json()["profile_image_url"] is None
 
 
 async def test_profile_status_endpoint(client: AsyncClient, host_user, host_headers):
