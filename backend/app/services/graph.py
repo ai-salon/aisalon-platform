@@ -17,12 +17,10 @@ everything >= 0.72 is queued for review.
 from __future__ import annotations
 
 import json
-import logging
 from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select, text, update, func
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.graph import GraphEdge, GraphMergeCandidate, GraphNode
