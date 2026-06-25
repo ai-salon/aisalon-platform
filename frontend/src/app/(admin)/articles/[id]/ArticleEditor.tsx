@@ -118,11 +118,13 @@ export default function ArticleEditor({
   token,
   substackPublicationUrl,
   role,
+  chapterName,
 }: {
   article: Article;
   token: string;
   substackPublicationUrl?: string | null;
   role?: string;
+  chapterName?: string | null;
 }) {
   const searchParams = useSearchParams();
   const initialTab: Tab =
@@ -480,6 +482,23 @@ export default function ArticleEditor({
             color: "#9ca3af",
           }}
         >
+          {chapterName && (
+            <span
+              title="Chapter"
+              style={{
+                padding: "2px 9px",
+                borderRadius: 12,
+                background: "#f8f6ec",
+                color: "#d2b356",
+                fontWeight: 700,
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: 0.6,
+              }}
+            >
+              {chapterName}
+            </span>
+          )}
           <span
             style={{
               padding: "2px 9px",

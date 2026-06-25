@@ -246,15 +246,18 @@ export default function UploadPage() {
               ) : (
                 <>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "#92400e", margin: "0 0 4px" }}>
-                    This file has already been turned into an article
+                    {duplicate.can_regenerate
+                      ? "This file has already been turned into an article"
+                      : "This file has already been processed"}
                     {duplicate.existing_article?.title ? `: “${duplicate.existing_article.title}”` : ""}.
                   </p>
                   <p style={{ fontSize: 12, color: "#a16207", margin: "0 0 12px" }}>
-                    Regenerate a fresh article from the existing transcript (no re-transcription needed),
-                    or re-transcribe from scratch.
+                    {duplicate.can_regenerate
+                      ? "Regenerate a fresh article from the existing transcript (no re-transcription needed), or re-transcribe from scratch."
+                      : "There’s no stored transcript to regenerate from — view the existing article or re-transcribe from scratch."}
                   </p>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    {duplicate.existing_article?.id && (
+                    {duplicate.can_regenerate && duplicate.existing_article?.id && (
                       <button
                         onClick={() => handleRegenerate(duplicate.existing_article.id)}
                         disabled={uploading}

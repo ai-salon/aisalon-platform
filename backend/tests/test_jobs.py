@@ -299,6 +299,7 @@ class TestDuplicateUpload:
         assert r.status_code == 409
         detail = r.json()["detail"]
         assert detail["code"] == "duplicate_upload"
+        assert detail["can_regenerate"] is True
         assert detail["existing_article"]["id"] == art.id
         assert detail["existing_article"]["title"] == "Prior Article"
 
@@ -362,3 +363,44 @@ class TestDuplicateUpload:
                               data={"chapter_id": sf_chapter.id}, headers=admin_headers)
         assert r.status_code == 409
         assert r.json()["detail"]["code"] == "duplicate_processing"
+
+    async def test_completed_job_without_transcript_is_duplicate(
+        self, client, admin_headers, db_session, sf_chapter, superadmin
+    ):
+        # A completed job whose article ended up with an empty transcript must still
+        # be flagged as a duplicate (the job's content_hash is the reliable key),
+        # but with no transcript there's nothing to regenerate from.
+        job = Job(chapter_id=sf_chapter.id, user_id=superadmin.id,
+                  status=JobStatus.completed, content_hash=_sha(_AUDIO_BYTES))
+        db_session.add(job)
+        await db_session.commit()
+        await db_session.refresh(job)
+        art = Article(chapter_id=sf_chapter.id, title="Transcriptless", content_md="x",
+                      status=ArticleStatus.draft, anonymized_transcript="",
+                      content_hash=_sha(_AUDIO_BYTES), job_id=job.id)
+        db_session.add(art)
+        await db_session.commit()
+        await db_session.refresh(art)
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id}, headers=admin_headers)
+        assert r.status_code == 409
+        detail = r.json()["detail"]
+        assert detail["code"] == "duplicate_upload"
+        assert detail["can_regenerate"] is False
+        assert detail["existing_article"]["id"] == art.id
+
+    async def test_completed_job_without_article_is_duplicate(
+        self, client, admin_headers, db_session, sf_chapter, superadmin
+    ):
+        # Even with no article at all, a completed job for this content is a dup.
+        job = Job(chapter_id=sf_chapter.id, user_id=superadmin.id,
+                  status=JobStatus.completed, content_hash=_sha(_AUDIO_BYTES))
+        db_session.add(job)
+        await db_session.commit()
+        r = await client.post("/admin/jobs", files={"file": _audio_file()},
+                              data={"chapter_id": sf_chapter.id}, headers=admin_headers)
+        assert r.status_code == 409
+        detail = r.json()["detail"]
+        assert detail["code"] == "duplicate_upload"
+        assert detail["can_regenerate"] is False
+        assert "existing_article" not in detail

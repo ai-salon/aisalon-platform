@@ -76,36 +76,29 @@ def _chapter_filter(user: User):
 async def _find_duplicate(db: AsyncSession, content_hash: str, user: User) -> dict | None:
     """Detect a prior upload of the same file content (chapter-scoped; superadmin global).
 
-    Returns a 409 detail dict, or None if this content is new. Prefers an existing
-    article (whose stored transcript can be regenerated) over an in-flight job.
+    Returns a 409 detail dict, or None if this content is new. The Job's
+    ``content_hash`` is the reliable dedup key: we flag any prior pending,
+    processing, or completed job for this content. A completed job whose article
+    happens to have an empty transcript (e.g. anonymization produced no transcript
+    file) would otherwise slip past an article-only check and re-upload — so we
+    match on the job itself and only offer "regenerate" when a reusable transcript
+    actually exists.
     """
     chapter_id = _chapter_filter(user)
 
-    art_stmt = select(Article).where(
-        Article.content_hash == content_hash,
-        Article.anonymized_transcript.is_not(None),
-        Article.anonymized_transcript != "",
-    )
-    if chapter_id:
-        art_stmt = art_stmt.where(Article.chapter_id == chapter_id)
-    art = (await db.execute(art_stmt.order_by(Article.created_at.desc()))).scalars().first()
-    if art is not None:
-        return {
-            "code": "duplicate_upload",
-            "message": "This file has already been turned into an article.",
-            "existing_article": {
-                "id": art.id,
-                "title": art.title,
-                "status": getattr(art.status, "value", art.status),
-            },
-        }
+    def _scope_job(stmt):
+        return stmt.where(Job.chapter_id == chapter_id) if chapter_id else stmt
 
-    job_stmt = select(Job).where(
-        Job.content_hash == content_hash,
-        Job.status.in_([JobStatus.pending, JobStatus.processing]),
+    def _scope_art(stmt):
+        return stmt.where(Article.chapter_id == chapter_id) if chapter_id else stmt
+
+    # 1. Still in flight → tell the caller to wait rather than queue a second run.
+    job_stmt = _scope_job(
+        select(Job).where(
+            Job.content_hash == content_hash,
+            Job.status.in_([JobStatus.pending, JobStatus.processing]),
+        )
     )
-    if chapter_id:
-        job_stmt = job_stmt.where(Job.chapter_id == chapter_id)
     job = (await db.execute(job_stmt.order_by(Job.created_at.desc()))).scalars().first()
     if job is not None:
         return {
@@ -113,6 +106,59 @@ async def _find_duplicate(db: AsyncSession, content_hash: str, user: User) -> di
             "message": "This file is already being processed.",
             "job_id": job.id,
         }
+
+    # 2. Already produced an article with a reusable transcript → offer regenerate.
+    art_stmt = _scope_art(
+        select(Article).where(
+            Article.content_hash == content_hash,
+            Article.anonymized_transcript.is_not(None),
+            Article.anonymized_transcript != "",
+        )
+    )
+    art = (await db.execute(art_stmt.order_by(Article.created_at.desc()))).scalars().first()
+    if art is not None:
+        return {
+            "code": "duplicate_upload",
+            "message": "This file has already been turned into an article.",
+            "can_regenerate": True,
+            "existing_article": {
+                "id": art.id,
+                "title": art.title,
+                "status": getattr(art.status, "value", art.status),
+            },
+        }
+
+    # 3. Already processed by a completed job, even if no reusable transcript was
+    #    stored. Surface the produced article (if any) for "view existing", but
+    #    don't offer regenerate since there's no transcript to reuse.
+    done_stmt = _scope_job(
+        select(Job).where(
+            Job.content_hash == content_hash,
+            Job.status == JobStatus.completed,
+        )
+    )
+    done = (await db.execute(done_stmt.order_by(Job.created_at.desc()))).scalars().first()
+    if done is not None:
+        detail: dict = {
+            "code": "duplicate_upload",
+            "message": "This file has already been processed.",
+            "can_regenerate": False,
+        }
+        existing = (
+            await db.execute(
+                select(Article)
+                .where(Article.job_id == done.id)
+                .order_by(Article.created_at.desc())
+            )
+        ).scalars().first()
+        if existing is not None:
+            detail["existing_article"] = {
+                "id": existing.id,
+                "title": existing.title,
+                "status": getattr(existing.status, "value", existing.status),
+            }
+        return detail
+
     return None
 
 
@@ -438,17 +484,33 @@ async def create_job(
         if dup is not None:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=dup)
 
-    storage_key = await save_upload(file.filename or "upload", data)
-
+    # Commit the job row before writing the (potentially large) file to disk so it
+    # appears in the processing-history poll right away rather than only after the
+    # disk write finishes. run_job (enqueued below) runs after the response is sent,
+    # by which point input_storage_key is set.
     job = Job(
         user_id=current_user.id,
         chapter_id=chapter_id,
         status=JobStatus.pending,
         input_filename=file.filename,
-        input_storage_key=storage_key,
         content_hash=content_hash,
     )
     db.add(job)
+    await db.commit()
+    await db.refresh(job)
+
+    try:
+        storage_key = await save_upload(file.filename or "upload", data)
+    except Exception as exc:
+        job.status = JobStatus.failed
+        job.error_message = f"Could not save the uploaded file: {exc}"
+        await db.commit()
+        logger.exception("upload_save_failed", job_id=job.id)
+        raise HTTPException(
+            status_code=500, detail="Could not save the uploaded file."
+        ) from exc
+
+    job.input_storage_key = storage_key
     await db.commit()
     await db.refresh(job)
     logger.info(

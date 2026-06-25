@@ -29,6 +29,16 @@ async function getSubstackPublicationUrl(token: string): Promise<string | null> 
   }
 }
 
+async function getChapters(): Promise<{ id: string; name: string }[]> {
+  try {
+    const r = await fetch(`${API_URL}/chapters`, { cache: "no-store" });
+    if (!r.ok) return [];
+    return r.json();
+  } catch {
+    return [];
+  }
+}
+
 export default async function ArticleDetailPage({
   params,
 }: {
@@ -39,17 +49,20 @@ export default async function ArticleDetailPage({
   if (!session) redirect("/login");
 
   const token = (session as any).accessToken as string;
-  const [article, substackPublicationUrl] = await Promise.all([
+  const [article, substackPublicationUrl, chapters] = await Promise.all([
     getArticle(token, id),
     getSubstackPublicationUrl(token),
+    getChapters(),
   ]);
   if (!article) notFound();
 
   const role = (session.user as any)?.role as string | undefined;
+  const chapterName =
+    chapters.find((c) => c.id === article.chapter_id)?.name ?? null;
 
   return (
     <Suspense>
-      <ArticleEditor article={article} token={token} substackPublicationUrl={substackPublicationUrl} role={role} />
+      <ArticleEditor article={article} token={token} substackPublicationUrl={substackPublicationUrl} role={role} chapterName={chapterName} />
     </Suspense>
   );
 }

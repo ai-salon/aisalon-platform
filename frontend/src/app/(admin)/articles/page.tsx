@@ -145,6 +145,7 @@ export default function ArticlesPage() {
     const displayDate = article.publish_date
       ? new Date(article.publish_date + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
       : new Date(article.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+    const chapterName = chapters.find((c) => c.id === article.chapter_id)?.name;
     return (
       <Link key={article.id} href={href} style={{ textDecoration: "none" }}>
         <div
@@ -178,6 +179,24 @@ export default function ArticlesPage() {
             <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>{displayDate}</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px" }}>
+            {chapterName && (
+              <span
+                title="Chapter"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  padding: "3px 10px",
+                  borderRadius: 12,
+                  background: "#f8f6ec",
+                  color: "#d2b356",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                  flexShrink: 0,
+                }}
+              >
+                {chapterName}
+              </span>
+            )}
             {tab === "transcripts" && (
               <span
                 style={{
