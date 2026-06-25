@@ -21,6 +21,7 @@ export default function UploadPage() {
   const [chapters, setChapters] = useState<{ id: string; name: string; code: string }[]>([]);
   const [chapterId, setChapterId] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [duplicate, setDuplicate] = useState<any | null>(null);  // 409 detail from /admin/jobs
@@ -119,6 +120,24 @@ export default function UploadPage() {
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // Accept a file from either the native picker or a drag-and-drop. Dropped files
+  // bypass the input's `accept="audio/*"`, so validate the type/extension here.
+  function selectFile(f: File | null) {
+    if (!f) return;
+    const name = f.name.toLowerCase();
+    const isAudio =
+      f.type.startsWith("audio/") ||
+      [".mp3", ".m4a", ".wav", ".ogg", ".flac", ".aac", ".mp4", ".webm"].some((ext) =>
+        name.endsWith(ext),
+      );
+    if (!isAudio) {
+      setError("Please choose an audio file (MP3, M4A, WAV, OGG).");
+      return;
+    }
+    setError("");
+    setFile(f);
+  }
 
   async function postJob(force: boolean) {
     const form = new FormData();
@@ -386,23 +405,40 @@ export default function UploadPage() {
                 </label>
                 <div
                   onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!dragging) setDragging(true);
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault();
+                    setDragging(false);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragging(false);
+                    selectFile(e.dataTransfer.files?.[0] ?? null);
+                  }}
                   style={{
-                    border: "2px dashed #d1d5db",
+                    border: `2px dashed ${dragging ? "#56a1d2" : "#d1d5db"}`,
                     borderRadius: 8,
                     padding: "32px 24px",
                     textAlign: "center",
                     cursor: "pointer",
-                    background: file ? "#f0f9ff" : "#fafafa",
-                    transition: "border-color 0.15s",
+                    background: dragging || file ? "#f0f9ff" : "#fafafa",
+                    transition: "border-color 0.15s, background 0.15s",
                   }}
                 >
                   <i className="fa fa-music" style={{ fontSize: 28, color: "#56a1d2", marginBottom: 12, display: "block" }} />
-                  {file ? (
+                  {dragging ? (
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#56a1d2", margin: 0 }}>
+                      Drop audio file to upload
+                    </p>
+                  ) : file ? (
                     <p style={{ fontSize: 14, fontWeight: 600, color: "#111", margin: 0 }}>{file.name}</p>
                   ) : (
                     <>
                       <p style={{ fontSize: 14, fontWeight: 600, color: "#444", margin: "0 0 4px" }}>
-                        Click to select audio file
+                        Drag and drop or click to select audio file
                       </p>
                       <p style={{ fontSize: 12, color: "#9ca3af", margin: 0 }}>MP3, M4A, WAV, OGG supported</p>
                     </>
@@ -413,7 +449,7 @@ export default function UploadPage() {
                   type="file"
                   accept="audio/*"
                   style={{ display: "none" }}
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  onChange={(e) => selectFile(e.target.files?.[0] ?? null)}
                 />
               </div>
 
