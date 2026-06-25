@@ -63,8 +63,8 @@ export default function ProfileCompletePage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!name.trim() || !photoUrl) {
-      setError("Name and a photo are required.");
+    if (!name.trim()) {
+      setError("Name is required.");
       return;
     }
     setSubmitting(true);
@@ -77,7 +77,7 @@ export default function ProfileCompletePage() {
       },
       body: JSON.stringify({
         name: name.trim(),
-        profile_image_url: photoUrl,
+        profile_image_url: photoUrl || null,
         linkedin: linkedin.trim() || null,
         description: description.trim() || null,
       }),
@@ -94,7 +94,8 @@ export default function ProfileCompletePage() {
     <main className="max-w-xl mx-auto p-6">
       <h1 className="text-2xl font-semibold mb-2">Complete your profile</h1>
       <p className="text-salon-muted mb-6">
-        We need a name and photo before you can use the platform.
+        We just need your name to get started. Adding a photo is optional, but
+        we recommend it so others can recognize you.
       </p>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -111,7 +112,9 @@ export default function ProfileCompletePage() {
         </label>
 
         <div className="flex flex-col gap-2">
-          <span className="font-medium">Photo *</span>
+          <span className="font-medium">
+            Photo <span className="text-salon-muted font-normal">(optional)</span>
+          </span>
           {photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -129,8 +132,16 @@ export default function ProfileCompletePage() {
             type="file"
             accept="image/jpeg,image/png"
             onChange={onFileSelected}
-            className="text-sm"
+            className="hidden"
           />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="self-start inline-flex items-center gap-2 rounded-md bg-salon-gold px-5 py-2.5 font-semibold text-salon-text shadow-md ring-2 ring-salon-gold/60 transition hover:bg-salon-gold-light hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-salon-blue"
+          >
+            <i className="fa fa-camera" aria-hidden="true" />
+            {photoUrl ? "Change photo" : "Upload photo"}
+          </button>
         </div>
 
         <label className="flex flex-col gap-1">
@@ -161,7 +172,7 @@ export default function ProfileCompletePage() {
 
         <button
           type="submit"
-          disabled={submitting || !name || !photoUrl}
+          disabled={submitting || !name.trim()}
           className="btn btn-primary self-start"
         >
           {submitting ? "Saving..." : "Save profile"}
