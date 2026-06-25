@@ -2049,12 +2049,6 @@ const HOST_STEPS: OnboardingStep[] = [
     ctaHref: undefined,
   },
   {
-    title: "Add your API keys",
-    description: "You need AssemblyAI and Google AI keys to process conversations.",
-    ctaLabel: "Go to Settings",
-    ctaHref: "/settings",
-  },
-  {
     title: "Upload your first conversation",
     description: "Record or import an audio file from your last Ai Salon event.",
     ctaLabel: "Upload now",
@@ -2080,12 +2074,6 @@ const CHAPTER_LEAD_STEPS: OnboardingStep[] = [
     description: "Learn how to plan, run, and follow up on an Ai Salon event.",
     ctaLabel: "Open guide",
     ctaHref: undefined,
-  },
-  {
-    title: "Add your API keys",
-    description: "You need AssemblyAI and Google AI keys to process conversations.",
-    ctaLabel: "Go to Settings",
-    ctaHref: "/settings",
   },
   {
     title: "Upload your first conversation",

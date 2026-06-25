@@ -25,8 +25,6 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [duplicate, setDuplicate] = useState<any | null>(null);  // 409 detail from /admin/jobs
-  const [apiKeys, setApiKeys] = useState<string[]>([]);  // providers with effective key (user OR system)
-  const [keysLoaded, setKeysLoaded] = useState(false);
   const [jobs, setJobs] = useState<any[]>([]);
   const [articleByJob, setArticleByJob] = useState<Record<string, string>>({});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -55,14 +53,6 @@ export default function UploadPage() {
           setChapterId(data[0].id);
         }
       });
-    // Fetch API keys (only providers whose effective key is set count as configured)
-    fetch(`${API_URL}/admin/api-keys`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then((data) => {
-        setApiKeys(data.filter((k: any) => k.has_key).map((k: any) => k.provider));
-        setKeysLoaded(true);
-      })
-      .catch(() => setKeysLoaded(true));
   }, [token, userRole, userChapterId]);
 
   const fetchJobs = async () => {
@@ -209,8 +199,6 @@ export default function UploadPage() {
     ? chapters.filter((c) => c.id === userChapterId)
     : chapters;
 
-  const missingKeys = keysLoaded && (!apiKeys.includes("assemblyai") || !apiKeys.includes("google"));
-
   if (status === "loading") return null;
 
   return (
@@ -219,46 +207,6 @@ export default function UploadPage() {
       <p style={{ fontSize: 14, color: "#696969", marginBottom: 32 }}>
         Upload an audio recording to automatically generate an article.
       </p>
-
-      {/* API key warning banner */}
-      {missingKeys && (
-        <div
-          style={{
-            background: "#fffbeb",
-            border: "1.5px solid #f59e0b",
-            borderRadius: 8,
-            padding: "14px 18px",
-            marginBottom: 28,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 18 }}>⚠️</span>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "#92400e" }}>
-              Add API keys before uploading
-            </span>
-          </div>
-          <Link
-            href="/settings"
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: "#fff",
-              background: "#f59e0b",
-              padding: "7px 16px",
-              borderRadius: 6,
-              textDecoration: "none",
-              flexShrink: 0,
-            }}
-          >
-            Go to Settings →
-          </Link>
-        </div>
-      )}
 
       {/* Two-column layout */}
       <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 32, alignItems: "start" }}>

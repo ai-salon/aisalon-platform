@@ -17,7 +17,6 @@ async function fetchJson<T>(url: string, token: string): Promise<T | null> {
   }
 }
 
-interface ApiKey { provider: string; has_key: boolean; user_has_key?: boolean; system_has_key?: boolean }
 interface Job { id: string; input_filename: string; status: string; created_at: string }
 interface Article { id: string; title: string; status: string; created_at: string }
 interface TeamMember { id: string; chapter_id: string }
@@ -35,8 +34,7 @@ export default async function DashboardPage() {
   const userEmail: string = session.user?.email ?? "";
   const userChapterId: string | undefined = (session.user as { chapterId?: string } | undefined)?.chapterId;
 
-  const [apiKeys, jobs, articles, team, chapters, me, chapterLeads] = await Promise.all([
-    fetchJson<ApiKey[]>(`${API_URL}/admin/api-keys`, token),
+  const [jobs, articles, team, chapters, me, chapterLeads] = await Promise.all([
     fetchJson<Job[]>(`${API_URL}/admin/jobs`, token),
     fetchJson<Article[]>(`${API_URL}/admin/articles`, token),
     fetchJson<TeamMember[]>(`${API_URL}/admin/people`, token),
@@ -44,10 +42,6 @@ export default async function DashboardPage() {
     fetchJson<MeResponse>(`${API_URL}/admin/me`, token),
     fetchJson<ChapterLead[]>(`${API_URL}/admin/chapter-leads`, token),
   ]);
-
-  const hasApiKey = Array.isArray(apiKeys)
-    ? apiKeys.some((k) => k.has_key)
-    : false;
 
   const jobList = Array.isArray(jobs) ? jobs : [];
   const articleList = Array.isArray(articles) ? articles : [];
@@ -67,9 +61,9 @@ export default async function DashboardPage() {
 
   let completedSteps: boolean[] | undefined;
   if (userRole === "host") {
-    completedSteps = [hasReadHostingGuide, hasApiKey, jobList.length > 0, articleList.length > 0];
+    completedSteps = [hasReadHostingGuide, jobList.length > 0, articleList.length > 0];
   } else if (userRole === "chapter_lead") {
-    completedSteps = [hasReadLeadGuide, hasReadHostingGuide, hasApiKey, jobList.length > 0, teamList.length > 0, chapterComplete, hasSchedulingUrl];
+    completedSteps = [hasReadLeadGuide, hasReadHostingGuide, jobList.length > 0, teamList.length > 0, chapterComplete, hasSchedulingUrl];
   }
 
   return (

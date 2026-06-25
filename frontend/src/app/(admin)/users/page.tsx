@@ -272,7 +272,6 @@ export default function UsersPage() {
                   <td style={{ padding: "14px 20px" }}>
                     <div style={{ display: "flex", gap: 6 }}>
                       {[
-                        { done: u.has_api_key, icon: "fa-key", tip: "API key configured" },
                         { done: u.has_uploaded, icon: "fa-upload", tip: "Uploaded a conversation" },
                         { done: u.has_article, icon: "fa-file-text-o", tip: "Article generated" },
                         ...(u.role !== "superadmin" ? [{ done: u.has_read_hosting_guide, icon: "fa-book", tip: "Read the Hosting Guide" }] : []),

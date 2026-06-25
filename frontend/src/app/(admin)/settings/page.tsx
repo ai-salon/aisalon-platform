@@ -3,28 +3,17 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 import { toast } from "@/lib/toast";
-import { validateApiKey } from "@/lib/validation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const PROVIDERS = ["assemblyai", "google"] as const;
-type Provider = (typeof PROVIDERS)[number];
 
-const PROVIDER_HELP: Record<Provider, { label: string; description: string; steps: string; url: string; urlLabel: string }> = {
-  assemblyai: {
-    label: "AssemblyAI",
-    description: "Used to transcribe your audio recordings into text.",
-    steps: "Sign up → go to the API Keys tab in the left sidebar → copy your key.",
-    url: "https://app.assemblyai.com",
-    urlLabel: "app.assemblyai.com",
-  },
-  google: {
-    label: "Google AI",
-    description: "Used to generate the article and anonymize the transcript.",
-    steps: "Sign in with Google → click Create API key → copy it.",
-    url: "https://aistudio.google.com/apikey",
-    urlLabel: "aistudio.google.com/apikey",
-  },
-};
+// Known-good Gemini model names, shown as a hint under the free-text model field.
+const KNOWN_MODELS = [
+  "gemini-3.1-flash-lite",
+  "gemini-3-flash-preview",
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+];
 
 // System settings for superadmin
 const SYSTEM_SETTINGS = [
@@ -180,30 +169,6 @@ function StatusBadge({ active }: { active: boolean }) {
       {active ? "Set" : "Not set"}
     </span>
   );
-}
-
-function ApiKeyStatusBadge({ userHas, systemHas }: { userHas: boolean; systemHas: boolean }) {
-  if (userHas) {
-    return <StatusBadge active={true} />;
-  }
-  if (systemHas) {
-    return (
-      <span
-        title="A system-wide key is configured by your admin — you don't need to set your own."
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          padding: "2px 8px",
-          borderRadius: 12,
-          background: "#eef6fd",
-          color: "#1d4ed8",
-        }}
-      >
-        System default
-      </span>
-    );
-  }
-  return <StatusBadge active={false} />;
 }
 
 function SystemSettingSection({
@@ -498,14 +463,200 @@ function ChangePasswordSection({ token }: { token: string }) {
   );
 }
 
+interface ProcessingConfig {
+  assemblyai_set: boolean;
+  google_set: boolean;
+  model: string;
+  model_source: string;
+}
+
+function AiProcessingSection({ token }: { token: string }) {
+  const [config, setConfig] = useState<ProcessingConfig | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  function load() {
+    if (!token) return;
+    fetch(`${API_URL}/admin/processing-config`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setConfig)
+      .catch(console.error);
+  }
+  useEffect(load, [token]);
+
+  function startEdit(field: string, initial = "") {
+    setEditing(field);
+    setDraft(initial);
+    setResult(null);
+  }
+
+  // Verify the candidate value with a live test, and only persist it if the test passes.
+  async function verifyAndSave(target: string, settingKey: string) {
+    if (!draft.trim()) return;
+    setBusy(true);
+    setResult(null);
+    const test = await fetch(`${API_URL}/admin/processing/test`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ target, value: draft }),
+    })
+      .then((r) => r.json())
+      .catch(() => ({ ok: false, message: "Verification request failed." }));
+    if (!test.ok) {
+      setBusy(false);
+      setResult(test);
+      return;
+    }
+    const save = await fetch(`${API_URL}/admin/system-settings`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ key: settingKey, value: draft }),
+    });
+    setBusy(false);
+    if (!save.ok) {
+      setResult({ ok: false, message: "Verified, but saving failed." });
+      return;
+    }
+    toast.success("Verified and saved");
+    setEditing(null);
+    setDraft("");
+    setResult(null);
+    load();
+  }
+
+  const inputStyle: React.CSSProperties = {
+    flex: 1, padding: "9px 13px", fontSize: 14, border: "1.5px solid #d1d5db",
+    borderRadius: 6, outline: "none",
+  };
+  const primaryBtn: React.CSSProperties = {
+    padding: "9px 18px", fontSize: 13, fontWeight: 700, background: "#56a1d2",
+    color: "#fff", border: "none", borderRadius: 6, cursor: "pointer",
+  };
+  const outlineBtn: React.CSSProperties = {
+    fontSize: 13, fontWeight: 600, padding: "6px 14px", borderRadius: 6,
+    border: "1.5px solid #56a1d2", color: "#56a1d2", background: "transparent", cursor: "pointer",
+  };
+  const cancelBtn: React.CSSProperties = {
+    padding: "9px 14px", fontSize: 13, background: "transparent",
+    border: "1.5px solid #d1d5db", borderRadius: 6, cursor: "pointer", color: "#696969",
+  };
+
+  const keyFields = [
+    { field: "assemblyai", settingKey: "assemblyai_api_key", target: "assemblyai", label: "AssemblyAI API Key", isSet: config?.assemblyai_set, placeholder: "Paste AssemblyAI key" },
+    { field: "google", settingKey: "google_api_key", target: "google", label: "Google AI API Key", isSet: config?.google_set, placeholder: "Paste Google AI key" },
+  ];
+
+  function resultLine() {
+    if (!result) return null;
+    return (
+      <p style={{ fontSize: 13, marginTop: 8, color: result.ok ? "#16a34a" : "#ef4444" }}>
+        {result.ok ? "✓ " : "✕ "}{result.message}
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 8, padding: "20px 24px", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <i className="fa fa-cogs" style={{ color: "#56a1d2", fontSize: 15 }} />
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>AI Processing</span>
+      </div>
+      <p style={{ fontSize: 13, color: "#696969", marginBottom: 16 }}>
+        Platform-wide keys and model used to transcribe and write up every conversation. Hosts
+        don&apos;t set their own keys. Each value is verified with a live test before it&apos;s saved.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {keyFields.map((f) => (
+          <div key={f.field}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>{f.label}</span>
+                <StatusBadge active={!!f.isSet} />
+              </div>
+              <button onClick={() => startEdit(f.field)} style={outlineBtn}>
+                {f.isSet ? "Update" : "Set key"}
+              </button>
+            </div>
+            {editing === f.field && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <input
+                    type="password"
+                    placeholder={f.placeholder}
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    style={{ ...inputStyle, fontFamily: "monospace" }}
+                    autoFocus
+                  />
+                  <button onClick={() => verifyAndSave(f.target, f.settingKey)} disabled={busy} style={primaryBtn}>
+                    {busy ? "Verifying…" : "Verify & Save"}
+                  </button>
+                  <button onClick={() => { setEditing(null); setResult(null); }} style={cancelBtn}>Cancel</button>
+                </div>
+                {resultLine()}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Processing model — free text, verified before save */}
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>Processing Model</span>
+              {config && (
+                <span style={{ fontSize: 12, color: "#696969", fontFamily: "monospace" }}>{config.model}</span>
+              )}
+              {config && (
+                <span
+                  style={{
+                    fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 12,
+                    background: config.model_source === "setting" ? "#dcfce7" : "#f3f4f6",
+                    color: config.model_source === "setting" ? "#16a34a" : "#9ca3af",
+                  }}
+                >
+                  {config.model_source === "setting" ? "Custom" : "Default"}
+                </span>
+              )}
+            </div>
+            <button onClick={() => startEdit("model", config?.model ?? "")} style={outlineBtn}>Change</button>
+          </div>
+          {editing === "model" && (
+            <div style={{ marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 10 }}>
+                <input
+                  type="text"
+                  placeholder="gemini-3.1-flash-lite"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  style={{ ...inputStyle, fontFamily: "monospace" }}
+                  autoFocus
+                />
+                <button onClick={() => verifyAndSave("model", "article_llm_model")} disabled={busy} style={primaryBtn}>
+                  {busy ? "Verifying…" : "Verify & Save"}
+                </button>
+                <button onClick={() => { setEditing(null); setResult(null); }} style={cancelBtn}>Cancel</button>
+              </div>
+              <p style={{ fontSize: 12, color: "#9ca3af", marginTop: 8, lineHeight: 1.5 }}>
+                Known models: {KNOWN_MODELS.join(", ")}. Saving runs a quick test generation with the
+                saved Google key, so an unsupported name is caught here.
+              </p>
+              {resultLine()}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { data: session, status } = useSession();
-  const [keys, setKeys] = useState<{ provider: string; has_key: boolean; user_has_key: boolean; system_has_key: boolean }[]>([]);
-  const [editing, setEditing] = useState<Provider | null>(null);
-  const [helpOpen, setHelpOpen] = useState<Provider | null>(null);
-  const [value, setValue] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const [systemKeys, setSystemKeys] = useState<Set<string>>(new Set());
   const [schedulingUrl, setSchedulingUrl] = useState("");
   const [schedulingUrlSaving, setSchedulingUrlSaving] = useState(false);
@@ -521,12 +672,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!token) return;
-    fetch(`${API_URL}/admin/api-keys`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then(setKeys)
-      .catch(console.error);
     fetch(`${API_URL}/admin/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -548,55 +693,6 @@ export default function SettingsPage() {
   }
 
   useEffect(() => { loadSystemSettings(); }, [token, isSuperadmin]);
-
-  function userHasKey(provider: Provider) {
-    return keys.some((k) => k.provider === provider && k.user_has_key);
-  }
-
-  function systemHasKey(provider: Provider) {
-    return keys.some((k) => k.provider === provider && k.system_has_key);
-  }
-
-  async function handleSave(provider: Provider) {
-    const validationError = validateApiKey(value);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-    setSaving(true);
-    setError("");
-    const r = await fetch(`${API_URL}/admin/api-keys`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ provider, key: value }),
-    });
-    setSaving(false);
-    if (!r.ok) {
-      setError("Failed to save key.");
-      toast.error("Failed to save API key");
-      return;
-    }
-    toast.success("API key saved");
-    setValue("");
-    setEditing(null);
-    const updated = await fetch(`${API_URL}/admin/api-keys`, {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then((r) => r.json());
-    setKeys(updated);
-  }
-
-  async function handleDelete(provider: Provider) {
-    const r = await fetch(`${API_URL}/admin/api-keys/${provider}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (r.ok) {
-      setKeys((prev) => prev.filter((k) => k.provider !== provider));
-      toast.success("API key removed");
-    } else {
-      toast.error("Failed to remove API key");
-    }
-  }
 
   async function saveSchedulingUrl() {
     setSchedulingUrlSaving(true);
@@ -620,7 +716,7 @@ export default function SettingsPage() {
     <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 30px" }}>
       <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: "0 0 6px" }}>Settings</h1>
       <p style={{ fontSize: 14, color: "#696969", marginBottom: 40 }}>
-        Manage your account, API keys, and platform configuration.
+        Manage your account and platform configuration.
       </p>
 
       {token && (
@@ -630,187 +726,6 @@ export default function SettingsPage() {
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {PROVIDERS.map((provider) => {
-          const help = PROVIDER_HELP[provider];
-          const isHelpOpen = helpOpen === provider;
-          return (
-            <div
-              key={provider}
-              style={{
-                background: "#fff",
-                borderRadius: 8,
-                padding: "20px 24px",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-              }}
-            >
-              {/* Header row */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: "#111" }}>
-                    {help.label}
-                  </span>
-                  <ApiKeyStatusBadge
-                    userHas={userHasKey(provider)}
-                    systemHas={systemHasKey(provider)}
-                  />
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => { setEditing(provider); setValue(""); setError(""); }}
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      padding: "6px 14px",
-                      borderRadius: 6,
-                      border: "1.5px solid #56a1d2",
-                      color: "#56a1d2",
-                      background: "transparent",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {userHasKey(provider)
-                      ? "Update"
-                      : systemHasKey(provider)
-                        ? "Override"
-                        : "Set key"}
-                  </button>
-                  {userHasKey(provider) && (
-                    <button
-                      onClick={() => handleDelete(provider)}
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        padding: "6px 14px",
-                        borderRadius: 6,
-                        border: "1.5px solid #fca5a5",
-                        color: "#ef4444",
-                        background: "transparent",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* System-default hint */}
-              {!userHasKey(provider) && systemHasKey(provider) && (
-                <p style={{ fontSize: 12, color: "#1d4ed8", marginTop: 8, lineHeight: 1.5 }}>
-                  A system-wide {help.label} key is configured. You can use it as-is or override
-                  with your own key.
-                </p>
-              )}
-
-              {/* Key input */}
-              {editing === provider && (
-                <div style={{ marginTop: 16, display: "flex", gap: 10 }}>
-                  <input
-                    type="password"
-                    placeholder={`Enter ${help.label} API key`}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSave(provider)}
-                    style={{
-                      flex: 1,
-                      padding: "9px 13px",
-                      fontSize: 14,
-                      border: "1.5px solid #d1d5db",
-                      borderRadius: 6,
-                      outline: "none",
-                      fontFamily: "monospace",
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => handleSave(provider)}
-                    disabled={saving}
-                    style={{
-                      padding: "9px 18px",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      background: "#56a1d2",
-                      color: "#fff",
-                      border: "none",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {saving ? "Saving…" : "Save"}
-                  </button>
-                  <button
-                    onClick={() => { setEditing(null); setValue(""); }}
-                    style={{
-                      padding: "9px 14px",
-                      fontSize: 13,
-                      background: "transparent",
-                      border: "1.5px solid #d1d5db",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      color: "#696969",
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-              {error && editing === provider && (
-                <p style={{ fontSize: 13, color: "#ef4444", marginTop: 8 }}>{error}</p>
-              )}
-
-              {/* Help toggle */}
-              <div style={{ marginTop: 12 }}>
-                <button
-                  onClick={() => setHelpOpen(isHelpOpen ? null : provider)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: "#56a1d2",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                >
-                  <i className={`fa fa-chevron-${isHelpOpen ? "up" : "down"}`} style={{ fontSize: 10 }} />
-                  Where do I get this key?
-                </button>
-                {isHelpOpen && (
-                  <div
-                    style={{
-                      marginTop: 10,
-                      background: "#f8f6ec",
-                      border: "1px solid #e8e4d8",
-                      borderRadius: 6,
-                      padding: "12px 16px",
-                      fontSize: 13,
-                      color: "#444",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    <p style={{ margin: "0 0 6px", color: "#696969" }}>{help.description}</p>
-                    <p style={{ margin: "0 0 6px" }}>
-                      Go to{" "}
-                      <a
-                        href={help.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: "#56a1d2", fontWeight: 600 }}
-                      >
-                        {help.urlLabel}
-                      </a>
-                      {" "}→ {help.steps}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
         {/* Scheduling URL (chapter leads + superadmin) */}
         {(userRole === "chapter_lead" || userRole === "superadmin") && (
           <div
@@ -883,9 +798,10 @@ export default function SettingsPage() {
             <div style={{ borderTop: "1px solid #e8e4d8", margin: "12px 0", paddingTop: 4 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111", marginBottom: 4 }}>Platform Settings</h2>
               <p style={{ fontSize: 13, color: "#696969", marginBottom: 16 }}>
-                Superadmin-only. Configure publishing and social integrations.
+                Superadmin-only. Configure AI processing, publishing, and social integrations.
               </p>
             </div>
+            <AiProcessingSection token={token} />
             <FeatureFlagsSection token={token} />
             {SYSTEM_SETTINGS.map((cfg) => (
               <SystemSettingSection
