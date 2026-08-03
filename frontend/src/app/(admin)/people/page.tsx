@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -21,18 +22,34 @@ interface Person {
 }
 
 export default function PeoplePage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const token = (session as unknown as { accessToken?: string })?.accessToken;
   const userRole = (session?.user as unknown as { role?: string } | undefined)?.role;
   const canEdit = userRole === "superadmin";
   const [people, setPeople] = useState<Person[]>([]);
+  const [loadError, setLoadError] = useState(false);
+
+  useEffect(() => {
+    if (status === "unauthenticated") router.replace("/login");
+  }, [status, router]);
 
   async function refresh() {
     const r = await fetch(`${API_URL}/admin/people`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       cache: "no-store",
     });
-    if (r.ok) setPeople(await r.json());
+    if (r.status === 401) {
+      signOut({ redirectTo: "/login" });
+      return;
+    }
+    if (r.ok) {
+      const data = await r.json();
+      setPeople(Array.isArray(data) ? data : []);
+      setLoadError(false);
+    } else {
+      setLoadError(true);
+    }
   }
 
   useEffect(() => {
@@ -55,6 +72,9 @@ export default function PeoplePage() {
   return (
     <main className="p-6">
       <h1 className="text-2xl font-semibold mb-4">Team</h1>
+      {loadError && (
+        <p className="text-sm text-red-600 mb-4">Failed to load the team list. Please try again.</p>
+      )}
       <table className="w-full border-collapse">
         <thead>
           <tr className="text-left text-sm text-salon-muted border-b">

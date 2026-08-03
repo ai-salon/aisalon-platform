@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
 import { validateUser } from "@/lib/validation";
@@ -43,11 +43,21 @@ export default function UsersPage() {
   useEffect(() => {
     if (!token || userRole !== "superadmin") return;
     Promise.all([
-      fetch(`${API_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
-      fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
-    ]).then(([u, c]) => {
-      setUsers(u);
-      setChapters(c);
+      fetch(`${API_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]).then(async ([usersRes, chaptersRes]) => {
+      if (usersRes.status === 401 || chaptersRes.status === 401) {
+        signOut({ redirectTo: "/login" });
+        return;
+      }
+      if (!usersRes.ok || !chaptersRes.ok) {
+        setError("Failed to load users. Please try again.");
+        return;
+      }
+      const u = await usersRes.json();
+      const c = await chaptersRes.json();
+      setUsers(Array.isArray(u) ? u : []);
+      setChapters(Array.isArray(c) ? c : []);
       setForm((f) => ({ ...f, chapter_id: c[0]?.id ?? "" }));
     });
   }, [token, userRole]);
@@ -151,6 +161,10 @@ export default function UsersPage() {
           Add User
         </button>
       </div>
+
+      {error && !showForm && (
+        <p style={{ fontSize: 13, color: "#ef4444", marginBottom: 16 }}>{error}</p>
+      )}
 
       {/* Create form */}
       {showForm && (

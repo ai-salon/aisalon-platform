@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { backendTokenExpired } from "@/lib/token";
 
 // API_URL is a server-only env var (read at runtime); falls back to the
 // build-time NEXT_PUBLIC_API_URL for local dev.
@@ -49,6 +50,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.chapterId = (user as any).chapter_id;
         token.username = (user as any).username;
       }
+      // The session cookie rolls forward on activity, but the backend JWT has
+      // an absolute expiry — invalidate the session so the user re-logs in
+      // instead of hitting 401s on every API call while appearing signed in.
+      if (backendTokenExpired(token.accessToken)) return null;
       return token;
     },
     async session({ session, token }) {
