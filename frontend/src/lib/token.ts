@@ -13,7 +13,10 @@ export function backendTokenExpired(accessToken: unknown): boolean {
   try {
     const payloadPart = accessToken.split(".")[1];
     if (!payloadPart) return false;
-    const payload = JSON.parse(Buffer.from(payloadPart, "base64url").toString("utf8"));
+    // atob (browser + Node 16+) so this works in both the NextAuth server
+    // callbacks and client components like SessionGuard.
+    const base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(atob(base64));
     return typeof payload.exp === "number" && Date.now() >= payload.exp * 1000;
   } catch {
     return false;
