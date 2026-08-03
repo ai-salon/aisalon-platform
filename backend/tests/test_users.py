@@ -105,6 +105,63 @@ class TestUpdateUser:
         r = await client.patch("/admin/users/nonexistent", json={"is_active": False}, headers=admin_headers)
         assert r.status_code == 404
 
+    async def test_change_role(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "promote@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"role": "host"},
+                               headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["role"] == "host"
+
+    async def test_clear_chapter_with_explicit_null(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "nochapter@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"chapter_id": None},
+                               headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["chapter_id"] is None
+
+    async def test_invalid_role_is_422(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "badrole@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"role": "emperor"},
+                               headers=admin_headers)
+        assert r.status_code == 422
+
+    async def test_nonexistent_chapter_is_404(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "badchapter@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"chapter_id": "no-such-chapter"},
+                               headers=admin_headers)
+        assert r.status_code == 404
+
+    async def test_cannot_change_own_role(
+        self, client: AsyncClient, admin_headers, superadmin
+    ):
+        r = await client.patch(f"/admin/users/{superadmin.id}",
+                               json={"role": "host"},
+                               headers=admin_headers)
+        assert r.status_code == 400
+
+    async def test_untouched_fields_survive_partial_update(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "partial@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"role": "host"},
+                               headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["chapter_id"] == sf_chapter.id
+        assert r.json()["is_active"] is True
+
 
 class TestDeleteUser:
     async def test_delete_user(self, client: AsyncClient, admin_headers,

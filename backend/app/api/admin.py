@@ -1042,7 +1042,20 @@ async def update_user(
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    data = body.model_dump(exclude_none=True)
+    # exclude_unset (not exclude_none) so an explicit chapter_id: null clears
+    # the chapter; explicit nulls are meaningless for the other fields.
+    data = body.model_dump(exclude_unset=True)
+    for field in ("role", "is_active", "password"):
+        if field in data and data[field] is None:
+            data.pop(field)
+    if "role" in data and user_id == current_user.id and data["role"] != current_user.role.value:
+        raise HTTPException(status_code=400, detail="Cannot change your own role")
+    if data.get("chapter_id") is not None:
+        chapter_result = await db.execute(
+            select(Chapter).where(Chapter.id == data["chapter_id"])
+        )
+        if not chapter_result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Chapter not found")
     if "password" in data:
         data["hashed_password"] = hash_password(data.pop("password"))
     for field, value in data.items():
