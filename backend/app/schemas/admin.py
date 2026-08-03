@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.models.api_key import APIKeyProvider
 from app.models.job import JobStatus
 from app.models.article import ArticleStatus
+from app.models.user import UserRole
 
 
 # ── Chapters ──────────────────────────────────────────────────────────────────
@@ -135,6 +136,13 @@ class UserUpdate(BaseModel):
     role: str | None = None
     chapter_id: str | None = None
     password: str | None = None
+
+    @field_validator("role")
+    @classmethod
+    def validate_role(cls, v: str | None) -> str | None:
+        if v is not None and v not in {r.value for r in UserRole}:
+            raise ValueError(f"role must be one of: {', '.join(r.value for r in UserRole)}")
+        return v
 
 
 class UserResponse(BaseModel):

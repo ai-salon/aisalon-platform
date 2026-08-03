@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import SidebarNav from "./SidebarNav";
+import SessionGuard from "./SessionGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div style={{ display: "flex", minHeight: "calc(100vh - 71px)" }}>
+      <SessionGuard />
       {/* Sidebar — always rendered; SidebarNav gates its content on session */}
       <aside
         style={{

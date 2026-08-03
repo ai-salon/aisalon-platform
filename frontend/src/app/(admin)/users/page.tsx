@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
 import { validateUser } from "@/lib/validation";
@@ -31,6 +31,9 @@ export default function UsersPage() {
   const [resetUserId, setResetUserId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
+  const [editUserId, setEditUserId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ role: "host", chapter_id: "" });
+  const [editSaving, setEditSaving] = useState(false);
 
   const token = (session as any)?.accessToken;
   const userRole = (session?.user as any)?.role;
@@ -43,11 +46,21 @@ export default function UsersPage() {
   useEffect(() => {
     if (!token || userRole !== "superadmin") return;
     Promise.all([
-      fetch(`${API_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
-      fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
-    ]).then(([u, c]) => {
-      setUsers(u);
-      setChapters(c);
+      fetch(`${API_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } }),
+    ]).then(async ([usersRes, chaptersRes]) => {
+      if (usersRes.status === 401 || chaptersRes.status === 401) {
+        signOut({ redirectTo: "/login" });
+        return;
+      }
+      if (!usersRes.ok || !chaptersRes.ok) {
+        setError("Failed to load users. Please try again.");
+        return;
+      }
+      const u = await usersRes.json();
+      const c = await chaptersRes.json();
+      setUsers(Array.isArray(u) ? u : []);
+      setChapters(Array.isArray(c) ? c : []);
       setForm((f) => ({ ...f, chapter_id: c[0]?.id ?? "" }));
     });
   }, [token, userRole]);
@@ -117,6 +130,31 @@ export default function UsersPage() {
     }
   }
 
+  function openEdit(user: UserData) {
+    setEditUserId(editUserId === user.id ? null : user.id);
+    setEditForm({ role: user.role, chapter_id: user.chapter_id ?? "" });
+    setResetUserId(null);
+  }
+
+  async function handleEditSave(userId: string) {
+    setEditSaving(true);
+    const r = await fetch(`${API_URL}/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ role: editForm.role, chapter_id: editForm.chapter_id || null }),
+    });
+    setEditSaving(false);
+    if (r.ok) {
+      const updated = await r.json();
+      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
+      setEditUserId(null);
+      toast.success("User updated");
+    } else {
+      const body = await r.json().catch(() => ({}));
+      toast.error(typeof body.detail === "string" ? body.detail : "Failed to update user");
+    }
+  }
+
   async function toggleActive(user: UserData) {
     const r = await fetch(`${API_URL}/admin/users/${user.id}`, {
       method: "PATCH",
@@ -151,6 +189,10 @@ export default function UsersPage() {
           Add User
         </button>
       </div>
+
+      {error && !showForm && (
+        <p style={{ fontSize: 13, color: "#ef4444", marginBottom: 16 }}>{error}</p>
+      )}
 
       {/* Create form */}
       {showForm && (
@@ -245,7 +287,7 @@ export default function UsersPage() {
           <tbody>
             {users.map((u, i) => (
               <>
-                <tr key={u.id} style={{ borderBottom: resetUserId === u.id ? "none" : i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
+                <tr key={u.id} style={{ borderBottom: resetUserId === u.id || editUserId === u.id ? "none" : i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
                   <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 500, color: "#111" }}>{u.email}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.username ?? "—"}</td>
                   <td style={{ padding: "14px 20px" }}>
@@ -301,7 +343,19 @@ export default function UsersPage() {
                   </td>
                   <td style={{ padding: "14px 20px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
-                      onClick={() => { setResetUserId(resetUserId === u.id ? null : u.id); setResetPassword(""); }}
+                      onClick={() => openEdit(u)}
+                      title="Edit role and chapter"
+                      style={{
+                        fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
+                        border: `1.5px solid ${editUserId === u.id ? "#56a1d2" : "#d1d5db"}`,
+                        color: editUserId === u.id ? "#56a1d2" : "#6b7280",
+                        marginRight: 6,
+                      }}
+                    >
+                      <i className="fa fa-pencil" />
+                    </button>
+                    <button
+                      onClick={() => { setResetUserId(resetUserId === u.id ? null : u.id); setResetPassword(""); setEditUserId(null); }}
                       title="Reset password"
                       style={{
                         fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
@@ -336,6 +390,47 @@ export default function UsersPage() {
                     </button>
                   </td>
                 </tr>
+                {editUserId === u.id && (
+                  <tr key={`${u.id}-edit`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
+                    <td colSpan={9} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280" }}>Edit {u.email}:</span>
+                        <label style={{ fontSize: 12, color: "#6b7280" }}>Role</label>
+                        <select
+                          value={editForm.role}
+                          onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
+                          style={{ padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5, background: "#fff" }}
+                        >
+                          <option value="host">Host</option>
+                          <option value="chapter_lead">Chapter Lead</option>
+                          <option value="superadmin">Superadmin</option>
+                        </select>
+                        <label style={{ fontSize: 12, color: "#6b7280" }}>Chapter</label>
+                        <select
+                          value={editForm.chapter_id}
+                          onChange={(e) => setEditForm((f) => ({ ...f, chapter_id: e.target.value }))}
+                          style={{ padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5, background: "#fff" }}
+                        >
+                          <option value="">None</option>
+                          {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                        <button
+                          onClick={() => handleEditSave(u.id)}
+                          disabled={editSaving}
+                          style={{ padding: "6px 14px", fontSize: 12, fontWeight: 700, background: "#56a1d2", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer" }}
+                        >
+                          {editSaving ? "Saving…" : "Save"}
+                        </button>
+                        <button
+                          onClick={() => setEditUserId(null)}
+                          style={{ padding: "6px 10px", fontSize: 12, background: "transparent", border: "1.5px solid #d1d5db", borderRadius: 5, cursor: "pointer", color: "#696969" }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {resetUserId === u.id && (
                   <tr key={`${u.id}-reset`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
                     <td colSpan={9} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
