@@ -143,6 +143,35 @@ class TestUpdateUser:
                                headers=admin_headers)
         assert r.status_code == 404
 
+    async def test_set_title(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "titled@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"title": "Head of Salons"},
+                               headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["title"] == "Head of Salons"
+
+    async def test_clear_title_with_explicit_null(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "untitled@aisalon.xyz", sf_chapter.id)
+        lead.title = "Old Title"
+        await db_session.commit()
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"title": None},
+                               headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["title"] is None
+
+    async def test_list_users_includes_title(
+        self, client: AsyncClient, admin_headers, superadmin
+    ):
+        r = await client.get("/admin/users", headers=admin_headers)
+        assert r.status_code == 200
+        assert "title" in r.json()[0]
+
     async def test_cannot_change_own_role(
         self, client: AsyncClient, admin_headers, superadmin
     ):
