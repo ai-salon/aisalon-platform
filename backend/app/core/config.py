@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""
     LOG_LEVEL: str = "INFO"
 
+    # Transactional email (Resend). Empty key ⇒ sends refused (fail-closed).
+    RESEND_API_KEY: str = ""
+    EMAIL_FROM: str = "Ai Salon <noreply@aisalon.xyz>"
+
     # Optional system-wide fallbacks for the audio-processing pipeline.
     # When set, users without their own key in UserAPIKey use this value instead.
     ASSEMBLYAI_API_KEY: str = ""
