@@ -338,7 +338,7 @@ export default function HomePage() {
                         href={`/chapters/${ch.code}`}
                         className="chapter-card"
                         onClick={() => window.umami?.track('chapter-card-click', { chapter: ch.code })}
-                        style={{ alignItems: "flex-start", flexDirection: "column", gap: 6 }}
+                        style={{ alignItems: "flex-start", flexDirection: "column", gap: 6, alignSelf: "start" }}
                       >
                         <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <i className="fa fa-map-marker" aria-hidden="true" />

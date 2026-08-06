@@ -43,7 +43,7 @@ class TestListChapters:
         await _seed_chapter(db_session)
         r = await client.get("/chapters")
         ch = r.json()[0]
-        for key in ("id", "code", "name", "title", "tagline", "status"):
+        for key in ("id", "code", "name", "title", "tagline", "description", "status"):
             assert key in ch
 
 

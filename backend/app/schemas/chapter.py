@@ -14,7 +14,6 @@ class ChapterSummary(BaseModel):
 
 
 class ChapterDetail(ChapterSummary):
-    description: str
     about: str
     event_link: str
     calendar_embed: str
