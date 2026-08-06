@@ -309,7 +309,7 @@ export default function ChapterEditPage() {
               ogMap={{}}
               members={[]}
               previewMode
-              contactSlot={null}
+              contactSlot={<p className="section-subtitle">Contact form appears here</p>}
             />
           </div>
         )}

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchOgData, type OgData } from "@/lib/og";
 import { getPublicFlags } from "@/lib/featureFlags";
 import ChapterView, { type ArticleCard, type Member } from "@/components/ChapterView";
+import ChapterContactForm from "@/components/ChapterContactForm";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -75,7 +76,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
       ogMap={ogMap}
       members={sortedMembers}
       insightsEnabled={flags.insights_enabled}
-      contactSlot={null}
+      contactSlot={<ChapterContactForm code={chapter.code} chapterName={chapter.name} />}
     />
   );
 }
