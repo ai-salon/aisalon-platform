@@ -66,6 +66,7 @@ function buildNav(userRole: string, draftCount: number): NavEntry[] {
     ...(isSuperadmin ? [{ href: '/chapters', label: 'Chapters', icon: 'fa-map-marker' }] : []),
     ...(isChapterLead ? [{ href: '/chapters', label: 'My Chapter', icon: 'fa-map-marker' }] : []),
     { href: '/people', label: 'Team', icon: 'fa-users' },
+    { href: '/profile', label: 'My Profile', icon: 'fa-user-o' },
     ...(!isHost ? [{ group: true as const, label: 'Team Management', icon: 'fa-id-badge', children: teamMgmtChildren }] : []),
     ...(isSuperadmin ? [{ group: true as const, label: 'Admin', icon: 'fa-shield', children: adminChildren }] : []),
     { href: '/topics', label: 'Topics', icon: 'fa-lightbulb-o' },
