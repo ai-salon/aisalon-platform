@@ -16,6 +16,23 @@ class ProfileCompleteRequest(BaseModel):
         return v.strip()
 
 
+class ProfileUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    profile_image_url: str | None = Field(default=None, max_length=512)
+    linkedin: str | None = Field(default=None, max_length=512)
+    description: str | None = Field(default=None, max_length=350)
+    title: str | None = Field(default=None, max_length=160)
+    scheduling_url: str | None = Field(default=None, max_length=512)
+    hide_from_team: bool | None = None
+
+    @field_validator("profile_image_url", "linkedin", "scheduling_url")
+    @classmethod
+    def _normalize_optional(cls, v: str | None) -> str | None:
+        if v is None or v.strip() == "":
+            return None
+        return v.strip()
+
+
 class ProfileResponse(BaseModel):
     id: str
     name: str | None
@@ -25,6 +42,10 @@ class ProfileResponse(BaseModel):
     title: str | None
     is_founder: bool
     profile_completed_at: datetime | None
+    email: str
+    scheduling_url: str | None
+    hide_from_team: bool
+    pending_email: str | None
 
     model_config = {"from_attributes": True}
 

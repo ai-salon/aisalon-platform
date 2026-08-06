@@ -10,6 +10,7 @@ from app.models.chapter import Chapter
 from app.models.user import User
 from app.schemas.profile import (
     ProfileCompleteRequest,
+    ProfileUpdateRequest,
     ProfileResponse,
     ProfilePhotoResponse,
 )
@@ -57,6 +58,20 @@ async def complete_profile(
         current_user.profile_completed_at = datetime.now(timezone.utc)
     if not current_user.title:
         current_user.title = await _default_title(current_user, db)
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
+
+
+@router.patch("/me", response_model=ProfileResponse)
+async def update_my_profile(
+    body: ProfileUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(current_user, field, value)
     db.add(current_user)
     await db.commit()
     await db.refresh(current_user)
