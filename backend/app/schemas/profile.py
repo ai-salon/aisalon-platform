@@ -68,3 +68,8 @@ class ProfileResponse(BaseModel):
 
 class ProfilePhotoResponse(BaseModel):
     url: str
+
+
+class EmailChangeRequest(BaseModel):
+    new_email: str = Field(..., max_length=256, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    current_password: str = Field(..., min_length=1)
