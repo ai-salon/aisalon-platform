@@ -26,3 +26,27 @@ async def test_patch_profile_ignores_omitted_fields(client, chapter_lead, lead_h
 async def test_patch_profile_requires_auth(client):
     r = await client.patch("/profile/me", json={"name": "X"})
     assert r.status_code in (401, 403)
+
+
+async def test_patch_profile_rejects_explicit_null_hide_from_team(client, lead_headers):
+    """Regression: explicit null for hide_from_team should return 422, not 500."""
+    r = await client.patch(
+        "/profile/me",
+        json={"hide_from_team": None},
+        headers=lead_headers,
+    )
+    assert r.status_code == 422
+    errors = r.json()["detail"]
+    assert any("hide_from_team" in str(err) for err in errors)
+
+
+async def test_patch_profile_rejects_explicit_null_name(client, lead_headers):
+    """Regression: explicit null for name should return 422, not 500."""
+    r = await client.patch(
+        "/profile/me",
+        json={"name": None},
+        headers=lead_headers,
+    )
+    assert r.status_code == 422
+    errors = r.json()["detail"]
+    assert any("name" in str(err) for err in errors)

@@ -25,6 +25,22 @@ class ProfileUpdateRequest(BaseModel):
     scheduling_url: str | None = Field(default=None, max_length=512)
     hide_from_team: bool | None = None
 
+    @field_validator("name", mode="before")
+    @classmethod
+    def _validate_name_not_null(cls, v):
+        """Reject explicit null for name (consistent with min_length=1 intent)."""
+        if v is None:
+            raise ValueError("name cannot be null (omit the field to leave unchanged)")
+        return v
+
+    @field_validator("hide_from_team", mode="before")
+    @classmethod
+    def _validate_hide_from_team_not_null(cls, v):
+        """Reject explicit null for hide_from_team (NOT NULL database constraint)."""
+        if v is None:
+            raise ValueError("hide_from_team cannot be null (omit the field to leave unchanged)")
+        return v
+
     @field_validator("profile_image_url", "linkedin", "scheduling_url")
     @classmethod
     def _normalize_optional(cls, v: str | None) -> str | None:
