@@ -7,6 +7,7 @@ class ChapterSummary(BaseModel):
     name: str
     title: str
     tagline: str
+    description: str
     status: str
 
     model_config = {"from_attributes": True}

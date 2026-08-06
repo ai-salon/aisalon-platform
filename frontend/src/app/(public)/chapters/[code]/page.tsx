@@ -38,7 +38,10 @@ export async function generateMetadata({ params }: { params: Promise<{ code: str
   const { code } = await params;
   const chapter = await getChapter(code);
   if (!chapter) return { title: "Chapter – Ai Salon" };
-  return { title: `${chapter.name} – Ai Salon` };
+  return {
+    title: `${chapter.name} – Ai Salon`,
+    description: chapter.description || chapter.tagline,
+  };
 }
 
 export default async function ChapterPage({ params }: { params: Promise<{ code: string }> }) {
