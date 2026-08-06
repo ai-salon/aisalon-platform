@@ -38,8 +38,12 @@ async def send_email(
         logger.error("email_send_transport_error", error=str(exc))
         return False
     if resp.status_code >= 400:
+        # Truncate: Resend error bodies can echo recipient addresses back,
+        # and we don't want PII fully duplicated into logs.
         logger.error(
-            "email_send_failed", status=resp.status_code, body=resp.text
+            "email_send_failed",
+            status=resp.status_code,
+            body=resp.text[:200],
         )
         return False
     logger.info("email_sent", to_count=len(to))

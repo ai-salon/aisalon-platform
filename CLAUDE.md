@@ -192,7 +192,6 @@ Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/proces
 | `/register` | `(public)/register/page.tsx` | No |
 | `/verify-email` | `(public)/verify-email/page.tsx` | No |
 | `/insights` | `(public)/insights/page.tsx` | No |
-| `/insights/[id]` | `(public)/insights/[id]/page.tsx` | No |
 | `/login` | `(admin)/login/page.tsx` | No |
 | `/profile` | `(admin)/profile/page.tsx` | Yes |
 | `/dashboard` | `(admin)/dashboard/page.tsx` | Yes |

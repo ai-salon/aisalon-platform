@@ -99,7 +99,7 @@ export default function ChapterView({
                   JOIN EVENTS
                 </a>
               )}
-              <Link href={`/host/${chapter.code}`} className="btn btn-outline">
+              <Link href={`/host/${chapter.code}`} className="btn btn-outline" style={ctaStyle}>
                 BECOME A HOST
               </Link>
             </div>
@@ -361,7 +361,7 @@ export default function ChapterView({
 
       {/* Back link */}
       <div style={{ background: "#fff", padding: "32px 30px", textAlign: "center" }}>
-        <Link href="/#chapters" style={{ fontSize: 14, color: "#56a1d2", textDecoration: "none", fontWeight: 600 }}>
+        <Link href="/#chapters" style={{ fontSize: 14, color: "#56a1d2", textDecoration: "none", fontWeight: 600, ...ctaStyle }}>
           ← Back to all chapters
         </Link>
       </div>

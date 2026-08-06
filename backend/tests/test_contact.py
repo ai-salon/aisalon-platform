@@ -2,6 +2,7 @@ from unittest.mock import AsyncMock, patch
 
 from sqlalchemy import select
 
+from app.models.chapter import Chapter
 from app.models.contact_message import ContactMessage
 
 VALID = {"name": "Vis Itor", "email": "vis@x.co", "message": "Hello chapter, tell me more!"}
@@ -33,6 +34,10 @@ async def test_contact_stores_row_and_emails_leads(
     to = mail.await_args.args[0] if mail.await_args.args else mail.await_args.kwargs["to"]
     assert chapter_lead.email in to
     assert mail.await_args.kwargs.get("reply_to") == "vis@x.co"
+    # The `client` fixture uses httpx.ASGITransport, which awaits the whole
+    # ASGI call (including Starlette's BackgroundTasks) before `post()`
+    # returns, so this is deterministic rather than flaky in this suite.
+    assert rows[0].forwarded_at is not None
 
 
 async def test_contact_falls_back_to_superadmins(client, sf_chapter, superadmin, db_session):
@@ -59,6 +64,19 @@ async def test_contact_validates_message_length(client, sf_chapter):
 async def test_contact_404_on_unknown_chapter(client):
     r, _ = await _post(client, "nope", VALID)
     assert r.status_code == 404
+
+
+async def test_contact_404_on_draft_chapter(client, db_session):
+    ch = Chapter(
+        code="draft-ch", name="Draft Chapter", title="t", description="d",
+        tagline="t", about="a", event_link="e", calendar_embed="c",
+        events_description="e", status="draft",
+    )
+    db_session.add(ch)
+    await db_session.commit()
+    r, mail = await _post(client, ch.code, VALID)
+    assert r.status_code == 404
+    mail.assert_not_awaited()
 
 
 async def test_contact_failed_send_leaves_forwarded_at_null(

@@ -57,7 +57,10 @@ async def contact_chapter(
     db: AsyncSession = Depends(get_db),
 ):
     result = await db.execute(
-        select(Chapter).where((Chapter.id == identifier) | (Chapter.code == identifier))
+        select(Chapter).where(
+            (Chapter.status == "active")
+            & ((Chapter.id == identifier) | (Chapter.code == identifier))
+        )
     )
     chapter = result.scalar_one_or_none()
     if not chapter:

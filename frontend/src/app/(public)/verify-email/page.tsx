@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -8,8 +8,11 @@ function VerifyInner() {
   const token = useSearchParams().get("token");
   const [state, setState] = useState<"working" | "ok" | "error">("working");
   const [email, setEmail] = useState("");
+  const firedRef = useRef(false);
   useEffect(() => {
     if (!token) { setState("error"); return; }
+    if (firedRef.current) return;
+    firedRef.current = true;
     fetch(`${API_URL}/auth/verify-email-change`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
