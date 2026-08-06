@@ -1,4 +1,3 @@
-from typing import Any
 from pydantic import BaseModel
 
 
@@ -19,5 +18,3 @@ class ChapterDetail(ChapterSummary):
     event_link: str
     calendar_embed: str
     events_description: str
-    about_blocks: Any
-    events_blocks: Any

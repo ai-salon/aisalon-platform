@@ -58,7 +58,7 @@ class TestGetChapter:
     async def test_includes_full_detail(self, client: AsyncClient, db_session: AsyncSession):
         await _seed_chapter(db_session)
         r = await client.get("/chapters/sf")
-        for key in ("about", "event_link", "calendar_embed", "about_blocks", "events_blocks"):
+        for key in ("about", "event_link", "calendar_embed"):
             assert key in r.json()
 
     async def test_not_found(self, client: AsyncClient):
