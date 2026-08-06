@@ -34,3 +34,6 @@ backend/uploads/
 
 # Git worktrees
 .worktrees/
+
+# Superpowers
+.superpowers/

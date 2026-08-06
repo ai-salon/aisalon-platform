@@ -190,9 +190,11 @@ Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/proces
 | `/host` | `(public)/host/page.tsx` | No |
 | `/host/[code]` | `(public)/host/[code]/page.tsx` | No |
 | `/register` | `(public)/register/page.tsx` | No |
+| `/verify-email` | `(public)/verify-email/page.tsx` | No |
 | `/insights` | `(public)/insights/page.tsx` | No |
 | `/insights/[id]` | `(public)/insights/[id]/page.tsx` | No |
 | `/login` | `(admin)/login/page.tsx` | No |
+| `/profile` | `(admin)/profile/page.tsx` | Yes |
 | `/dashboard` | `(admin)/dashboard/page.tsx` | Yes |
 | `/upload` | `(admin)/upload/page.tsx` | Yes |
 | `/jobs` | `(admin)/jobs/page.tsx` | Yes |
@@ -206,6 +208,8 @@ Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/proces
 | `/community` | `(admin)/community/page.tsx` | Yes |
 | `/hosting-interest` | `(admin)/hosting-interest/page.tsx` | Yes (superadmin) |
 | `/social` | `(admin)/social/page.tsx` | Yes |
+
+**Note:** Password change has been moved from Settings to My Profile (`/profile`).
 
 ### Styling
 
@@ -236,6 +240,8 @@ Tailwind v4 tokens (use these, not hex values directly):
 - `ASSEMBLYAI_API_KEY` — optional env-var fallback. Resolution order (see `services/system_settings.resolve_provider_key`): per-user `UserAPIKey` → admin `SystemSetting` (`assemblyai_api_key`, set in **Settings ▸ AI Processing**, superadmin) → this env var.
 - `GOOGLE_API_KEY` — optional env-var fallback. Same resolution order (`SystemSetting` key `google_api_key`).
 - `ARTICLE_LLM_MODEL` — default LLM model for article generation (default: `gemini-3.1-flash-lite`). Admin-overridable at runtime via `SystemSetting` `article_llm_model` (**Settings ▸ AI Processing**, verified with a live test call before save). Resolution order (`resolve_model`): setting → this env var → SocraticAI default. Passed explicitly to SocraticAI's `ArticleGenerator`.
+- `RESEND_API_KEY` — Resend API key for transactional email (verification links, contact-form forwarding). Empty ⇒ email features fail closed with a clear "not configured" message.
+- `EMAIL_FROM` — From header for outbound email (default: `Ai Salon <noreply@aisalon.xyz>`).
 
 Admin-managed keys + model are configured by a superadmin in **Settings ▸ AI Processing** (`GET /admin/processing-config`, `POST /admin/processing/test` to verify, then `POST /admin/system-settings` to persist). Hosts/chapter leads no longer set their own keys; `UserAPIKey` is retained (no UI) and still wins if present.
 
