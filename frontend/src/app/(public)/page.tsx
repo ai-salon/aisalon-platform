@@ -131,7 +131,7 @@ function formatArticleDate(a: ArticleSummary): string {
 }
 
 export default function HomePage() {
-  const [chapters, setChapters] = useState<{ id: string; name: string; code: string; tagline: string; status: string }[]>([]);
+  const [chapters, setChapters] = useState<{ id: string; name: string; code: string; tagline: string; description: string; status: string }[]>([]);
   const [team, setTeam] = useState<Member[]>([]);
   const [articles, setArticles] = useState<ArticleSummary[]>([]);
   const [ogMap, setOgMap] = useState<Record<string, OgData>>({});
@@ -338,9 +338,17 @@ export default function HomePage() {
                         href={`/chapters/${ch.code}`}
                         className="chapter-card"
                         onClick={() => window.umami?.track('chapter-card-click', { chapter: ch.code })}
+                        style={{ alignItems: "flex-start", flexDirection: "column", gap: 6, alignSelf: "start" }}
                       >
-                        <i className="fa fa-map-marker" aria-hidden="true" />
-                        <span>{ch.name}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <i className="fa fa-map-marker" aria-hidden="true" />
+                          <span>{ch.name}</span>
+                        </span>
+                        {ch.description && (
+                          <span style={{ fontSize: 13, fontWeight: 300, color: "#696969", lineHeight: 1.6 }}>
+                            {ch.description}
+                          </span>
+                        )}
                       </Link>
                     ))}
                   </div>

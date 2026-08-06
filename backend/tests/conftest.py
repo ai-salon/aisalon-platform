@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 
 import app.api.admin as admin_module
+import app.api.chapters as chapters_module
 from app.main import app
 from app.models.base import Base
 from app.core.database import get_db
@@ -50,10 +51,14 @@ async def client(db_engine):
     # Patch AsyncSessionLocal used directly by run_job background task
     _original = admin_module.AsyncSessionLocal
     admin_module.AsyncSessionLocal = Session
+    # Patch AsyncSessionLocal used directly by contact_chapter's _forward background task
+    _original_chapters = chapters_module.AsyncSessionLocal
+    chapters_module.AsyncSessionLocal = Session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
     app.dependency_overrides.clear()
     admin_module.AsyncSessionLocal = _original
+    chapters_module.AsyncSessionLocal = _original_chapters
 
 
 # ── Auth helpers ────────────────────────────────────────────────────────────

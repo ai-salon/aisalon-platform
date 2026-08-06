@@ -349,120 +349,6 @@ function SystemSettingSection({
   );
 }
 
-function ChangePasswordSection({ token }: { token: string }) {
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (next !== confirm) {
-      toast.error("New passwords don't match");
-      return;
-    }
-    if (next.length < 12) {
-      toast.error("New password must be at least 12 characters");
-      return;
-    }
-    setSaving(true);
-    const r = await fetch(`${API_URL}/auth/change-password`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ current_password: current, new_password: next }),
-    });
-    setSaving(false);
-    if (r.status === 204) {
-      toast.success("Password updated");
-      setCurrent(""); setNext(""); setConfirm("");
-      return;
-    }
-    const body = await r.json().catch(() => ({}));
-    if (r.status === 400) {
-      toast.error(body.detail ?? "Current password is incorrect");
-    } else if (r.status === 422) {
-      toast.error("New password doesn't meet strength requirements");
-    } else {
-      toast.error("Failed to update password");
-    }
-  }
-
-  const inputStyle: React.CSSProperties = {
-    padding: "9px 12px",
-    fontSize: 14,
-    border: "1.5px solid #d1d5db",
-    borderRadius: 6,
-    width: "100%",
-    boxSizing: "border-box",
-  };
-
-  return (
-    <div
-      style={{
-        background: "#fff",
-        borderRadius: 8,
-        padding: "20px 24px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-        <i className="fa fa-lock" style={{ color: "#56a1d2", fontSize: 15 }} />
-        <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>Change Password</span>
-      </div>
-      <p style={{ fontSize: 13, color: "#696969", marginBottom: 16 }}>
-        At least 12 characters, including upper- and lower-case letters and a number.
-      </p>
-      <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <input
-          type="password"
-          autoComplete="current-password"
-          placeholder="Current password"
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-          required
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          autoComplete="new-password"
-          placeholder="New password"
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          required
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          autoComplete="new-password"
-          placeholder="Confirm new password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          required
-          style={inputStyle}
-        />
-        <button
-          type="submit"
-          disabled={saving || !current || !next || !confirm}
-          style={{
-            alignSelf: "flex-start",
-            fontSize: 13,
-            fontWeight: 700,
-            padding: "9px 18px",
-            borderRadius: 6,
-            background: "#56a1d2",
-            color: "#fff",
-            border: "none",
-            cursor: saving ? "wait" : "pointer",
-            opacity: !current || !next || !confirm ? 0.5 : 1,
-          }}
-        >
-          {saving ? "Updating…" : "Update password"}
-        </button>
-      </form>
-    </div>
-  );
-}
-
 interface ProcessingConfig {
   assemblyai_set: boolean;
   google_set: boolean;
@@ -658,27 +544,13 @@ function AiProcessingSection({ token }: { token: string }) {
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const [systemKeys, setSystemKeys] = useState<Set<string>>(new Set());
-  const [schedulingUrl, setSchedulingUrl] = useState("");
-  const [schedulingUrlSaving, setSchedulingUrlSaving] = useState(false);
-  const [schedulingUrlEdit, setSchedulingUrlEdit] = useState(false);
 
   const token = (session as any)?.accessToken;
   const isSuperadmin = (session?.user as any)?.role === "superadmin";
-  const userRole = (session?.user as any)?.role;
 
   useEffect(() => {
     if (status === "unauthenticated") redirect("/login");
   }, [status]);
-
-  useEffect(() => {
-    if (!token) return;
-    fetch(`${API_URL}/admin/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => { if (data.scheduling_url) setSchedulingUrl(data.scheduling_url); })
-      .catch(console.error);
-  }, [token]);
 
   function loadSystemSettings() {
     if (!token || !isSuperadmin) return;
@@ -694,22 +566,6 @@ export default function SettingsPage() {
 
   useEffect(() => { loadSystemSettings(); }, [token, isSuperadmin]);
 
-  async function saveSchedulingUrl() {
-    setSchedulingUrlSaving(true);
-    const r = await fetch(`${API_URL}/admin/me/scheduling-url`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduling_url: schedulingUrl || null }),
-    });
-    setSchedulingUrlSaving(false);
-    if (r.ok) {
-      toast.success("Scheduling link saved");
-      setSchedulingUrlEdit(false);
-    } else {
-      toast.error("Failed to save scheduling link");
-    }
-  }
-
   if (status === "loading") return null;
 
   return (
@@ -719,79 +575,7 @@ export default function SettingsPage() {
         Manage your account and platform configuration.
       </p>
 
-      {token && (
-        <div style={{ marginBottom: 32 }}>
-          <ChangePasswordSection token={token} />
-        </div>
-      )}
-
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {/* Scheduling URL (chapter leads + superadmin) */}
-        {(userRole === "chapter_lead" || userRole === "superadmin") && (
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 8,
-              padding: "20px 24px",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <i className="fa fa-calendar" style={{ color: "#56a1d2", fontSize: 15 }} />
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#111" }}>1:1 Scheduling Link</span>
-              {schedulingUrl && !schedulingUrlEdit && <StatusBadge active={true} />}
-            </div>
-            <p style={{ fontSize: 13, color: "#696969", marginBottom: 14 }}>
-              Add your booking link so hosts can schedule 1:1 meetings with you. Use{" "}
-              <a href="https://cal.com" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>cal.com</a>,{" "}
-              <a href="https://calendly.com" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>Calendly</a>, or{" "}
-              Google Calendar appointment pages.
-            </p>
-            {schedulingUrlEdit ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <input
-                  type="url"
-                  value={schedulingUrl}
-                  onChange={(e) => setSchedulingUrl(e.target.value)}
-                  placeholder="https://cal.com/yourname/meeting"
-                  style={{ fontSize: 13, padding: "8px 12px", borderRadius: 6, border: "1.5px solid #d1d5db", outline: "none", width: "100%" }}
-                />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={saveSchedulingUrl}
-                    disabled={schedulingUrlSaving}
-                    style={{ fontSize: 13, fontWeight: 600, padding: "6px 14px", borderRadius: 6, border: "none", background: "#56a1d2", color: "#fff", cursor: "pointer" }}
-                  >
-                    {schedulingUrlSaving ? "Saving…" : "Save"}
-                  </button>
-                  <button
-                    onClick={() => setSchedulingUrlEdit(false)}
-                    style={{ fontSize: 13, fontWeight: 600, padding: "6px 14px", borderRadius: 6, border: "1.5px solid #d1d5db", background: "transparent", color: "#696969", cursor: "pointer" }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                {schedulingUrl ? (
-                  <a href={schedulingUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#56a1d2", wordBreak: "break-all" }}>
-                    {schedulingUrl}
-                  </a>
-                ) : (
-                  <span style={{ fontSize: 13, color: "#9ca3af" }}>No link set</span>
-                )}
-                <button
-                  onClick={() => setSchedulingUrlEdit(true)}
-                  style={{ fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 6, border: "1.5px solid #56a1d2", color: "#56a1d2", background: "transparent", cursor: "pointer", flexShrink: 0 }}
-                >
-                  {schedulingUrl ? "Update" : "Set link"}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* System settings (superadmin only) */}
         {isSuperadmin && (
           <>

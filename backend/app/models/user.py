@@ -38,4 +38,11 @@ class User(Base, TimestampMixin):
     profile_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     hide_from_team: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
+    # Verified email-change flow (spec 2026-08-05)
+    pending_email: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    email_change_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    email_change_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     chapter: Mapped["Chapter | None"] = relationship("Chapter", back_populates="users")  # noqa: F821

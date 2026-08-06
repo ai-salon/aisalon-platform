@@ -23,8 +23,6 @@ class ChapterUpdate(BaseModel):
     event_link: str | None = None
     calendar_embed: str | None = None
     events_description: str | None = None
-    about_blocks: Any | None = None
-    events_blocks: Any | None = None
     status: Literal["draft", "active", "archived"] | None = None
     chapter_guide: str | None = None
 
@@ -40,8 +38,6 @@ class ChapterResponse(BaseModel):
     event_link: str
     calendar_embed: str
     events_description: str
-    about_blocks: Any
-    events_blocks: Any
     status: str
     chapter_guide: str | None = None
 
