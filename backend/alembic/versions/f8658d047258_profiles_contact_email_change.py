@@ -44,7 +44,19 @@ def downgrade() -> None:
     op.drop_column('users', 'email_change_expires_at')
     op.drop_column('users', 'email_change_token_hash')
     op.drop_column('users', 'pending_email')
-    op.add_column('chapters', sa.Column('events_blocks', sa.JSON(), nullable=False))
-    op.add_column('chapters', sa.Column('about_blocks', sa.JSON(), nullable=False))
+    op.add_column(
+        'chapters',
+        sa.Column(
+            'events_blocks', sa.JSON(), nullable=False,
+            server_default=sa.text("'[]'"),
+        ),
+    )
+    op.add_column(
+        'chapters',
+        sa.Column(
+            'about_blocks', sa.JSON(), nullable=False,
+            server_default=sa.text("'[]'"),
+        ),
+    )
     op.drop_index(op.f('ix_contact_messages_chapter_id'), table_name='contact_messages')
     op.drop_table('contact_messages')
