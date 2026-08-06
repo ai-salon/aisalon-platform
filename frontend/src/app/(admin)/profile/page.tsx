@@ -715,6 +715,7 @@ export default function ProfilePage() {
   const { data: session, status } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const token = (session as unknown as { accessToken?: string })?.accessToken;
 
@@ -722,23 +723,32 @@ export default function ProfilePage() {
     if (status === "unauthenticated") redirect("/login");
   }, [status]);
 
-  useEffect(() => {
+  function loadProfile() {
     if (!token) return;
+    setLoading(true);
+    setLoadError(false);
     fetch(`${API_URL}/profile/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
       .then((data) => {
         setProfile(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, [token]);
+      .catch(() => {
+        setLoadError(true);
+        setLoading(false);
+      });
+  }
+
+  useEffect(loadProfile, [token]);
 
   function applyPatch(patch: Partial<Profile>) {
     setProfile((p) => (p ? { ...p, ...patch } : p));
   }
 
-  if (status === "loading" || loading) return null;
-  if (!profile || !token) return null;
+  if (status === "loading") return null;
 
   return (
     <div style={{ maxWidth: 700, margin: "0 auto", padding: "40px 30px" }}>
@@ -748,11 +758,26 @@ export default function ProfilePage() {
         page.
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <PhotoCard profile={profile} token={token} onSaved={applyPatch} />
-        <InfoCard profile={profile} token={token} onSaved={applyPatch} />
-        <AccountCard profile={profile} token={token} onSaved={applyPatch} />
-      </div>
+      {loading && <p style={{ fontSize: 14, color: "#696969" }}>Loading…</p>}
+
+      {!loading && loadError && (
+        <div style={cardStyle}>
+          <p style={{ fontSize: 14, color: "#ef4444", marginBottom: 12 }}>
+            Couldn&apos;t load your profile. Please try again.
+          </p>
+          <button onClick={loadProfile} style={primaryBtnStyle}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {!loading && !loadError && profile && token && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <PhotoCard profile={profile} token={token} onSaved={applyPatch} />
+          <InfoCard profile={profile} token={token} onSaved={applyPatch} />
+          <AccountCard profile={profile} token={token} onSaved={applyPatch} />
+        </div>
+      )}
     </div>
   );
 }
