@@ -1,4 +1,5 @@
 import hashlib
+import html
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
@@ -177,7 +178,7 @@ async def verify_email_change(
         send_email,
         [old_email],
         "Your Ai Salon login email was changed",
-        f"<p>Your login email was changed to <b>{user.email}</b>. "
+        f"<p>Your login email was changed to <b>{html.escape(user.email)}</b>. "
         f"If this wasn't you, contact an administrator immediately.</p>",
     )
     return VerifyEmailChangeResponse(email=user.email)

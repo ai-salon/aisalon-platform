@@ -17,7 +17,7 @@ async def send_email(
     """Send a transactional email via Resend. Fail-closed: returns False
     (never raises) when unconfigured or on any transport/API error."""
     if not settings.RESEND_API_KEY:
-        logger.warning("email_not_configured", subject=subject)
+        logger.warning("email_not_configured")
         return False
     payload: dict = {
         "from": settings.EMAIL_FROM,
@@ -35,12 +35,12 @@ async def send_email(
                 headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
             )
     except httpx.HTTPError as exc:
-        logger.error("email_send_transport_error", error=str(exc), subject=subject)
+        logger.error("email_send_transport_error", error=str(exc))
         return False
     if resp.status_code >= 400:
         logger.error(
-            "email_send_failed", status=resp.status_code, body=resp.text, subject=subject
+            "email_send_failed", status=resp.status_code, body=resp.text
         )
         return False
-    logger.info("email_sent", to_count=len(to), subject=subject)
+    logger.info("email_sent", to_count=len(to))
     return True

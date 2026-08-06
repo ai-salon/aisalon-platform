@@ -1,11 +1,12 @@
+import html
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from app.api.auth import limiter
-from app.core.database import get_db
+from app.core.database import get_db, AsyncSessionLocal
 from app.core.logging import get_logger
 from app.models.chapter import Chapter
 from app.models.contact_message import ContactMessage
@@ -91,22 +92,38 @@ async def contact_chapter(
     recipients = [u.email for u in leads]
     sender = body.name or body.email
 
+    safe_name = html.escape(body.name) if body.name else "—"
+    safe_email = html.escape(body.email)
+    safe_message = html.escape(body.message)
+
     async def _forward() -> None:
         ok = await send_email(
             recipients,
             f"[Ai Salon] New message for {chapter.name} from {sender}",
-            f"<p><b>From:</b> {body.name or '—'} &lt;{body.email}&gt;</p>"
+            f"<p><b>From:</b> {safe_name} &lt;{safe_email}&gt;</p>"
             f"<p><b>Chapter:</b> {chapter.name}</p>"
-            f"<p>{body.message}</p>"
+            f"<p>{safe_message}</p>"
             f"<p style='color:#696969'>Reply to this email to answer directly.</p>",
             reply_to=body.email,
         )
-        if ok:
-            msg.forwarded_at = datetime.now(timezone.utc)
-            db.add(msg)
-            await db.commit()
-        else:
+        if not ok:
             logger.warning("contact_forward_failed", chapter_id=chapter.id, message_id=msg.id)
+            return
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(
+                    update(ContactMessage)
+                    .where(ContactMessage.id == msg.id)
+                    .values(forwarded_at=datetime.now(timezone.utc))
+                )
+                await session.commit()
+        except Exception as exc:
+            logger.warning(
+                "contact_forward_mark_sent_failed",
+                chapter_id=chapter.id,
+                message_id=msg.id,
+                error_type=type(exc).__name__,
+            )
 
     if recipients:
         background_tasks.add_task(_forward)
