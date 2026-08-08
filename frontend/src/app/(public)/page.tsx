@@ -345,7 +345,18 @@ export default function HomePage() {
                           <span>{ch.name}</span>
                         </span>
                         {ch.description && (
-                          <span style={{ fontSize: 13, fontWeight: 300, color: "#696969", lineHeight: 1.6 }}>
+                          <span
+                            style={{
+                              fontSize: 13,
+                              fontWeight: 300,
+                              color: "#696969",
+                              lineHeight: 1.6,
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
                             {ch.description}
                           </span>
                         )}

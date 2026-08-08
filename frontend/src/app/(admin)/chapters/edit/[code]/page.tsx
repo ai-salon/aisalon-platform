@@ -15,11 +15,25 @@ type Chapter = {
   status: string;
 };
 
-const EDITABLE_FIELDS: { key: keyof Chapter; label: string; hint: string; multiline?: boolean }[] = [
+const EDITABLE_FIELDS: {
+  key: keyof Chapter;
+  label: string;
+  hint: string;
+  hintHref?: string;
+  multiline?: boolean;
+  maxLength?: number;
+}[] = [
   { key: "name", label: "Name", hint: "chapter name — shown in the hero, nav, and homepage card" },
   { key: "title", label: "Page Title", hint: "big headline at the top of your chapter page" },
   { key: "tagline", label: "Tagline", hint: "appears under the page title" },
-  { key: "description", label: "Card Blurb", hint: "short blurb on the homepage chapter card", multiline: true },
+  {
+    key: "description",
+    label: "Card Blurb",
+    hint: "short blurb on the homepage chapter card",
+    hintHref: "/#chapters",
+    multiline: true,
+    maxLength: 120,
+  },
   { key: "about", label: "About", hint: "the “About the chapter” section", multiline: true },
   { key: "event_link", label: "Event Link", hint: "the JOIN EVENTS button target (Luma)" },
   { key: "calendar_embed", label: "Calendar Embed URL", hint: "the events calendar iframe" },
@@ -194,58 +208,87 @@ export default function ChapterEditPage() {
                 </select>
               </div>
 
-              {EDITABLE_FIELDS.map(({ key, label, hint, multiline }) => (
-                <div key={key}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
-                    {label}
-                    {hint && (
-                      <span
+              {EDITABLE_FIELDS.map(({ key, label, hint, hintHref, multiline, maxLength }) => {
+                const value = (form[key] as string) ?? "";
+                return (
+                  <div key={key}>
+                    <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
+                      {label}
+                      {hint && (
+                        <span
+                          style={{
+                            display: "block",
+                            fontSize: 11,
+                            fontWeight: 400,
+                            color: "#56a1d2",
+                            textTransform: "none",
+                            letterSpacing: "normal",
+                            marginTop: 3,
+                          }}
+                        >
+                          {hint}
+                          {hintHref && (
+                            <>
+                              {" — "}
+                              <a
+                                href={hintHref}
+                                target="_blank"
+                                rel="noreferrer"
+                                style={{ color: "#56a1d2", textDecoration: "underline" }}
+                              >
+                                see the cards →
+                              </a>
+                            </>
+                          )}
+                        </span>
+                      )}
+                    </label>
+                    {multiline ? (
+                      <textarea
+                        value={value}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                        rows={4}
+                        maxLength={maxLength}
                         style={{
-                          display: "block",
+                          width: "100%",
+                          padding: "10px 13px",
+                          fontSize: 14,
+                          border: "1.5px solid #d1d5db",
+                          borderRadius: 6,
+                          resize: "vertical",
+                          fontFamily: "inherit",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    ) : (
+                      <input
+                        value={value}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                        style={{
+                          width: "100%",
+                          padding: "10px 13px",
+                          fontSize: 14,
+                          border: "1.5px solid #d1d5db",
+                          borderRadius: 6,
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    )}
+                    {maxLength !== undefined && (
+                      <div
+                        style={{
                           fontSize: 11,
-                          fontWeight: 400,
-                          color: "#56a1d2",
-                          textTransform: "none",
-                          letterSpacing: "normal",
+                          color: value.length >= maxLength ? "#b91c1c" : "#9ca3af",
+                          textAlign: "right",
                           marginTop: 3,
                         }}
                       >
-                        {hint}
-                      </span>
+                        {value.length}/{maxLength}
+                      </div>
                     )}
-                  </label>
-                  {multiline ? (
-                    <textarea
-                      value={(form[key] as string) ?? ""}
-                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                      rows={4}
-                      style={{
-                        width: "100%",
-                        padding: "10px 13px",
-                        fontSize: 14,
-                        border: "1.5px solid #d1d5db",
-                        borderRadius: 6,
-                        resize: "vertical",
-                        fontFamily: "inherit",
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  ) : (
-                    <input
-                      value={(form[key] as string) ?? ""}
-                      onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                      style={{
-                        width: "100%",
-                        padding: "10px 13px",
-                        fontSize: 14,
-                        border: "1.5px solid #d1d5db",
-                        borderRadius: 6,
-                        boxSizing: "border-box",
-                      }}
-                    />
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
 
               {error && <p style={{ fontSize: 13, color: "#ef4444", margin: 0 }}>{error}</p>}
 
