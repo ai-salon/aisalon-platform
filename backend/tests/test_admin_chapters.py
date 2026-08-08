@@ -75,6 +75,27 @@ class TestUpdateChapter:
         )
         assert r.status_code == 404
 
+    async def test_description_over_120_chars_rejected(
+        self, client: AsyncClient, admin_headers, sf_chapter
+    ):
+        r = await client.patch(
+            f"/admin/chapters/{sf_chapter.id}",
+            json={"description": "x" * 121},
+            headers=admin_headers,
+        )
+        assert r.status_code == 422
+
+    async def test_description_at_120_chars_accepted(
+        self, client: AsyncClient, admin_headers, sf_chapter
+    ):
+        r = await client.patch(
+            f"/admin/chapters/{sf_chapter.id}",
+            json={"description": "x" * 120},
+            headers=admin_headers,
+        )
+        assert r.status_code == 200
+        assert r.json()["description"] == "x" * 120
+
 
 async def test_create_chapter_requires_superadmin(
     client: AsyncClient, lead_headers

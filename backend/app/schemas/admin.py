@@ -17,7 +17,7 @@ class ChapterCreate(BaseModel):
 class ChapterUpdate(BaseModel):
     name: str | None = None
     title: str | None = None
-    description: str | None = None
+    description: str | None = Field(default=None, max_length=120)
     tagline: str | None = None
     about: str | None = None
     event_link: str | None = None
