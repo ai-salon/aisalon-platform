@@ -19,6 +19,7 @@ from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.models.job import Job, JobStatus
 from app.models.article import Article, ArticleStatus
 from app.models.chapter import Chapter
+from app.models.contact_message import ContactMessage
 from app.models.hosting_interest import HostingInterest, InterestType
 from app.models.invite import Invite
 from app.models.system_setting import SystemSetting
@@ -34,6 +35,7 @@ from app.schemas.admin import (
     ChapterStats, CommunityStatsResponse,
     SystemSettingRequest, SystemSettingResponse,
     ProcessingConfigResponse, ProcessingTestRequest, ProcessingTestResponse,
+    HandledPatch, ContactMessageOut, HostingInterestAdminResponse,
 )
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor, system_key_for
@@ -1217,42 +1219,110 @@ async def deactivate_invite(
     await db.commit()
 
 
-# ── Hosting Interest (superadmin only) ────────────────────────────────────────
+# ── Contact Messages ────────────────────────────────────────────────────────
 
-from datetime import datetime as _dt  # noqa: E402
-from pydantic import BaseModel as _BM  # noqa: E402
+@router.get("/contact-messages", response_model=list[ContactMessageOut])
+async def list_contact_messages(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    stmt = select(ContactMessage, Chapter.name).join(
+        Chapter, Chapter.id == ContactMessage.chapter_id
+    ).order_by(ContactMessage.created_at.desc())
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id:
+        stmt = stmt.where(ContactMessage.chapter_id == chapter_id)
+    rows = (await db.execute(stmt)).all()
+    out = []
+    for msg, chapter_name in rows:
+        item = ContactMessageOut.model_validate(msg)
+        item.chapter_name = chapter_name
+        out.append(item)
+    return out
 
 
-class HostingInterestAdminResponse(_BM):
-    id: str
-    name: str
-    email: str
-    city: str
-    interest_type: InterestType
-    existing_chapter: str | None
-    message: str | None
-    created_at: _dt
+@router.patch("/contact-messages/{message_id}", response_model=ContactMessageOut)
+async def patch_contact_message(
+    message_id: str,
+    body: HandledPatch,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    msg = (
+        await db.execute(select(ContactMessage).where(ContactMessage.id == message_id))
+    ).scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Not found")
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id and msg.chapter_id != chapter_id:
+        raise HTTPException(status_code=404, detail="Not found")
+    msg.status = body.status
+    if body.status == "handled":
+        msg.handled_by = current_user.id
+        msg.handled_at = datetime.now(timezone.utc)
+    else:
+        msg.handled_by = None
+        msg.handled_at = None
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    return msg
 
-    model_config = {"from_attributes": True}
 
+# ── Hosting Interest ────────────────────────────────────────────────────────
 
 @router.get("/hosting-interest", response_model=list[HostingInterestAdminResponse])
 async def list_hosting_interest(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_lead_or_above(current_user)
     stmt = select(HostingInterest).order_by(HostingInterest.created_at.desc())
-    if current_user.role != UserRole.superadmin:
-        ch_result = await db.execute(select(Chapter).where(Chapter.id == current_user.chapter_id))
-        chapter = ch_result.scalar_one_or_none()
-        if not chapter:
-            return []
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id:
         stmt = stmt.where(
             HostingInterest.interest_type == InterestType.host_existing,
-            HostingInterest.existing_chapter == chapter.name,
+            HostingInterest.chapter_id == chapter_id,
         )
     result = await db.execute(stmt)
     return result.scalars().all()
+
+
+@router.patch(
+    "/hosting-interest/{interest_id}", response_model=HostingInterestAdminResponse
+)
+async def patch_hosting_interest(
+    interest_id: str,
+    body: HandledPatch,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    hi = (
+        await db.execute(
+            select(HostingInterest).where(HostingInterest.id == interest_id)
+        )
+    ).scalar_one_or_none()
+    if not hi:
+        raise HTTPException(status_code=404, detail="Not found")
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id and not (
+        hi.interest_type == InterestType.host_existing and hi.chapter_id == chapter_id
+    ):
+        raise HTTPException(status_code=404, detail="Not found")
+    hi.status = body.status
+    if body.status == "handled":
+        hi.handled_by = current_user.id
+        hi.handled_at = datetime.now(timezone.utc)
+    else:
+        hi.handled_by = None
+        hi.handled_at = None
+    db.add(hi)
+    await db.commit()
+    await db.refresh(hi)
+    return hi
 
 
 # ── System Settings (superadmin only) ────────────────────────────────────────

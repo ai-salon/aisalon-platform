@@ -1,9 +1,11 @@
 """Public hosting interest endpoint."""
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.models.chapter import Chapter
 from app.models.hosting_interest import HostingInterest, InterestType
 
 router = APIRouter(tags=["hosting-interest"])
@@ -55,6 +57,17 @@ async def create_hosting_interest(
     body: HostingInterestCreate,
     db: AsyncSession = Depends(get_db),
 ):
+    chapter_id = None
+    if body.interest_type == InterestType.host_existing and body.existing_chapter:
+        result = await db.execute(
+            select(Chapter).where(
+                func.lower(func.trim(Chapter.name))
+                == body.existing_chapter.strip().lower()
+            )
+        )
+        ch = result.scalar_one_or_none()
+        chapter_id = ch.id if ch else None
+
     record = HostingInterest(
         name=body.name,
         email=body.email,
@@ -70,6 +83,7 @@ async def create_hosting_interest(
         space_options=body.space_options,
         leadership_experience=body.leadership_experience,
         support_network=body.support_network,
+        chapter_id=chapter_id,
     )
     db.add(record)
     await db.commit()
