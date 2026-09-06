@@ -22,6 +22,17 @@ type ContactMessage = {
 
 const MESSAGE_PREVIEW_LENGTH = 90;
 
+const primaryBtnStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 700,
+  padding: "9px 18px",
+  borderRadius: 6,
+  background: "#56a1d2",
+  color: "#fff",
+  border: "none",
+  cursor: "pointer",
+};
+
 function MessageRow({
   m,
   token,
@@ -38,8 +49,7 @@ function MessageRow({
   const isNew = m.status === "new";
   const isTruncated = m.message.length > MESSAGE_PREVIEW_LENGTH;
 
-  const toggleStatus = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const toggleStatus = async () => {
     const nextStatus = isNew ? "handled" : "new";
     setSaving(true);
     try {
@@ -66,73 +76,86 @@ function MessageRow({
   };
 
   return (
-    <>
-      <tr
-        style={{ borderBottom: "1px solid #f8f6ec", cursor: isTruncated ? "pointer" : "default" }}
-        onClick={() => isTruncated && setExpanded((v) => !v)}
-      >
-        <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969", whiteSpace: "nowrap" }}>
-          {new Date(m.created_at).toLocaleDateString()}
-        </td>
-        <td style={{ padding: "14px 20px", fontSize: 14 }}>
-          <div style={{ fontWeight: 600, color: "#111" }}>{m.name ?? "—"}</div>
-          <a
-            href={`mailto:${m.email}`}
-            onClick={(e) => e.stopPropagation()}
-            style={{ fontSize: 13, color: "#56a1d2" }}
+    <tr style={{ borderBottom: "1px solid #f8f6ec" }}>
+      <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969", whiteSpace: "nowrap" }}>
+        {new Date(m.created_at).toLocaleDateString()}
+      </td>
+      <td style={{ padding: "14px 20px", fontSize: 14 }}>
+        <div style={{ fontWeight: 600, color: "#111" }}>{m.name ?? "—"}</div>
+        <a href={`mailto:${m.email}`} style={{ fontSize: 13, color: "#56a1d2" }}>
+          {m.email}
+        </a>
+      </td>
+      <td style={{ padding: "14px 20px", fontSize: 14, color: "#374151", maxWidth: 420 }}>
+        {isTruncated ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              background: "none",
+              border: "none",
+              padding: 0,
+              margin: 0,
+              font: "inherit",
+              color: "inherit",
+              textAlign: "left",
+              cursor: "pointer",
+            }}
           >
-            {m.email}
-          </a>
-        </td>
-        <td style={{ padding: "14px 20px", fontSize: 14, color: "#374151", maxWidth: 420 }}>
-          {isTruncated && (
             <i
               className={`fa fa-chevron-${expanded ? "down" : "right"}`}
-              style={{ fontSize: 11, color: "#9ca3af", marginRight: 8 }}
+              style={{ fontSize: 11, color: "#9ca3af", marginTop: 3, flexShrink: 0 }}
+              aria-hidden="true"
             />
-          )}
-          {expanded || !isTruncated ? m.message : `${m.message.slice(0, MESSAGE_PREVIEW_LENGTH)}…`}
-        </td>
-        {showChapter && (
-          <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
-            {m.chapter_name ?? "—"}
-          </td>
-        )}
-        <td style={{ padding: "14px 20px" }}>
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              padding: "3px 10px",
-              borderRadius: 12,
-              background: isNew ? "#fdf8ee" : "#f3f4f6",
-              color: isNew ? "#a07a20" : "#6b7280",
-            }}
-          >
-            {m.status}
-          </span>
-        </td>
-        <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}>
-          <button
-            onClick={toggleStatus}
-            disabled={saving}
-            style={{
-              padding: "6px 14px",
-              borderRadius: 6,
-              border: "1.5px solid #e1e1e1",
-              background: "#fff",
-              color: "#374151",
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: saving ? "default" : "pointer",
-              opacity: saving ? 0.6 : 1,
-            }}
-          >
-            {isNew ? "Mark handled" : "Mark new"}
+            <span>{expanded ? m.message : `${m.message.slice(0, MESSAGE_PREVIEW_LENGTH)}…`}</span>
           </button>
+        ) : (
+          m.message
+        )}
+      </td>
+      {showChapter && (
+        <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
+          {m.chapter_name ?? "—"}
         </td>
-      </tr>
-    </>
+      )}
+      <td style={{ padding: "14px 20px" }}>
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            padding: "3px 10px",
+            borderRadius: 12,
+            background: isNew ? "#fdf8ee" : "#f3f4f6",
+            color: isNew ? "#a07a20" : "#6b7280",
+          }}
+        >
+          {m.status}
+        </span>
+      </td>
+      <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }}>
+        <button
+          onClick={toggleStatus}
+          disabled={saving}
+          style={{
+            padding: "6px 14px",
+            borderRadius: 6,
+            border: "1.5px solid #e1e1e1",
+            background: "#fff",
+            color: "#374151",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: saving ? "default" : "pointer",
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
+          {isNew ? "Mark handled" : "Mark new"}
+        </button>
+      </td>
+    </tr>
   );
 }
 
@@ -141,29 +164,40 @@ export default function ContactMessagesPage() {
   const router = useRouter();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const token = (session as unknown as { accessToken?: string })?.accessToken as string;
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? "";
   const isSuperadmin = userRole === "superadmin";
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-      return;
-    }
-    if (status !== "authenticated") return;
+    if (status === "unauthenticated") router.push("/login");
+  }, [status, router]);
+
+  function loadMessages() {
+    if (!token) return;
+    setLoading(true);
+    setLoadError(false);
     fetch(`${API_URL}/admin/contact-messages`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     })
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setMessages)
+      .then((r) => {
+        if (!r.ok) throw new Error(`Request failed: ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        setMessages(data);
+        setLoading(false);
+      })
       .catch(() => {
         toast.error("Failed to load contact messages");
-        setMessages([]);
-      })
-      .finally(() => setLoading(false));
-  }, [status, session, router, token]);
+        setLoadError(true);
+        setLoading(false);
+      });
+  }
+
+  useEffect(loadMessages, [token]);
 
   const handleUpdate = (updated: ContactMessage) => {
     setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
@@ -175,12 +209,31 @@ export default function ContactMessagesPage() {
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "40px 30px" }}>
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Contact Messages</h1>
-        <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
-          {messages.length} message{messages.length !== 1 ? "s" : ""}
-        </p>
+        {!loadError && (
+          <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
+            {messages.length} message{messages.length !== 1 ? "s" : ""}
+          </p>
+        )}
       </div>
 
-      {messages.length === 0 ? (
+      {loadError ? (
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 8,
+            padding: "60px 24px",
+            textAlign: "center",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+          }}
+        >
+          <p style={{ fontSize: 14, color: "#ef4444", marginBottom: 12 }}>
+            Couldn&apos;t load contact messages. Please try again.
+          </p>
+          <button onClick={loadMessages} style={primaryBtnStyle}>
+            Retry
+          </button>
+        </div>
+      ) : messages.length === 0 ? (
         <div
           style={{
             background: "#fff",
