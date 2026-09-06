@@ -272,3 +272,13 @@ class HostingInterestAdminResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# ── Notifications summary ───────────────────────────────────────────────────
+
+class NotificationsSummaryResponse(BaseModel):
+    contact_messages: int
+    hosting_interest: int
+    volunteer_applications: int
+    new_members: int
+    community_uploads: int

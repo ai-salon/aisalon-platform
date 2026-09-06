@@ -24,6 +24,8 @@ from app.models.hosting_interest import HostingInterest, InterestType
 from app.models.invite import Invite
 from app.models.system_setting import SystemSetting
 from app.models.login_event import UserLoginEvent
+from app.models.volunteer import ApplicationStatus, VolunteerApplication, VolunteerRole
+from app.models.community_upload import CommunityUpload, UploadStatus
 from app.core.security import hash_password
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
@@ -36,6 +38,7 @@ from app.schemas.admin import (
     SystemSettingRequest, SystemSettingResponse,
     ProcessingConfigResponse, ProcessingTestRequest, ProcessingTestResponse,
     HandledPatch, ContactMessageOut, HostingInterestAdminResponse,
+    NotificationsSummaryResponse,
 )
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor, system_key_for
@@ -1323,6 +1326,87 @@ async def patch_hosting_interest(
     await db.commit()
     await db.refresh(hi)
     return hi
+
+
+# ── Notifications Summary ───────────────────────────────────────────────────
+
+@router.get("/notifications/summary", response_model=NotificationsSummaryResponse)
+async def notifications_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Role-scoped counts feeding the admin sidebar's notification badges.
+
+    Hosts get a 200 with all-zero counts (not 403) — they simply have nothing
+    to action here. Chapter leads see counts scoped to their own chapter;
+    superadmins see everything.
+    """
+    if current_user.role == UserRole.host:
+        return NotificationsSummaryResponse(
+            contact_messages=0,
+            hosting_interest=0,
+            volunteer_applications=0,
+            new_members=0,
+            community_uploads=0,
+        )
+
+    chapter_id = _chapter_filter(current_user)
+    is_admin = current_user.role == UserRole.superadmin
+
+    contact_stmt = select(func.count(ContactMessage.id)).where(
+        ContactMessage.status == "new"
+    )
+    if chapter_id:
+        contact_stmt = contact_stmt.where(ContactMessage.chapter_id == chapter_id)
+    contact_count = (await db.execute(contact_stmt)).scalar_one()
+
+    hosting_stmt = select(func.count(HostingInterest.id)).where(
+        HostingInterest.status == "new"
+    )
+    if chapter_id:
+        hosting_stmt = hosting_stmt.where(
+            HostingInterest.interest_type == InterestType.host_existing,
+            HostingInterest.chapter_id == chapter_id,
+        )
+    hosting_count = (await db.execute(hosting_stmt)).scalar_one()
+
+    if chapter_id:
+        volunteer_stmt = (
+            select(func.count(VolunteerApplication.id))
+            .join(VolunteerRole)
+            .where(
+                VolunteerApplication.status == ApplicationStatus.pending,
+                VolunteerRole.chapter_id == chapter_id,
+            )
+        )
+    else:
+        volunteer_stmt = select(func.count(VolunteerApplication.id)).where(
+            VolunteerApplication.status == ApplicationStatus.pending
+        )
+    volunteer_count = (await db.execute(volunteer_stmt)).scalar_one()
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    members_stmt = select(func.count(User.id)).where(
+        User.is_active.is_(True), User.created_at >= cutoff
+    )
+    if chapter_id:
+        members_stmt = members_stmt.where(User.chapter_id == chapter_id)
+    new_members_count = (await db.execute(members_stmt)).scalar_one()
+
+    uploads_count = 0
+    if is_admin:
+        uploads_stmt = select(func.count(CommunityUpload.id)).where(
+            CommunityUpload.status == UploadStatus.pending
+        )
+        uploads_count = (await db.execute(uploads_stmt)).scalar_one()
+
+    return NotificationsSummaryResponse(
+        contact_messages=contact_count,
+        hosting_interest=hosting_count,
+        volunteer_applications=volunteer_count,
+        new_members=new_members_count,
+        community_uploads=uploads_count,
+    )
 
 
 # ── System Settings (superadmin only) ────────────────────────────────────────
