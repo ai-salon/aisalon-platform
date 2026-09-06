@@ -2422,6 +2422,45 @@ export default function WelcomeDashboard({
             </span>
           </a>
 
+          {/* Edit chapter page — chapter leads only */}
+          {isChapterLead && userChapter && (
+            <Link
+              href={`/chapters/edit/${userChapter.code}`}
+              style={{
+                display: "block",
+                background: "#56a1d2",
+                borderRadius: 12,
+                border: "2px solid #56a1d2",
+                padding: "18px 16px",
+                textDecoration: "none",
+                transition: "box-shadow 0.15s",
+              }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 4px 16px rgba(86,161,210,0.3)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLAnchorElement).style.boxShadow = "none")}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                <span style={{ fontSize: 20 }}>🖊️</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Edit Your Chapter Page</span>
+              </div>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,0.9)", margin: "0 0 12px", lineHeight: 1.5 }}>
+                Update your chapter&apos;s public page with a live preview.
+              </p>
+              <span
+                style={{
+                  display: "inline-block",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#56a1d2",
+                  background: "#fff",
+                  padding: "6px 14px",
+                  borderRadius: 6,
+                }}
+              >
+                Edit Page →
+              </span>
+            </Link>
+          )}
+
           {/* Invite — for chapter leads and superadmins */}
           {(isChapterLead || isSuperadmin) && <InviteCard />}
 

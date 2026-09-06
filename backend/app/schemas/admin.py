@@ -17,14 +17,12 @@ class ChapterCreate(BaseModel):
 class ChapterUpdate(BaseModel):
     name: str | None = None
     title: str | None = None
-    description: str | None = None
+    description: str | None = Field(default=None, max_length=120)
     tagline: str | None = None
     about: str | None = None
     event_link: str | None = None
     calendar_embed: str | None = None
     events_description: str | None = None
-    about_blocks: Any | None = None
-    events_blocks: Any | None = None
     status: Literal["draft", "active", "archived"] | None = None
     chapter_guide: str | None = None
 
@@ -40,8 +38,6 @@ class ChapterResponse(BaseModel):
     event_link: str
     calendar_embed: str
     events_description: str
-    about_blocks: Any
-    events_blocks: Any
     status: str
     chapter_guide: str | None = None
 

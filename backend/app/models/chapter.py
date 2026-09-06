@@ -1,6 +1,5 @@
 import uuid
-from typing import Any
-from sqlalchemy import String, Text, JSON, CheckConstraint
+from sqlalchemy import String, Text, CheckConstraint
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from app.models.base import Base, TimestampMixin
 
@@ -24,8 +23,6 @@ class Chapter(Base, TimestampMixin):
     event_link: Mapped[str] = mapped_column(String(512), nullable=False)
     calendar_embed: Mapped[str] = mapped_column(String(512), nullable=False)
     events_description: Mapped[str] = mapped_column(Text, nullable=False)
-    about_blocks: Mapped[Any] = mapped_column(JSON, nullable=False, default=list)
-    events_blocks: Mapped[Any] = mapped_column(JSON, nullable=False, default=list)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft")
     chapter_guide: Mapped[str | None] = mapped_column(Text, nullable=True)
 

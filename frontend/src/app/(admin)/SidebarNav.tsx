@@ -191,16 +191,49 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Role / chapter badge */}
       <div style={{ padding: '0 16px 16px' }}>
-        <div style={{ background: roleColor.bg, borderRadius: 6, padding: '8px 10px' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: roleColor.color, letterSpacing: '0.08em' }}>
-            {roleLabel}
+        <div
+          style={{
+            background: roleColor.bg,
+            borderRadius: 6,
+            padding: '8px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: roleColor.color, letterSpacing: '0.08em' }}>
+              {roleLabel}
+            </div>
+            {chapterName && (
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{chapterName}</div>
+            )}
+            {!chapterName && userRole === 'superadmin' && (
+              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>All Chapters</div>
+            )}
           </div>
-          {chapterName && (
-            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{chapterName}</div>
-          )}
-          {!chapterName && userRole === 'superadmin' && (
-            <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>All Chapters</div>
-          )}
+          <Link
+            href="/profile"
+            title="My Profile"
+            aria-label="My Profile"
+            className={`sidebar-profile-icon${pathname.startsWith('/profile') ? ' sidebar-profile-icon-active' : ''}`}
+            style={{
+              flexShrink: 0,
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: roleColor.color,
+              background: pathname.startsWith('/profile') ? '#fff' : 'transparent',
+              boxShadow: pathname.startsWith('/profile') ? '0 0 0 1px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.12)' : 'none',
+              textDecoration: 'none',
+            }}
+          >
+            <i className="fa fa-user-o" aria-hidden="true" />
+          </Link>
         </div>
       </div>
 

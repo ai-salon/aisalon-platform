@@ -1,6 +1,6 @@
 import re
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class LoginRequest(BaseModel):
@@ -47,6 +47,14 @@ class UserOut(BaseModel):
 class InviteInfoResponse(BaseModel):
     chapter_name: str
     role: str
+
+
+class VerifyEmailChangeRequest(BaseModel):
+    token: str = Field(..., min_length=1, max_length=128)
+
+
+class VerifyEmailChangeResponse(BaseModel):
+    email: str
 
 
 class ChangePasswordRequest(BaseModel):
