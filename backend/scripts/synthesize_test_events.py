@@ -561,7 +561,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--chapter", default="sf", help="Chapter code to target (default: sf)")
     p.add_argument(
-        "--count", type=int, default=2, help="Number of contact messages to create (default: 2)"
+        "--count", type=int, default=2,
+        help="Number of contact messages to create (default: 2). The contact "
+        "endpoint is rate-limited to 5/hour per IP in production — keep this "
+        "at or below that, or spread runs out, or later requests will 429.",
     )
     p.add_argument(
         "--contact-email",

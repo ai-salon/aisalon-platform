@@ -53,6 +53,36 @@ async def test_run_test_digest_superadmin_defaults_and_sends(
     assert mock_send.await_args.args[0] == [superadmin.email]
 
 
+async def test_run_test_digest_only_me_ignores_callers_own_opt_out(
+    client, db_session, superadmin, admin_headers, sf_chapter
+):
+    """A superadmin who has opted out of the weekly digest must still get
+    their own test-send: only_me=true is an explicit request and must not be
+    silently swallowed by digest_opt_out."""
+    superadmin.digest_opt_out = True
+    db_session.add(superadmin)
+    await db_session.commit()
+
+    from app.models.contact_message import ContactMessage
+
+    msg = ContactMessage(chapter_id=sf_chapter.id, email="c@x.co", message="hi there")
+    db_session.add(msg)
+    await db_session.commit()
+
+    with patch(
+        "app.services.digest.send_email", new=AsyncMock(return_value=True)
+    ) as mock_send:
+        r = await client.post(
+            "/admin/digests/run-test",
+            json={"window_days": 7, "only_me": True},
+            headers=admin_headers,
+        )
+    assert r.status_code == 200
+    assert r.json() == {"sent": 1, "window_days": 7}
+    mock_send.assert_awaited_once()
+    assert mock_send.await_args.args[0] == [superadmin.email]
+
+
 async def test_run_test_digest_lead_forbidden(client, chapter_lead, lead_headers):
     with patch(
         "app.services.digest.send_email", new=AsyncMock(return_value=True)

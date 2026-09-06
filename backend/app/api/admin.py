@@ -1273,7 +1273,15 @@ async def patch_contact_message(
     db.add(msg)
     await db.commit()
     await db.refresh(msg)
-    return msg
+    # Mirror list_contact_messages: chapter_name isn't a column on the ORM
+    # model, so returning `msg` directly leaves it null and blanks the
+    # contact page's Chapter cell after a status toggle.
+    chapter_name = (
+        await db.execute(select(Chapter.name).where(Chapter.id == msg.chapter_id))
+    ).scalar_one_or_none()
+    item = ContactMessageOut.model_validate(msg)
+    item.chapter_name = chapter_name
+    return item
 
 
 # ── Hosting Interest ────────────────────────────────────────────────────────
@@ -1336,7 +1344,19 @@ async def patch_hosting_interest(
     db.add(hi)
     await db.commit()
     await db.refresh(hi)
-    return hi
+    # Mirror list_hosting_interest: chapter_name isn't a column on the ORM
+    # model, so returning `hi` directly leaves it null (blanking the Chapter
+    # cell after a toggle) — or, previously, left the frontend falling back
+    # to the user-typed `existing_chapter` free-text, which can be
+    # stale/differently-cased than the resolved chapter's canonical name.
+    chapter_name = None
+    if hi.chapter_id:
+        chapter_name = (
+            await db.execute(select(Chapter.name).where(Chapter.id == hi.chapter_id))
+        ).scalar_one_or_none()
+    item = HostingInterestAdminResponse.model_validate(hi)
+    item.chapter_name = chapter_name
+    return item
 
 
 # ── Notifications Summary ───────────────────────────────────────────────────
@@ -1433,12 +1453,20 @@ async def run_test_digest(
     Runs inline (not via BackgroundTasks) so the caller gets the actual sent
     count back. Never writes DigestRun — that guard belongs solely to the
     scheduled send_digests.py script.
+
+    only_me=true is an explicit, self-directed test request, so the caller's
+    own digest_opt_out is ignored for it — an opted-out superadmin still gets
+    their own test send (they just won't receive the real weekly digest).
     """
     _require_admin(current_user)
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(days=body.window_days)
     only_email = current_user.email if body.only_me else None
-    sent = await run_digest(db, window_start, now, only_email=only_email)
+    sent = await run_digest(
+        db, window_start, now,
+        only_email=only_email,
+        include_opted_out_email=only_email,
+    )
     return DigestRunTestResponse(sent=sent, window_days=body.window_days)
 
 

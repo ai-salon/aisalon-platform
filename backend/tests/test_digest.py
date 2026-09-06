@@ -185,6 +185,40 @@ async def test_gather_recipients_excludes_optout_inactive_hosts(db_session, sf_c
     assert emails == {lead.email, admin.email}
 
 
+async def test_gather_recipients_include_opted_out_email_overrides_own_opt_out(
+    db_session, sf_chapter
+):
+    lead = await _mk_user(db_session, "lead1c@x.co", UserRole.chapter_lead, sf_chapter.id)
+    opted_out_admin = await _mk_user(
+        db_session, "optout-admin@x.co", UserRole.superadmin, digest_opt_out=True
+    )
+
+    # Without the override, the opted-out admin is excluded as usual.
+    recipients = await gather_recipients(db_session)
+    assert {u.email for u in recipients} == {lead.email}
+
+    # With the override naming exactly that admin, they're included too.
+    recipients_override = await gather_recipients(
+        db_session, include_opted_out_email=opted_out_admin.email
+    )
+    assert {u.email for u in recipients_override} == {lead.email, opted_out_admin.email}
+
+
+async def test_gather_recipients_excludes_chapterless_lead(db_session, sf_chapter):
+    """A chapter_lead with no chapter_id must never be handed the unscoped,
+    all-chapters digest (build_digest treats chapter_id=None as "admin view").
+    """
+    admin = await _mk_user(db_session, "admin1b@x.co", UserRole.superadmin)
+    chapterless_lead = await _mk_user(
+        db_session, "chapterless-lead@x.co", UserRole.chapter_lead, chapter_id=None
+    )
+
+    recipients = await gather_recipients(db_session)
+    emails = {u.email for u in recipients}
+    assert emails == {admin.email}
+    assert chapterless_lead.email not in emails
+
+
 # ── Empty digest ─────────────────────────────────────────────────────────────
 
 async def test_build_digest_empty_is_none_for_lead(db_session, sf_chapter):
@@ -196,6 +230,27 @@ async def test_build_digest_empty_is_none_for_lead(db_session, sf_chapter):
 async def test_build_digest_empty_is_none_for_admin(db_session):
     admin = await _mk_user(db_session, "admin2@x.co", UserRole.superadmin)
     result = await build_digest(db_session, admin, WSTART, WEND)
+    assert result is None
+
+
+async def test_build_digest_chapterless_lead_is_none_even_with_global_content(
+    db_session, sf_chapter
+):
+    """A chapter_lead with no chapter_id must get no digest at all — not the
+    unscoped, all-chapters (superadmin-shaped) digest that `chapter_id=None`
+    would otherwise produce. Seed plenty of content so a regression here
+    would show up as a non-empty, PII-leaking digest rather than a
+    coincidental empty one."""
+    chapterless_lead = await _mk_user(
+        db_session, "chapterless-lead2@x.co", UserRole.chapter_lead, chapter_id=None
+    )
+    await _mk_contact(db_session, sf_chapter.id, message="sensitive contact")
+    await _mk_hosting(
+        db_session, InterestType.host_existing, sf_chapter.id, name="sensitive-host"
+    )
+    await _mk_member(db_session, sf_chapter.id)
+
+    result = await build_digest(db_session, chapterless_lead, WSTART, WEND)
     assert result is None
 
 

@@ -47,6 +47,7 @@ async def test_mark_contact_handled_sets_audit_fields(
         headers=lead_headers,
     )
     assert r.status_code == 200
+    assert r.json()["chapter_name"] == sf_chapter.name
     await db_session.refresh(msg)
     assert msg.status == "handled"
     assert msg.handled_by == chapter_lead.id
@@ -177,6 +178,7 @@ async def test_lead_patches_own_host_existing_hosting_interest_round_trip(
         headers=lead_headers,
     )
     assert r.status_code == 200
+    assert r.json()["chapter_name"] == sf_chapter.name
     await db_session.refresh(hi)
     assert hi.status == "handled"
     assert hi.handled_by == chapter_lead.id
@@ -187,10 +189,31 @@ async def test_lead_patches_own_host_existing_hosting_interest_round_trip(
         headers=lead_headers,
     )
     assert r2.status_code == 200
+    assert r2.json()["chapter_name"] == sf_chapter.name
     await db_session.refresh(hi)
     assert hi.status == "new"
     assert hi.handled_by is None
     assert hi.handled_at is None
+
+
+async def test_superadmin_patches_chapterless_hosting_interest_chapter_name_null(
+    client, admin_headers, db_session
+):
+    """A start_chapter interest has no chapter — the PATCH response's
+    chapter_name must come back null, not a stale/omitted field."""
+    hi = HostingInterest(
+        name="Starter", email="start@x.co", city="NY", interest_type="start_chapter"
+    )
+    db_session.add(hi)
+    await db_session.commit()
+    await db_session.refresh(hi)
+
+    r = await client.patch(
+        f"/admin/hosting-interest/{hi.id}", json={"status": "handled"},
+        headers=admin_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["chapter_name"] is None
 
 
 async def test_public_hosting_interest_no_match_leaves_chapter_id_none(

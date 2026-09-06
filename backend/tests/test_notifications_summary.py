@@ -3,10 +3,11 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 
+from app.core.security import hash_password
 from app.models.community_upload import CommunityUpload, UploadStatus
 from app.models.contact_message import ContactMessage
 from app.models.hosting_interest import HostingInterest, InterestType
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.volunteer import ApplicationStatus, VolunteerApplication, VolunteerRole
 
 SUMMARY_URL = "/admin/notifications/summary"
@@ -102,6 +103,32 @@ async def _count_new_members(db_session, chapter_id=None) -> int:
     if chapter_id:
         stmt = stmt.where(User.chapter_id == chapter_id)
     return (await db_session.execute(stmt)).scalar_one()
+
+
+# ── new_members window boundary ─────────────────────────────────────────────
+
+async def test_new_members_excludes_user_older_than_seven_day_cutoff(
+    client, admin_headers, sf_chapter, db_session
+):
+    """A user created 8 days ago is outside the trailing 7-day window and
+    must not be counted toward new_members."""
+    r_before = await client.get(SUMMARY_URL, headers=admin_headers)
+    before_count = r_before.json()["new_members"]
+
+    old_user = User(
+        email="eight-days-old@x.co",
+        username="eightdaysold",
+        hashed_password=hash_password("password"),
+        role=UserRole.host,
+        chapter_id=sf_chapter.id,
+        is_active=True,
+        created_at=datetime.now(timezone.utc) - timedelta(days=8),
+    )
+    db_session.add(old_user)
+    await db_session.commit()
+
+    r_after = await client.get(SUMMARY_URL, headers=admin_headers)
+    assert r_after.json()["new_members"] == before_count
 
 
 # ── Admin ────────────────────────────────────────────────────────────────────

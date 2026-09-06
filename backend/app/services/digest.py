@@ -40,12 +40,33 @@ def previous_week_window(now: datetime) -> tuple[datetime, datetime]:
     return most_recent_monday - timedelta(days=7), most_recent_monday
 
 
-async def gather_recipients(db: AsyncSession) -> list[User]:
-    """Active chapter leads and superadmins who have not opted out of digests."""
+async def gather_recipients(
+    db: AsyncSession, include_opted_out_email: str | None = None
+) -> list[User]:
+    """Active chapter leads and superadmins who have not opted out of digests.
+
+    A chapter_lead with no chapter_id is excluded outright: `build_digest`
+    treats an absent chapter_id as "show everything" (that's the superadmin
+    path), so a chapterless lead must never reach it — they'd otherwise be
+    emailed the global, all-chapters digest. (Belt-and-suspenders: build_digest
+    also refuses to build for such a user, in case this changes.)
+
+    `include_opted_out_email`: when set, that one user is included even if
+    they've opted out. Used for the superadmin "send me a test digest"
+    button — an explicit, self-directed request shouldn't be silently
+    swallowed by the recipient's own opt-out setting.
+    """
+    opt_out_clause = User.digest_opt_out.is_(False)
+    if include_opted_out_email:
+        opt_out_clause = opt_out_clause | (User.email == include_opted_out_email)
     stmt = select(User).where(
         User.is_active.is_(True),
-        User.digest_opt_out.is_(False),
-        User.role.in_([UserRole.chapter_lead, UserRole.superadmin]),
+        opt_out_clause,
+        (User.role == UserRole.superadmin)
+        | (
+            (User.role == UserRole.chapter_lead)
+            & User.chapter_id.isnot(None)
+        ),
     )
     return list((await db.execute(stmt)).scalars().all())
 
@@ -76,6 +97,12 @@ async def build_digest(
     """
     is_admin = user.role == UserRole.superadmin
     chapter_id = None if is_admin else user.chapter_id
+    if not is_admin and chapter_id is None:
+        # A chapter_lead with no chapter_id would otherwise fall through
+        # every `if chapter_id:` filter below and receive the unscoped,
+        # all-chapters (superadmin-shaped) digest. Defense in depth:
+        # gather_recipients() already excludes them from the recipient list.
+        return None
 
     chapters_by_id: dict[str, str] = {}
     if is_admin:
@@ -94,7 +121,7 @@ async def build_digest(
     contact_stmt = select(ContactMessage).where(
         ContactMessage.created_at >= window_start,
         ContactMessage.created_at < window_end,
-    )
+    ).order_by(ContactMessage.created_at)
     if chapter_id:
         contact_stmt = contact_stmt.where(ContactMessage.chapter_id == chapter_id)
     contacts = (await db.execute(contact_stmt)).scalars().all()
@@ -109,7 +136,7 @@ async def build_digest(
     hosting_stmt = select(HostingInterest).where(
         HostingInterest.created_at >= window_start,
         HostingInterest.created_at < window_end,
-    )
+    ).order_by(HostingInterest.created_at)
     if chapter_id:
         hosting_stmt = hosting_stmt.where(
             HostingInterest.interest_type == InterestType.host_existing,
@@ -131,6 +158,7 @@ async def build_digest(
             VolunteerApplication.created_at >= window_start,
             VolunteerApplication.created_at < window_end,
         )
+        .order_by(VolunteerApplication.created_at)
     )
     if chapter_id:
         volunteer_stmt = volunteer_stmt.where(VolunteerRole.chapter_id == chapter_id)
@@ -146,7 +174,7 @@ async def build_digest(
         User.is_active.is_(True),
         User.created_at >= window_start,
         User.created_at < window_end,
-    )
+    ).order_by(User.created_at)
     if chapter_id:
         members_stmt = members_stmt.where(User.chapter_id == chapter_id)
     members = (await db.execute(members_stmt)).scalars().all()
@@ -160,7 +188,7 @@ async def build_digest(
         uploads_stmt = select(CommunityUpload).where(
             CommunityUpload.created_at >= window_start,
             CommunityUpload.created_at < window_end,
-        )
+        ).order_by(CommunityUpload.created_at)
         uploads = (await db.execute(uploads_stmt)).scalars().all()
     upload_items = "".join(
         f"<li>{_esc(u.name or 'Anonymous')} — {_esc(u.city)}</li>" for u in uploads
@@ -259,12 +287,17 @@ async def run_digest(
     window_start: datetime,
     window_end: datetime,
     only_email: str | None = None,
+    include_opted_out_email: str | None = None,
 ) -> int:
     """Build and send digests to every eligible recipient. Returns the number
     of emails actually sent (send_email returned True). Never touches
     DigestRun — the caller (send_digests.py) owns that guard.
+
+    `include_opted_out_email`: forwarded to `gather_recipients` — see there.
     """
-    recipients = await gather_recipients(db)
+    recipients = await gather_recipients(
+        db, include_opted_out_email=include_opted_out_email
+    )
     if only_email:
         recipients = [u for u in recipients if u.email == only_email]
 

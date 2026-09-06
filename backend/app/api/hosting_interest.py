@@ -60,12 +60,18 @@ async def create_hosting_interest(
     chapter_id = None
     if body.interest_type == InterestType.host_existing and body.existing_chapter:
         result = await db.execute(
-            select(Chapter).where(
+            select(Chapter)
+            .where(
                 func.lower(func.trim(Chapter.name))
                 == body.existing_chapter.strip().lower()
             )
+            .limit(1)
         )
-        ch = result.scalar_one_or_none()
+        # Public, unauthenticated endpoint: two chapters that happen to share
+        # a (trimmed, case-insensitive) name must never 500 this request —
+        # take the first match rather than scalar_one_or_none()'s "exactly
+        # zero or one" assumption.
+        ch = result.scalars().first()
         chapter_id = ch.id if ch else None
 
     record = HostingInterest(
