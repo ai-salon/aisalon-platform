@@ -166,8 +166,25 @@ async def build_digest(
         f"<li>{_esc(u.name or 'Anonymous')} — {_esc(u.city)}</li>" for u in uploads
     )
 
+    # Failed jobs — admin only, windowed on created_at like everything else
+    # above. Unlike drafts-awaiting (a standing snapshot), this DOES count as
+    # an "arrived" item: being window-scoped, it can't defeat skip-empty the
+    # way an ever-present draft count would.
+    failed_jobs_count = 0
+    if is_admin:
+        failed_jobs_count = (
+            await db.execute(
+                select(func.count(Job.id)).where(
+                    Job.status == JobStatus.failed,
+                    Job.created_at >= window_start,
+                    Job.created_at < window_end,
+                )
+            )
+        ).scalar_one()
+
     item_count = (
-        len(contacts) + len(hostings) + len(volunteer_apps) + len(members) + len(uploads)
+        len(contacts) + len(hostings) + len(volunteer_apps) + len(members)
+        + len(uploads) + failed_jobs_count
     )
     if item_count == 0:
         return None
@@ -205,23 +222,14 @@ async def build_digest(
                 f"{settings.FRONTEND_URL}/community-uploads",
             )
         )
-        # These two are informational one-liners, not "new items" — they use
-        # different semantics on purpose and are excluded from item_count:
-        # drafts is a live status snapshot (not windowed), failed jobs is
-        # windowed on created_at but keyed off status rather than arrival.
+        # Draft count is a standing status snapshot (not windowed) — display
+        # only, deliberately excluded from item_count: otherwise any
+        # lingering draft would defeat skip-empty forever. failed_jobs_count
+        # was already computed above (it DOES count toward item_count).
         draft_count = (
             await db.execute(
                 select(func.count(Article.id)).where(
                     Article.status == ArticleStatus.draft
-                )
-            )
-        ).scalar_one()
-        failed_jobs_count = (
-            await db.execute(
-                select(func.count(Job.id)).where(
-                    Job.status == JobStatus.failed,
-                    Job.created_at >= window_start,
-                    Job.created_at < window_end,
                 )
             )
         ).scalar_one()

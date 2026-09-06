@@ -282,9 +282,39 @@ async def test_build_digest_admin_includes_uploads_start_chapter_and_counts(
     assert "across Ai Salon" in subject
     assert "new-city-interest" in html_body  # start_chapter visible to admin
     assert "Community uploads" in html_body
-    assert item_count == 3  # contact + start_chapter hosting + upload
+    # contact + start_chapter hosting + upload + windowed failed job — the
+    # windowed failed job counts toward item_count; the standing draft count
+    # does not (see the two focused tests below).
+    assert item_count == 4
     assert "Draft articles currently awaiting publish: 1" in html_body
     assert "Jobs failed this week: 1" in html_body
+
+
+async def test_build_digest_admin_only_windowed_failed_job_still_sends(
+    db_session, sf_chapter
+):
+    """A week with nothing but a failed job still counts as non-empty: the
+    failed-job count is windowed, so it can't linger and defeat skip-empty."""
+    admin = await _mk_user(db_session, "admin-failjob@x.co", UserRole.superadmin)
+    await _mk_job(db_session, admin.id, sf_chapter.id, created_at=IN_WINDOW)
+
+    result = await build_digest(db_session, admin, WSTART, WEND)
+    assert result is not None
+    subject, html_body, item_count = result
+    assert item_count == 1
+    assert "1 new items across Ai Salon" in subject
+    assert "Jobs failed this week: 1" in html_body
+
+
+async def test_build_digest_admin_only_standing_draft_is_none(db_session, sf_chapter):
+    """A standing draft with nothing else that week must NOT count toward
+    item_count — it's a snapshot, not windowed, so counting it would defeat
+    skip-empty forever (there is almost always some draft sitting around)."""
+    admin = await _mk_user(db_session, "admin-draftonly@x.co", UserRole.superadmin)
+    await _mk_article(db_session, sf_chapter.id, created_at=BEFORE_WINDOW)
+
+    result = await build_digest(db_session, admin, WSTART, WEND)
+    assert result is None
 
 
 # ── run_digest ───────────────────────────────────────────────────────────────
