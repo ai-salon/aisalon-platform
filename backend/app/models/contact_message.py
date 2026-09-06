@@ -20,3 +20,10 @@ class ContactMessage(Base, TimestampMixin):
     forwarded_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="new")
+    handled_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+    handled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
