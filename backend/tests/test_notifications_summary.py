@@ -179,6 +179,14 @@ async def test_summary_for_lead_scopes_to_chapter(
         "community_uploads": 0,
     }
 
+    # Admin view of the same data: sees own + other + the global (null-chapter)
+    # role's pending application — proving the admin branch's un-joined,
+    # unfiltered count really does include null-chapter roles (no join means
+    # no accidental exclusion), not just that it happens to equal the lead's.
+    r_admin = await client.get(SUMMARY_URL, headers=admin_headers)
+    assert r_admin.status_code == 200
+    assert r_admin.json()["volunteer_applications"] == 3
+
 
 # ── Host ─────────────────────────────────────────────────────────────────────
 
