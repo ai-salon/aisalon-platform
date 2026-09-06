@@ -132,6 +132,7 @@ class UserUpdate(BaseModel):
     role: str | None = None
     chapter_id: str | None = None
     password: str | None = None
+    title: str | None = None
 
     @field_validator("role")
     @classmethod
@@ -156,6 +157,7 @@ class UserResponse(BaseModel):
     has_read_hosting_guide: bool = False
     has_read_lead_guide: bool = False
     scheduling_url: str | None = None
+    title: str | None = None
 
     model_config = {"from_attributes": True}
 

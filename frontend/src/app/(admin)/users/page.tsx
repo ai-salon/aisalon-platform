@@ -9,7 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type UserData = {
   id: string; email: string; username: string | null; role: string;
-  chapter_id: string | null; is_active: boolean;
+  title: string | null; chapter_id: string | null; is_active: boolean;
   last_login_at: string | null; login_count_30d: number;
   has_api_key: boolean; has_uploaded: boolean; has_article: boolean;
   has_read_hosting_guide: boolean; has_read_lead_guide: boolean;
@@ -32,7 +32,7 @@ export default function UsersPage() {
   const [resetPassword, setResetPassword] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
   const [editUserId, setEditUserId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ role: "host", chapter_id: "" });
+  const [editForm, setEditForm] = useState({ role: "host", chapter_id: "", title: "" });
   const [editSaving, setEditSaving] = useState(false);
 
   const token = (session as any)?.accessToken;
@@ -132,7 +132,7 @@ export default function UsersPage() {
 
   function openEdit(user: UserData) {
     setEditUserId(editUserId === user.id ? null : user.id);
-    setEditForm({ role: user.role, chapter_id: user.chapter_id ?? "" });
+    setEditForm({ role: user.role, chapter_id: user.chapter_id ?? "", title: user.title ?? "" });
     setResetUserId(null);
   }
 
@@ -141,7 +141,7 @@ export default function UsersPage() {
     const r = await fetch(`${API_URL}/admin/users/${userId}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ role: editForm.role, chapter_id: editForm.chapter_id || null }),
+      body: JSON.stringify({ role: editForm.role, chapter_id: editForm.chapter_id || null, title: editForm.title.trim() || null }),
     });
     setEditSaving(false);
     if (r.ok) {
@@ -279,7 +279,7 @@ export default function UsersPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
-              {["Email", "Username", "Role", "Chapter", "Status", "Onboarding", "Last Login", "Logins (30d)", ""].map((h) => (
+              {["Email", "Username", "Title", "Role", "Chapter", "Status", "Onboarding", "Last Login", "Logins (30d)", ""].map((h) => (
                 <th key={h} style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}>{h}</th>
               ))}
             </tr>
@@ -290,6 +290,7 @@ export default function UsersPage() {
                 <tr key={u.id} style={{ borderBottom: resetUserId === u.id || editUserId === u.id ? "none" : i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
                   <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 500, color: "#111" }}>{u.email}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.username ?? "—"}</td>
+                  <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.title ?? "—"}</td>
                   <td style={{ padding: "14px 20px" }}>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 12, textTransform: "capitalize",
@@ -344,7 +345,7 @@ export default function UsersPage() {
                   <td style={{ padding: "14px 20px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => openEdit(u)}
-                      title="Edit role and chapter"
+                      title="Edit title, role, and chapter"
                       style={{
                         fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
                         border: `1.5px solid ${editUserId === u.id ? "#56a1d2" : "#d1d5db"}`,
@@ -392,9 +393,17 @@ export default function UsersPage() {
                 </tr>
                 {editUserId === u.id && (
                   <tr key={`${u.id}-edit`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                    <td colSpan={9} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
+                    <td colSpan={10} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280" }}>Edit {u.email}:</span>
+                        <label style={{ fontSize: 12, color: "#6b7280" }}>Title</label>
+                        <input
+                          type="text"
+                          value={editForm.title}
+                          onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                          placeholder="e.g. SF Chapter Lead"
+                          style={{ padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5, width: 200 }}
+                        />
                         <label style={{ fontSize: 12, color: "#6b7280" }}>Role</label>
                         <select
                           value={editForm.role}
@@ -433,7 +442,7 @@ export default function UsersPage() {
                 )}
                 {resetUserId === u.id && (
                   <tr key={`${u.id}-reset`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                    <td colSpan={9} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
+                    <td colSpan={10} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280" }}>New password for {u.email}:</span>
                         <input
