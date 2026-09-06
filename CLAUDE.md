@@ -170,6 +170,27 @@ Upload → `POST /admin/jobs` creates Job (pending) + calls `BackgroundTasks.add
 
 Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/processing.
 
+### Notifications
+
+**Summary endpoint:** `GET /admin/notifications/summary` (role-scoped) returns badge counts for sidebar (unhandled contact messages, hosting interest inquiries). Frontend polls every 60s.
+
+**Handled state:** `ContactMessage` and `HostingInterest` have `status` (pending | handled), `handled_by` (user FK), and `handled_at` (timestamp). PATCH endpoints mark as handled by current user.
+
+**Weekly digest service:** `scripts/send_digests.py` aggregates weekly unhandled contact messages + interest inquiries by chapter, sends via Resend. Flags: `--window-days` (default 7), `--force` (bypass DigestRun guard), `--only-email` (dry-run, no DB write). DigestRun table guards against duplicate sends.
+
+**Test endpoint:** `POST /admin/digests/run-test` (superadmin) accepts `{window_days, only_me}` (only_me sends to current user instead of chapter leads). Skips DigestRun guard.
+
+**Profile toggle:** User model has `digest_opt_out` boolean; My Profile page (`/profile`) includes toggle.
+
+**Synthesis script:** `poetry run python scripts/synthesize_test_events.py --api-url <backend-url> --chapter <code> --contact-email <you@x.co>` creates test contact messages and hosting interests. Requires env vars `SYNTH_ADMIN_EMAIL`, `SYNTH_ADMIN_PASSWORD` (must be superadmin).
+
+**Railway cron setup (manual):** In Railway dashboard:
+1. New Service → select same repo + Dockerfile
+2. Cron Schedule: `30 9 * * 1` (9:30 AM, Mondays)
+3. Start Command: `poetry run python scripts/send_digests.py` (Dockerfile WORKDIR is already `backend`)
+4. Environment: attach same vars as backend service (DATABASE_URL, RESEND_API_KEY, EMAIL_FROM, SECRET_KEY, FRONTEND_URL)
+5. Repeat for each environment (development, staging, production)
+
 ### Frontend (`frontend/src/`)
 
 - **`app/layout.tsx`** — global sticky nav with brand colors, Open Sans, FontAwesome 4.7.0
@@ -201,6 +222,7 @@ Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/proces
 | `/articles/[id]` | `(admin)/articles/[id]/page.tsx` | Yes |
 | `/chapters` | `(admin)/chapters/page.tsx` | Yes (superadmin) |
 | `/chapters/edit/[code]` | `(admin)/chapters/edit/[code]/page.tsx` | Yes |
+| `/contact-messages` | `(admin)/contact-messages/page.tsx` | Yes |
 | `/team` | `(admin)/team/page.tsx` | Yes |
 | `/users` | `(admin)/users/page.tsx` | Yes (superadmin) |
 | `/settings` | `(admin)/settings/page.tsx` | Yes |
