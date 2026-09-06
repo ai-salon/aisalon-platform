@@ -10,6 +10,9 @@ this doubles as an end-to-end test of the whole notifications feature.
 """
 from unittest.mock import AsyncMock, patch
 
+import httpx
+import pytest
+
 from app.api.hosting_interest import HostingInterestCreate
 from app.api.volunteer import VolunteerApplyRequest
 from app.models.user import UserRole
@@ -142,6 +145,76 @@ async def test_synthesize_skips_member_when_disabled(
     assert result.member is None
     assert result.invite_id is None
     assert after["new_members"] - before["new_members"] == 0
+
+
+async def test_synthesize_prints_partial_recap_and_reraises_on_mid_flight_failure(
+    client, sf_chapter, chapter_lead, superadmin, admin_headers, capsys, monkeypatch
+):
+    """A failure partway through (here: the community-upload step, by making
+    make_wav_stub() return non-audio bytes so the real endpoint 400s) must
+    not silently swallow what already succeeded — it re-raises, but only
+    after printing a recap of everything already created on the deployment
+    so the operator can act on it manually."""
+    monkeypatch.setattr(
+        "scripts.synthesize_test_events.make_wav_stub", lambda: b"not-audio-bytes"
+    )
+    with patch("app.api.chapters.send_email", new=AsyncMock(return_value=True)):
+        with pytest.raises(httpx.HTTPStatusError):
+            await synthesize(
+                client,
+                chapter_code=sf_chapter.code,
+                count=1,
+                contact_email="visitor4@example.com",
+                admin_email=superadmin.email,
+                admin_password=FIXTURE_PASSWORD,
+                include_member=True,
+            )
+
+    out = capsys.readouterr().out
+    assert "synthesize() failed partway through" in out
+    assert "Contact messages: 1" in out
+    assert "Hosting interest: 2" in out
+    assert "Volunteer application" in out
+    assert "Community upload" not in out  # never reached — the step that failed
+    assert "Member registered" not in out  # never reached — a later step
+    assert "clean them up manually" in out
+
+    # The steps that succeeded before the failure really did land in the DB.
+    after = (
+        await client.get("/admin/notifications/summary", headers=admin_headers)
+    ).json()
+    assert after["contact_messages"] >= 1
+    assert after["hosting_interest"] >= 2
+    assert after["volunteer_applications"] >= 1
+
+
+async def test_cleanup_survives_network_errors_and_reports_them(
+    client, sf_chapter, chapter_lead, superadmin, admin_headers, capsys, monkeypatch
+):
+    """A transient network failure (not just a non-2xx status) during
+    cleanup must be reported per-item, not crash the rest of the pass with
+    a raw traceback."""
+    with patch("app.api.chapters.send_email", new=AsyncMock(return_value=True)):
+        result = await synthesize(
+            client,
+            chapter_code=sf_chapter.code,
+            count=1,
+            contact_email="visitor5@example.com",
+            admin_email=superadmin.email,
+            admin_password=FIXTURE_PASSWORD,
+            include_member=True,
+        )
+
+    async def _boom_patch(*args, **kwargs):
+        raise httpx.ConnectError("simulated network blip")
+
+    monkeypatch.setattr(client, "patch", _boom_patch)
+
+    await cleanup(client, result)  # must not raise
+
+    out = capsys.readouterr().out
+    assert "Please clean up manually" in out
+    assert "simulated network blip" in out
 
 
 async def test_cleanup_marks_everything_handled_and_deactivates_member(

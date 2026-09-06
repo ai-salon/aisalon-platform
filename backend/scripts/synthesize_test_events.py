@@ -242,6 +242,60 @@ async def _find_recent_contact_ids(
 # ── Main flow ────────────────────────────────────────────────────────────────
 
 
+def _print_partial_recap(chapter: dict, progress: dict) -> None:
+    """Print what had already been created against the target deployment
+    before a mid-`synthesize` failure. These are real rows on a real
+    deployment regardless of whether this function ever returns, so the
+    operator needs to know about them even though there's no SynthesisResult
+    (and thus no --cleanup) for a run that never finished.
+    """
+    print(
+        "\n=== synthesize() failed partway through — already created on "
+        f"{chapter['name']} ({chapter['code']}) ==="
+    )
+    created_anything = False
+    if progress["contact_ids"]:
+        created_anything = True
+        print(
+            f"  Contact messages: {len(progress['contact_ids'])} -> "
+            f"{progress['contact_ids']}"
+        )
+    if progress["hosting_ids"]:
+        created_anything = True
+        print(
+            f"  Hosting interest: {len(progress['hosting_ids'])} -> "
+            f"{progress['hosting_ids']}"
+        )
+    role = progress["role"]
+    if role is not None:
+        created_anything = True
+        tag = "created" if progress["role_created"] else "reused existing"
+        print(f"  Volunteer role ({tag}): '{role.get('title')}' id={role.get('id')}")
+    application = progress["application"]
+    if application is not None:
+        created_anything = True
+        print(f"  Volunteer application: id={application.get('id')}")
+    upload = progress["upload"]
+    if upload is not None:
+        created_anything = True
+        print(f"  Community upload: id={upload.get('id')}")
+    if progress["invite_id"]:
+        created_anything = True
+        print(f"  Invite: id={progress['invite_id']}")
+    member = progress["member"]
+    if member is not None:
+        created_anything = True
+        print(f"  Member registered: {member.get('email')} (id={member.get('id')})")
+    if not created_anything:
+        print("  (nothing had been created yet)")
+    else:
+        print(
+            "  These already exist on the target deployment — clean them up "
+            "manually via the admin UI/API; a failed run produces no "
+            "SynthesisResult for --cleanup to act on."
+        )
+
+
 async def synthesize(
     client: httpx.AsyncClient,
     chapter_code: str,
@@ -271,90 +325,112 @@ async def synthesize(
     headers = {"Authorization": f"Bearer {admin_token}"}
     print(f"Authenticated as admin: {admin_email}")
 
-    # 1. Contact messages
-    for i in range(1, count + 1):
-        r = await client.post(
-            f"/chapters/{chapter_code}/contact", json=contact_payload(i, contact_email)
-        )
-        r.raise_for_status()
-    contact_ids = await _find_recent_contact_ids(
-        client, headers, chapter["id"], contact_email, count
-    )
-    print(f"Created {count} contact message(s) -> see {ADMIN_PAGES['contact_messages']}")
-
-    # 2. Hosting interest (host_existing + start_chapter)
-    hosting_ids = []
-    for payload in hosting_payloads(chapter["name"], contact_email):
-        r = await client.post("/hosting-interest", json=payload)
-        r.raise_for_status()
-        hosting_ids.append(r.json()["id"])
-    print(
-        "Created 2 hosting-interest submissions (host_existing + start_chapter) "
-        f"-> see {ADMIN_PAGES['hosting_interest']}"
-    )
-
-    # 3. Volunteer application
-    role, role_created = await _ensure_volunteer_role(client, headers, chapter)
-    r = await client.post(
-        f"/volunteer-roles/{role['slug']}/apply", json=volunteer_payload(contact_email)
-    )
-    r.raise_for_status()
-    application = r.json()
-    print(
-        f"Applied to volunteer role '{role['title']}' -> see "
-        f"{ADMIN_PAGES['volunteer_applications']}"
-    )
-
-    # 4. Community upload
-    files = {"file": ("synth-test.wav", make_wav_stub(), "audio/wav")}
-    data = {
-        "name": "[TEST] Community Uploader",
-        "email": contact_email,
-        "city": chapter["name"],
-        "topic_text": "[TEST] synthetic topic",
+    # Accumulates as each step below succeeds, so a mid-flight failure can
+    # report exactly what already exists on the target deployment (already
+    # real rows there, whether or not this function returns).
+    progress = {
+        "contact_ids": [],
+        "hosting_ids": [],
+        "role": None,
+        "role_created": False,
+        "application": None,
+        "upload": None,
+        "invite_id": None,
+        "member": None,
     }
-    r = await client.post("/community/upload", data=data, files=files)
-    r.raise_for_status()
-    upload = r.json()
-    print(f"Uploaded a community recording -> see {ADMIN_PAGES['community_uploads']}")
 
-    # 5. New member (optional)
-    invite_id = None
-    member = None
-    if include_member:
-        r = await client.post(
-            "/admin/invites",
-            json={"chapter_id": chapter["id"], "role": "host", "max_uses": 1},
-            headers=headers,
+    try:
+        # 1. Contact messages
+        for i in range(1, count + 1):
+            r = await client.post(
+                f"/chapters/{chapter_code}/contact", json=contact_payload(i, contact_email)
+            )
+            r.raise_for_status()
+        progress["contact_ids"] = await _find_recent_contact_ids(
+            client, headers, chapter["id"], contact_email, count
         )
-        r.raise_for_status()
-        invite = r.json()
-        invite_id = invite["id"]
-        username = f"[TEST]_member_{rid}"
-        member_email = f"test-member-{rid}@aisalon-synth.test"
-        password = f"TestSynth{rid}Aa1!"
-        r = await client.post(
-            "/auth/register",
-            json={
-                "invite_token": invite["token"],
-                "username": username,
-                "email": member_email,
-                "password": password,
-            },
-        )
-        r.raise_for_status()
-        member_token = r.json()["access_token"]
-        r = await client.get(
-            "/admin/me", headers={"Authorization": f"Bearer {member_token}"}
-        )
-        r.raise_for_status()
-        member = r.json()
+        print(f"Created {count} contact message(s) -> see {ADMIN_PAGES['contact_messages']}")
+
+        # 2. Hosting interest (host_existing + start_chapter)
+        for payload in hosting_payloads(chapter["name"], contact_email):
+            r = await client.post("/hosting-interest", json=payload)
+            r.raise_for_status()
+            progress["hosting_ids"].append(r.json()["id"])
         print(
-            f"Registered new member '{username}' <{member_email}> -> see "
-            f"{ADMIN_PAGES['new_members']}"
+            "Created 2 hosting-interest submissions (host_existing + start_chapter) "
+            f"-> see {ADMIN_PAGES['hosting_interest']}"
         )
-    else:
-        print("Skipped new-member creation (--no-include-member)")
+
+        # 3. Volunteer application
+        role, role_created = await _ensure_volunteer_role(client, headers, chapter)
+        progress["role"], progress["role_created"] = role, role_created
+        r = await client.post(
+            f"/volunteer-roles/{role['slug']}/apply", json=volunteer_payload(contact_email)
+        )
+        r.raise_for_status()
+        application = r.json()
+        progress["application"] = application
+        print(
+            f"Applied to volunteer role '{role['title']}' -> see "
+            f"{ADMIN_PAGES['volunteer_applications']}"
+        )
+
+        # 4. Community upload
+        files = {"file": ("synth-test.wav", make_wav_stub(), "audio/wav")}
+        data = {
+            "name": "[TEST] Community Uploader",
+            "email": contact_email,
+            "city": chapter["name"],
+            "topic_text": "[TEST] synthetic topic",
+        }
+        r = await client.post("/community/upload", data=data, files=files)
+        r.raise_for_status()
+        upload = r.json()
+        progress["upload"] = upload
+        print(f"Uploaded a community recording -> see {ADMIN_PAGES['community_uploads']}")
+
+        # 5. New member (optional)
+        invite_id = None
+        member = None
+        if include_member:
+            r = await client.post(
+                "/admin/invites",
+                json={"chapter_id": chapter["id"], "role": "host", "max_uses": 1},
+                headers=headers,
+            )
+            r.raise_for_status()
+            invite = r.json()
+            invite_id = invite["id"]
+            progress["invite_id"] = invite_id
+            username = f"[TEST]_member_{rid}"
+            member_email = f"test-member-{rid}@aisalon-synth.test"
+            password = f"TestSynth{rid}Aa1!"
+            r = await client.post(
+                "/auth/register",
+                json={
+                    "invite_token": invite["token"],
+                    "username": username,
+                    "email": member_email,
+                    "password": password,
+                },
+            )
+            r.raise_for_status()
+            member_token = r.json()["access_token"]
+            r = await client.get(
+                "/admin/me", headers={"Authorization": f"Bearer {member_token}"}
+            )
+            r.raise_for_status()
+            member = r.json()
+            progress["member"] = member
+            print(
+                f"Registered new member '{username}' <{member_email}> -> see "
+                f"{ADMIN_PAGES['new_members']}"
+            )
+        else:
+            print("Skipped new-member creation (--no-include-member)")
+    except httpx.HTTPError:
+        _print_partial_recap(chapter, progress)
+        raise
 
     print(
         "\nDone. To see a digest email right now, as a superadmin call:\n"
@@ -367,8 +443,8 @@ async def synthesize(
         chapter_code=chapter["code"],
         chapter_name=chapter["name"],
         admin_token=admin_token,
-        contact_message_ids=contact_ids,
-        hosting_interest_ids=hosting_ids,
+        contact_message_ids=progress["contact_ids"],
+        hosting_interest_ids=progress["hosting_ids"],
         volunteer_role_id=role["id"],
         volunteer_role_slug=role["slug"],
         volunteer_role_created=role_created,
@@ -389,7 +465,7 @@ async def _safe_patch(
         r = await client.patch(path, json=body, headers=headers)
         r.raise_for_status()
         print(f"  Marked {label} as {body.get('status')}")
-    except httpx.HTTPStatusError as exc:
+    except httpx.HTTPError as exc:
         print(f"  Could not update {label} via {path} ({exc}). Please clean up manually.")
 
 
@@ -437,7 +513,7 @@ async def cleanup(client: httpx.AsyncClient, result: SynthesisResult) -> None:
             )
             r.raise_for_status()
             print(f"  Deactivated synthetic volunteer role {result.volunteer_role_id}")
-        except httpx.HTTPStatusError as exc:
+        except httpx.HTTPError as exc:
             print(
                 f"  Could not deactivate volunteer role {result.volunteer_role_id} "
                 f"({exc}). Please deactivate it manually."
@@ -448,7 +524,7 @@ async def cleanup(client: httpx.AsyncClient, result: SynthesisResult) -> None:
             r = await client.delete(f"/admin/invites/{result.invite_id}", headers=headers)
             r.raise_for_status()
             print(f"  Deactivated invite {result.invite_id}")
-        except httpx.HTTPStatusError as exc:
+        except httpx.HTTPError as exc:
             print(
                 f"  Could not deactivate invite {result.invite_id} ({exc}). "
                 "Please deactivate it manually."
@@ -463,7 +539,7 @@ async def cleanup(client: httpx.AsyncClient, result: SynthesisResult) -> None:
             )
             r.raise_for_status()
             print(f"  Deactivated test member {result.member['email']}")
-        except httpx.HTTPStatusError as exc:
+        except httpx.HTTPError as exc:
             print(
                 f"  Could not deactivate user {result.member['id']} via the admin "
                 f"API ({exc}). Manually deactivate or delete this account: "
@@ -542,6 +618,11 @@ async def _run(args: argparse.Namespace) -> int:
                 f"{exc.response.status_code}: {exc.response.text}",
                 file=sys.stderr,
             )
+            return 1
+        except httpx.HTTPError as exc:
+            # Network/timeout failure (no response to report) rather than a
+            # non-2xx status — still a hard stop, just without status details.
+            print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 1
 
         if args.cleanup:
