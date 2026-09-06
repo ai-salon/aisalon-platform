@@ -24,6 +24,7 @@ class ProfileUpdateRequest(BaseModel):
     title: str | None = Field(default=None, max_length=160)
     scheduling_url: str | None = Field(default=None, max_length=512)
     hide_from_team: bool | None = None
+    digest_opt_out: bool | None = None
 
     @field_validator("name", mode="before")
     @classmethod
@@ -39,6 +40,14 @@ class ProfileUpdateRequest(BaseModel):
         """Reject explicit null for hide_from_team (NOT NULL database constraint)."""
         if v is None:
             raise ValueError("hide_from_team cannot be null (omit the field to leave unchanged)")
+        return v
+
+    @field_validator("digest_opt_out", mode="before")
+    @classmethod
+    def _validate_digest_opt_out_not_null(cls, v):
+        """Reject explicit null for digest_opt_out (NOT NULL database constraint)."""
+        if v is None:
+            raise ValueError("digest_opt_out cannot be null (omit the field to leave unchanged)")
         return v
 
     @field_validator("profile_image_url", "linkedin", "scheduling_url")
@@ -61,6 +70,7 @@ class ProfileResponse(BaseModel):
     email: str
     scheduling_url: str | None
     hide_from_team: bool
+    digest_opt_out: bool
     pending_email: str | None
 
     model_config = {"from_attributes": True}

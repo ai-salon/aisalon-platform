@@ -39,7 +39,9 @@ from app.schemas.admin import (
     ProcessingConfigResponse, ProcessingTestRequest, ProcessingTestResponse,
     HandledPatch, ContactMessageOut, HostingInterestAdminResponse,
     NotificationsSummaryResponse,
+    DigestRunTestRequest, DigestRunTestResponse,
 )
+from app.services.digest import run_digest
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor, system_key_for
 from app.services import key_verification
@@ -1407,6 +1409,28 @@ async def notifications_summary(
         new_members=new_members_count,
         community_uploads=uploads_count,
     )
+
+
+# ── Digest test-send (superadmin only) ──────────────────────────────────────
+
+@router.post("/digests/run-test", response_model=DigestRunTestResponse)
+async def run_test_digest(
+    body: DigestRunTestRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Send a real digest immediately so a superadmin can eyeball it.
+
+    Runs inline (not via BackgroundTasks) so the caller gets the actual sent
+    count back. Never writes DigestRun — that guard belongs solely to the
+    scheduled send_digests.py script.
+    """
+    _require_admin(current_user)
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(days=body.window_days)
+    only_email = current_user.email if body.only_me else None
+    sent = await run_digest(db, window_start, now, only_email=only_email)
+    return DigestRunTestResponse(sent=sent, window_days=body.window_days)
 
 
 # ── System Settings (superadmin only) ────────────────────────────────────────

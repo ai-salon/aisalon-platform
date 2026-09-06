@@ -282,3 +282,15 @@ class NotificationsSummaryResponse(BaseModel):
     volunteer_applications: int
     new_members: int
     community_uploads: int
+
+
+# ── Digest test-send ─────────────────────────────────────────────────────────
+
+class DigestRunTestRequest(BaseModel):
+    window_days: int = Field(default=7, ge=1, le=31)
+    only_me: bool = True
+
+
+class DigestRunTestResponse(BaseModel):
+    sent: int
+    window_days: int
