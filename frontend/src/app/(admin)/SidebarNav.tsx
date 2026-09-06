@@ -36,21 +36,21 @@ const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
   host: { bg: '#f0fdf4', color: '#166534' },
 }
 
-function buildNav(userRole: string, draftCount: number): NavEntry[] {
+function buildNav(userRole: string, draftCount: number, summary: Record<string, number>): NavEntry[] {
   const isSuperadmin = userRole === 'superadmin'
   const isChapterLead = userRole === 'chapter_lead'
   const isHost = userRole === 'host'
 
   const teamMgmtChildren: NavItem[] = [
-    { href: '/hosting-interest', label: 'Host Interest', icon: 'fa-star' },
+    { href: '/hosting-interest', label: 'Host Interest', icon: 'fa-star', badge: summary.hosting_interest || undefined },
     { href: '/volunteer-roles', label: 'Volunteer Roles', icon: 'fa-hand-paper-o' },
-    { href: '/volunteer-applications', label: 'Volunteer Applications', icon: 'fa-envelope-open-o' },
+    { href: '/volunteer-applications', label: 'Volunteer Applications', icon: 'fa-envelope-open-o', badge: summary.volunteer_applications || undefined },
   ]
 
   const adminChildren: NavItem[] = [
     { href: '/community', label: 'Community Analytics', icon: 'fa-bar-chart' },
     { href: '/users', label: 'Users', icon: 'fa-user-circle-o' },
-    { href: '/community-uploads', label: 'Community Uploads', icon: 'fa-cloud-upload' },
+    { href: '/community-uploads', label: 'Community Uploads', icon: 'fa-cloud-upload', badge: summary.community_uploads || undefined },
     {
       href: process.env.NEXT_PUBLIC_UMAMI_URL ?? 'https://analytics.aisalon.xyz',
       label: 'Web Analytics',
@@ -65,7 +65,8 @@ function buildNav(userRole: string, draftCount: number): NavEntry[] {
     { href: '/articles', label: 'Articles', icon: 'fa-file-text-o', badge: draftCount > 0 ? draftCount : undefined },
     ...(isSuperadmin ? [{ href: '/chapters', label: 'Chapters', icon: 'fa-map-marker' }] : []),
     ...(isChapterLead ? [{ href: '/chapters', label: 'My Chapter', icon: 'fa-map-marker' }] : []),
-    { href: '/people', label: 'Team', icon: 'fa-users' },
+    { href: '/people', label: 'Team', icon: 'fa-users', badge: summary.new_members || undefined },
+    ...(!isHost ? [{ href: '/contact-messages', label: 'Contact Messages', icon: 'fa-envelope-o', badge: summary.contact_messages || undefined }] : []),
     ...(!isHost ? [{ group: true as const, label: 'Team Management', icon: 'fa-id-badge', children: teamMgmtChildren }] : []),
     ...(isSuperadmin ? [{ group: true as const, label: 'Admin', icon: 'fa-shield', children: adminChildren }] : []),
     { href: '/topics', label: 'Topics', icon: 'fa-lightbulb-o' },
@@ -115,7 +116,7 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
 
       {open && (
         <div style={{ paddingLeft: 14 }}>
-          {items.map(({ href, label: childLabel, icon: childIcon, external }) => {
+          {items.map(({ href, label: childLabel, icon: childIcon, external, badge }) => {
             const isActive = !external && (pathname === href || pathname.startsWith(href))
             const sharedStyle = {
               display: 'flex',
@@ -135,6 +136,14 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
               color: '#56a1d2',
               fontSize: 12,
             }
+            const badgePill = badge !== undefined && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10,
+                background: '#d2b356', color: '#fff', lineHeight: '16px',
+              }}>
+                {badge}
+              </span>
+            )
 
             if (external) {
               return (
@@ -142,8 +151,9 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
                   className={`sidebar-nav-link${isActive ? ' sidebar-nav-link-active' : ''}`}
                   style={sharedStyle}>
                   <i className={`fa ${childIcon}`} style={iconStyle} aria-hidden="true" />
-                  {childLabel}
-                  <i className="fa fa-external-link" style={{ fontSize: 10, marginLeft: 'auto', color: '#9ca3af' }} aria-hidden="true" />
+                  <span style={{ flex: 1 }}>{childLabel}</span>
+                  {badgePill}
+                  <i className="fa fa-external-link" style={{ fontSize: 10, marginLeft: badgePill ? 6 : 'auto', color: '#9ca3af' }} aria-hidden="true" />
                 </a>
               )
             }
@@ -153,7 +163,8 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
                 className={`sidebar-nav-link${isActive ? ' sidebar-nav-link-active' : ''}`}
                 style={sharedStyle}>
                 <i className={`fa ${childIcon}`} style={iconStyle} aria-hidden="true" />
-                {childLabel}
+                <span style={{ flex: 1 }}>{childLabel}</span>
+                {badgePill}
               </Link>
             )
           })}
@@ -167,6 +178,7 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
   const [draftCount, setDraftCount] = useState(0)
+  const [summary, setSummary] = useState<Record<string, number>>({})
 
   const token = (session as unknown as { accessToken?: string })?.accessToken
 
@@ -180,12 +192,27 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
       .catch(() => {})
   }, [token])
 
+  useEffect(() => {
+    if (!token) return
+    const fetchSummary = () => {
+      fetch(`${API_URL}/admin/notifications/summary`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => (r.ok ? r.json() : {}))
+        .then((d) => setSummary(d ?? {}))
+        .catch(() => {})
+    }
+    fetchSummary()
+    const interval = setInterval(fetchSummary, 60000)
+    return () => clearInterval(interval)
+  }, [token])
+
   if (status === 'loading' || !session) return null
 
   const userRole: string = (session.user as { role?: string } | undefined)?.role ?? ''
   const roleLabel = ROLE_LABELS[userRole] ?? userRole.toUpperCase()
   const roleColor = ROLE_COLORS[userRole] ?? { bg: '#f3f4f6', color: '#4b5563' }
-  const nav = buildNav(userRole, draftCount)
+  const nav = buildNav(userRole, draftCount, summary)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>

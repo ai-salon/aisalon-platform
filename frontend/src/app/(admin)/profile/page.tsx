@@ -46,6 +46,7 @@ interface Profile {
   scheduling_url: string | null;
   hide_from_team: boolean;
   pending_email: string | null;
+  digest_opt_out: boolean;
 }
 
 const cardStyle: React.CSSProperties = {
@@ -620,6 +621,34 @@ function AccountCard({
 }) {
   const [changingEmail, setChangingEmail] = useState(false);
   const [resending, setResending] = useState(false);
+  const [digestSaving, setDigestSaving] = useState(false);
+
+  const digestChecked = profile.digest_opt_out === false;
+
+  async function toggleDigest() {
+    const nextChecked = !digestChecked;
+    const prevOptOut = profile.digest_opt_out;
+    setDigestSaving(true);
+    onSaved({ digest_opt_out: !nextChecked });
+    try {
+      const r = await fetch(`${API_URL}/profile/me`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ digest_opt_out: !nextChecked }),
+      });
+      if (!r.ok) {
+        onSaved({ digest_opt_out: prevOptOut });
+        toast.error("Failed to update digest preference");
+        return;
+      }
+      toast.success("Preference saved");
+    } catch {
+      onSaved({ digest_opt_out: prevOptOut });
+      toast.error("Failed to update digest preference");
+    } finally {
+      setDigestSaving(false);
+    }
+  }
 
   async function cancelPendingEmail() {
     const r = await fetch(`${API_URL}/profile/email-change`, {
@@ -704,6 +733,38 @@ function AccountCard({
             onCancel={() => setResending(false)}
           />
         )}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          paddingTop: 20,
+          marginTop: 20,
+          borderTop: "1px solid #f1f1ec",
+        }}
+      >
+        <label
+          htmlFor="digest-opt-in"
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            fontSize: 14,
+            color: "#333",
+            cursor: digestSaving ? "default" : "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            id="digest-opt-in"
+            checked={digestChecked}
+            onChange={toggleDigest}
+            disabled={digestSaving}
+            style={{ width: 16, height: 16, marginTop: 2, cursor: digestSaving ? "default" : "pointer" }}
+          />
+          Email me a weekly digest of new activity
+        </label>
       </div>
 
       <ChangePasswordForm token={token} />

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/lib/toast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -17,8 +18,74 @@ const FREQUENCY_LABELS: Record<string, string> = {
   quarterly: "Quarterly",
 };
 
-function SubmissionRow({ s, index, total }: { s: any; index: number; total: number }) {
+type HostingInterest = {
+  id: string;
+  name: string;
+  email: string;
+  city: string;
+  interest_type: "start_chapter" | "host_existing";
+  existing_chapter: string | null;
+  message: string | null;
+  salons_attended?: string | null;
+  facilitated_before?: string | null;
+  themes_interested?: string | null;
+  why_hosting?: string | null;
+  hosting_frequency?: string | null;
+  space_options?: string | null;
+  status: "new" | "handled";
+  handled_by: string | null;
+  handled_at: string | null;
+  chapter_id: string | null;
+  chapter_name: string | null;
+  created_at: string;
+};
+
+function SubmissionRow({
+  s,
+  index,
+  total,
+  token,
+  showChapter,
+  onUpdate,
+}: {
+  s: HostingInterest;
+  index: number;
+  total: number;
+  token: string;
+  showChapter: boolean;
+  onUpdate: (updated: HostingInterest) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const isNew = s.status === "new";
+  const columnCount = 7 + (showChapter ? 1 : 0);
+
+  async function toggleStatus(e: React.MouseEvent) {
+    e.stopPropagation();
+    const nextStatus = isNew ? "handled" : "new";
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/hosting-interest/${s.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(
+          typeof body.detail === "string" ? body.detail : "Failed to update submission"
+        );
+        return;
+      }
+      const updated = await res.json();
+      onUpdate(updated);
+      toast.success(nextStatus === "handled" ? "Marked handled" : "Marked new");
+    } catch {
+      toast.error("Failed to update submission");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
@@ -48,16 +115,51 @@ function SubmissionRow({ s, index, total }: { s: any; index: number; total: numb
             {INTEREST_LABELS[s.interest_type] ?? s.interest_type}
           </span>
         </td>
-        <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
-          {s.existing_chapter ?? "—"}
+        {showChapter && (
+          <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
+            {s.chapter_name ?? s.existing_chapter ?? "—"}
+          </td>
+        )}
+        <td style={{ padding: "14px 20px" }}>
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              padding: "3px 10px",
+              borderRadius: 12,
+              background: isNew ? "#fdf8ee" : "#f3f4f6",
+              color: isNew ? "#a07a20" : "#6b7280",
+            }}
+          >
+            {s.status}
+          </span>
         </td>
         <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
           {new Date(s.created_at).toLocaleDateString()}
         </td>
+        <td style={{ padding: "14px 20px", whiteSpace: "nowrap" }} onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={toggleStatus}
+            disabled={saving}
+            style={{
+              padding: "6px 14px",
+              borderRadius: 6,
+              border: "1.5px solid #e1e1e1",
+              background: "#fff",
+              color: "#374151",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: saving ? "default" : "pointer",
+              opacity: saving ? 0.6 : 1,
+            }}
+          >
+            {isNew ? "Mark handled" : "Mark new"}
+          </button>
+        </td>
       </tr>
       {expanded && (
         <tr style={{ borderBottom: index < total - 1 ? "1px solid #f0f0f0" : "none", background: "#fafaf8" }}>
-          <td colSpan={6} style={{ padding: "16px 28px 20px 48px" }}>
+          <td colSpan={columnCount} style={{ padding: "16px 28px 20px 48px" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px 32px" }}>
               {s.salons_attended && (
                 <Detail label="Salons attended" value={s.salons_attended} />
@@ -100,8 +202,12 @@ function Detail({ label, value, wide }: { label: string; value: string; wide?: b
 export default function HostingInterestPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<HostingInterest[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const token = (session as unknown as { accessToken?: string })?.accessToken as string;
+  const userRole = (session?.user as { role?: string } | undefined)?.role ?? "";
+  const isSuperadmin = userRole === "superadmin";
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -109,16 +215,19 @@ export default function HostingInterestPage() {
       return;
     }
     if (status !== "authenticated") return;
-    const token = (session as any).accessToken as string;
     fetch(`${API_URL}/admin/hosting-interest`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
-    } as any)
+    })
       .then((r) => (r.ok ? r.json() : []))
       .then(setSubmissions)
       .catch(() => setSubmissions([]))
       .finally(() => setLoading(false));
-  }, [status, session, router]);
+  }, [status, session, router, token]);
+
+  const handleUpdate = (updated: HostingInterest) => {
+    setSubmissions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+  };
 
   if (loading) return <div style={{ padding: 40, color: "#696969" }}>Loading…</div>;
 
@@ -150,9 +259,18 @@ export default function HostingInterestPage() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
-                {["Name", "Email", "City", "Interest", "Chapter", "Date"].map((h) => (
+                {[
+                  "Name",
+                  "Email",
+                  "City",
+                  "Interest",
+                  ...(isSuperadmin ? ["Chapter"] : []),
+                  "Status",
+                  "Date",
+                  "",
+                ].map((h, i) => (
                   <th
-                    key={h}
+                    key={`${h}-${i}`}
                     style={{
                       textAlign: "left",
                       padding: "12px 20px",
@@ -169,8 +287,16 @@ export default function HostingInterestPage() {
               </tr>
             </thead>
             <tbody>
-              {submissions.map((s: any, i: number) => (
-                <SubmissionRow key={s.id} s={s} index={i} total={submissions.length} />
+              {submissions.map((s, i) => (
+                <SubmissionRow
+                  key={s.id}
+                  s={s}
+                  index={i}
+                  total={submissions.length}
+                  token={token}
+                  showChapter={isSuperadmin}
+                  onUpdate={handleUpdate}
+                />
               ))}
             </tbody>
           </table>

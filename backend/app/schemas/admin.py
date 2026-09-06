@@ -5,6 +5,7 @@ from app.models.api_key import APIKeyProvider
 from app.models.job import JobStatus
 from app.models.article import ArticleStatus
 from app.models.user import UserRole
+from app.models.hosting_interest import InterestType
 
 
 # ── Chapters ──────────────────────────────────────────────────────────────────
@@ -235,3 +236,64 @@ class ProcessingTestRequest(BaseModel):
 class ProcessingTestResponse(BaseModel):
     ok: bool
     message: str
+
+
+# ── Handled state (contact messages + hosting interest) ───────────────────────
+
+class HandledPatch(BaseModel):
+    status: Literal["new", "handled"]
+
+
+class ContactMessageOut(BaseModel):
+    id: str
+    chapter_id: str
+    chapter_name: str | None = None
+    name: str | None
+    email: str
+    message: str
+    status: str
+    handled_by: str | None
+    handled_at: datetime | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class HostingInterestAdminResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    city: str
+    interest_type: InterestType
+    existing_chapter: str | None
+    message: str | None
+    status: str
+    handled_by: str | None
+    handled_at: datetime | None
+    chapter_id: str | None
+    chapter_name: str | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+# ── Notifications summary ───────────────────────────────────────────────────
+
+class NotificationsSummaryResponse(BaseModel):
+    contact_messages: int
+    hosting_interest: int
+    volunteer_applications: int
+    new_members: int
+    community_uploads: int
+
+
+# ── Digest test-send ─────────────────────────────────────────────────────────
+
+class DigestRunTestRequest(BaseModel):
+    window_days: int = Field(default=7, ge=1, le=31)
+    only_me: bool = True
+
+
+class DigestRunTestResponse(BaseModel):
+    sent: int
+    window_days: int

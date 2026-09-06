@@ -12,6 +12,8 @@ import app.models.api_key  # noqa: F401
 import app.models.job  # noqa: F401
 import app.models.article  # noqa: F401
 import app.models.hosting_interest  # noqa: F401
+import app.models.contact_message  # noqa: F401
+import app.models.digest_run  # noqa: F401
 import app.models.invite  # noqa: F401
 import app.models.system_setting  # noqa: F401
 import app.models.social_post  # noqa: F401

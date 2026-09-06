@@ -170,6 +170,28 @@ Upload → `POST /admin/jobs` creates Job (pending) + calls `BackgroundTasks.add
 
 Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/processing.
 
+### Notifications
+
+**Summary endpoint:** `GET /admin/notifications/summary` (role-scoped) returns badge counts for sidebar (unhandled contact messages, hosting interest inquiries). Frontend polls every 60s.
+
+**Handled state:** `ContactMessage` and `HostingInterest` have `status` (new | handled), `handled_by` (user FK), and `handled_at` (timestamp). PATCH endpoints mark as handled by current user.
+
+**Weekly digest service:** `scripts/send_digests.py` builds and sends one email per chapter lead / superadmin (via Resend), covering contact messages, hosting interest, volunteer applications, and new members — all windowed on `created_at` regardless of handled/pending state — plus, for superadmins only, community uploads, failed jobs, and a standing draft-articles-awaiting-publish count. Flags: `--window-days` (default 7, uses a rolling window and skips the DigestRun guard entirely), `--force` (bypass the DigestRun guard for the real weekly run), `--only-email` (still really sends the email to that one address — it only skips the DigestRun write, it is not a dry run). The DigestRun row is claimed (inserted/re-claimed and committed) *before* any email is sent, so a crash mid-send still leaves the guard in place and a retried run is correctly refused instead of resending; `recipients_count` is filled in after the send loop completes.
+
+**Test endpoint:** `POST /admin/digests/run-test` (superadmin) accepts `{window_days, only_me}` (only_me sends to current user instead of chapter leads; when only_me is true, the caller's own `digest_opt_out` is ignored — it's an explicit test request). Skips DigestRun guard.
+
+**Profile toggle:** User model has `digest_opt_out` boolean; My Profile page (`/profile`) includes toggle.
+
+**Synthesis script:** `poetry run python scripts/synthesize_test_events.py --api-url <backend-url> --chapter <code> --contact-email <you@x.co>` creates test contact messages and hosting interests. Requires env vars `SYNTH_ADMIN_EMAIL`, `SYNTH_ADMIN_PASSWORD` (must be superadmin).
+
+**Railway cron setup (manual):** In Railway dashboard:
+1. New Service → select same repo + Dockerfile
+2. Cron Schedule: `30 9 * * 1` (9:30 AM, Mondays)
+3. Start Command: `poetry run python scripts/send_digests.py` (Dockerfile WORKDIR is already `backend`)
+4. Environment: attach same vars as backend service (DATABASE_URL, RESEND_API_KEY, EMAIL_FROM, SECRET_KEY, FRONTEND_URL)
+5. Set Restart Policy to **NEVER** for the cron service — the claim-first DigestRun guard makes retries safe either way, but NEVER avoids pointless re-runs
+6. Repeat for each environment (development, staging, production)
+
 ### Frontend (`frontend/src/`)
 
 - **`app/layout.tsx`** — global sticky nav with brand colors, Open Sans, FontAwesome 4.7.0
@@ -201,11 +223,12 @@ Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/proces
 | `/articles/[id]` | `(admin)/articles/[id]/page.tsx` | Yes |
 | `/chapters` | `(admin)/chapters/page.tsx` | Yes (superadmin) |
 | `/chapters/edit/[code]` | `(admin)/chapters/edit/[code]/page.tsx` | Yes |
+| `/contact-messages` | `(admin)/contact-messages/page.tsx` | Yes |
 | `/team` | `(admin)/team/page.tsx` | Yes |
 | `/users` | `(admin)/users/page.tsx` | Yes (superadmin) |
 | `/settings` | `(admin)/settings/page.tsx` | Yes |
 | `/community` | `(admin)/community/page.tsx` | Yes |
-| `/hosting-interest` | `(admin)/hosting-interest/page.tsx` | Yes (superadmin) |
+| `/hosting-interest` | `(admin)/hosting-interest/page.tsx` | Yes (leads see their chapter) |
 | `/social` | `(admin)/social/page.tsx` | Yes |
 
 **Note:** Password change has been moved from Settings to My Profile (`/profile`).

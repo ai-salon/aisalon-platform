@@ -37,6 +37,7 @@ class User(Base, TimestampMixin):
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     profile_completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     hide_from_team: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    digest_opt_out: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # Verified email-change flow (spec 2026-08-05)
     pending_email: Mapped[str | None] = mapped_column(String(256), nullable=True)

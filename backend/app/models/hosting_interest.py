@@ -1,6 +1,7 @@
 import uuid
 import enum
-from sqlalchemy import String, Text
+from datetime import datetime
+from sqlalchemy import String, Text, ForeignKey, DateTime
 from sqlalchemy.orm import mapped_column, Mapped
 from app.models.base import Base, TimestampMixin
 
@@ -28,3 +29,13 @@ class HostingInterest(Base, TimestampMixin):
     space_options: Mapped[str | None] = mapped_column(Text, nullable=True)
     leadership_experience: Mapped[str | None] = mapped_column(Text, nullable=True)
     support_network: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="new")
+    handled_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+    handled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    chapter_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("chapters.id"), nullable=True, index=True
+    )

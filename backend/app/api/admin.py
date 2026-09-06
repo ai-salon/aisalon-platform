@@ -19,10 +19,13 @@ from app.models.api_key import UserAPIKey, APIKeyProvider
 from app.models.job import Job, JobStatus
 from app.models.article import Article, ArticleStatus
 from app.models.chapter import Chapter
+from app.models.contact_message import ContactMessage
 from app.models.hosting_interest import HostingInterest, InterestType
 from app.models.invite import Invite
 from app.models.system_setting import SystemSetting
 from app.models.login_event import UserLoginEvent
+from app.models.volunteer import ApplicationStatus, VolunteerApplication, VolunteerRole
+from app.models.community_upload import CommunityUpload, UploadStatus
 from app.core.security import hash_password
 from app.schemas.admin import (
     APIKeySetRequest, APIKeyResponse,
@@ -34,7 +37,11 @@ from app.schemas.admin import (
     ChapterStats, CommunityStatsResponse,
     SystemSettingRequest, SystemSettingResponse,
     ProcessingConfigResponse, ProcessingTestRequest, ProcessingTestResponse,
+    HandledPatch, ContactMessageOut, HostingInterestAdminResponse,
+    NotificationsSummaryResponse,
+    DigestRunTestRequest, DigestRunTestResponse,
 )
+from app.services.digest import run_digest
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor, system_key_for
 from app.services import key_verification
@@ -1217,42 +1224,250 @@ async def deactivate_invite(
     await db.commit()
 
 
-# ── Hosting Interest (superadmin only) ────────────────────────────────────────
+# ── Contact Messages ────────────────────────────────────────────────────────
 
-from datetime import datetime as _dt  # noqa: E402
-from pydantic import BaseModel as _BM  # noqa: E402
+@router.get("/contact-messages", response_model=list[ContactMessageOut])
+async def list_contact_messages(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    stmt = select(ContactMessage, Chapter.name).join(
+        Chapter, Chapter.id == ContactMessage.chapter_id
+    ).order_by(ContactMessage.created_at.desc())
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id:
+        stmt = stmt.where(ContactMessage.chapter_id == chapter_id)
+    rows = (await db.execute(stmt)).all()
+    out = []
+    for msg, chapter_name in rows:
+        item = ContactMessageOut.model_validate(msg)
+        item.chapter_name = chapter_name
+        out.append(item)
+    return out
 
 
-class HostingInterestAdminResponse(_BM):
-    id: str
-    name: str
-    email: str
-    city: str
-    interest_type: InterestType
-    existing_chapter: str | None
-    message: str | None
-    created_at: _dt
+@router.patch("/contact-messages/{message_id}", response_model=ContactMessageOut)
+async def patch_contact_message(
+    message_id: str,
+    body: HandledPatch,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    msg = (
+        await db.execute(select(ContactMessage).where(ContactMessage.id == message_id))
+    ).scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=404, detail="Not found")
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id and msg.chapter_id != chapter_id:
+        raise HTTPException(status_code=404, detail="Not found")
+    msg.status = body.status
+    if body.status == "handled":
+        msg.handled_by = current_user.id
+        msg.handled_at = datetime.now(timezone.utc)
+    else:
+        msg.handled_by = None
+        msg.handled_at = None
+    db.add(msg)
+    await db.commit()
+    await db.refresh(msg)
+    # Mirror list_contact_messages: chapter_name isn't a column on the ORM
+    # model, so returning `msg` directly leaves it null and blanks the
+    # contact page's Chapter cell after a status toggle.
+    chapter_name = (
+        await db.execute(select(Chapter.name).where(Chapter.id == msg.chapter_id))
+    ).scalar_one_or_none()
+    item = ContactMessageOut.model_validate(msg)
+    item.chapter_name = chapter_name
+    return item
 
-    model_config = {"from_attributes": True}
 
+# ── Hosting Interest ────────────────────────────────────────────────────────
 
 @router.get("/hosting-interest", response_model=list[HostingInterestAdminResponse])
 async def list_hosting_interest(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    stmt = select(HostingInterest).order_by(HostingInterest.created_at.desc())
-    if current_user.role != UserRole.superadmin:
-        ch_result = await db.execute(select(Chapter).where(Chapter.id == current_user.chapter_id))
-        chapter = ch_result.scalar_one_or_none()
-        if not chapter:
-            return []
+    _require_lead_or_above(current_user)
+    stmt = (
+        select(HostingInterest, Chapter.name)
+        .outerjoin(Chapter, Chapter.id == HostingInterest.chapter_id)
+        .order_by(HostingInterest.created_at.desc())
+    )
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id:
         stmt = stmt.where(
             HostingInterest.interest_type == InterestType.host_existing,
-            HostingInterest.existing_chapter == chapter.name,
+            HostingInterest.chapter_id == chapter_id,
         )
-    result = await db.execute(stmt)
-    return result.scalars().all()
+    rows = (await db.execute(stmt)).all()
+    out = []
+    for hi, chapter_name in rows:
+        item = HostingInterestAdminResponse.model_validate(hi)
+        item.chapter_name = chapter_name
+        out.append(item)
+    return out
+
+
+@router.patch(
+    "/hosting-interest/{interest_id}", response_model=HostingInterestAdminResponse
+)
+async def patch_hosting_interest(
+    interest_id: str,
+    body: HandledPatch,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    _require_lead_or_above(current_user)
+    hi = (
+        await db.execute(
+            select(HostingInterest).where(HostingInterest.id == interest_id)
+        )
+    ).scalar_one_or_none()
+    if not hi:
+        raise HTTPException(status_code=404, detail="Not found")
+    chapter_id = _chapter_filter(current_user)
+    if chapter_id and not (
+        hi.interest_type == InterestType.host_existing and hi.chapter_id == chapter_id
+    ):
+        raise HTTPException(status_code=404, detail="Not found")
+    hi.status = body.status
+    if body.status == "handled":
+        hi.handled_by = current_user.id
+        hi.handled_at = datetime.now(timezone.utc)
+    else:
+        hi.handled_by = None
+        hi.handled_at = None
+    db.add(hi)
+    await db.commit()
+    await db.refresh(hi)
+    # Mirror list_hosting_interest: chapter_name isn't a column on the ORM
+    # model, so returning `hi` directly leaves it null (blanking the Chapter
+    # cell after a toggle) — or, previously, left the frontend falling back
+    # to the user-typed `existing_chapter` free-text, which can be
+    # stale/differently-cased than the resolved chapter's canonical name.
+    chapter_name = None
+    if hi.chapter_id:
+        chapter_name = (
+            await db.execute(select(Chapter.name).where(Chapter.id == hi.chapter_id))
+        ).scalar_one_or_none()
+    item = HostingInterestAdminResponse.model_validate(hi)
+    item.chapter_name = chapter_name
+    return item
+
+
+# ── Notifications Summary ───────────────────────────────────────────────────
+
+@router.get("/notifications/summary", response_model=NotificationsSummaryResponse)
+async def notifications_summary(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Role-scoped counts feeding the admin sidebar's notification badges.
+
+    Hosts get a 200 with all-zero counts (not 403) — they simply have nothing
+    to action here. Chapter leads see counts scoped to their own chapter;
+    superadmins see everything.
+    """
+    if current_user.role == UserRole.host:
+        return NotificationsSummaryResponse(
+            contact_messages=0,
+            hosting_interest=0,
+            volunteer_applications=0,
+            new_members=0,
+            community_uploads=0,
+        )
+
+    chapter_id = _chapter_filter(current_user)
+    is_admin = current_user.role == UserRole.superadmin
+
+    contact_stmt = select(func.count(ContactMessage.id)).where(
+        ContactMessage.status == "new"
+    )
+    if chapter_id:
+        contact_stmt = contact_stmt.where(ContactMessage.chapter_id == chapter_id)
+    contact_count = (await db.execute(contact_stmt)).scalar_one()
+
+    hosting_stmt = select(func.count(HostingInterest.id)).where(
+        HostingInterest.status == "new"
+    )
+    if chapter_id:
+        hosting_stmt = hosting_stmt.where(
+            HostingInterest.interest_type == InterestType.host_existing,
+            HostingInterest.chapter_id == chapter_id,
+        )
+    hosting_count = (await db.execute(hosting_stmt)).scalar_one()
+
+    if chapter_id:
+        volunteer_stmt = (
+            select(func.count(VolunteerApplication.id))
+            .join(VolunteerRole)
+            .where(
+                VolunteerApplication.status == ApplicationStatus.pending,
+                VolunteerRole.chapter_id == chapter_id,
+            )
+        )
+    else:
+        volunteer_stmt = select(func.count(VolunteerApplication.id)).where(
+            VolunteerApplication.status == ApplicationStatus.pending
+        )
+    volunteer_count = (await db.execute(volunteer_stmt)).scalar_one()
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+    members_stmt = select(func.count(User.id)).where(
+        User.is_active.is_(True), User.created_at >= cutoff
+    )
+    if chapter_id:
+        members_stmt = members_stmt.where(User.chapter_id == chapter_id)
+    new_members_count = (await db.execute(members_stmt)).scalar_one()
+
+    uploads_count = 0
+    if is_admin:
+        uploads_stmt = select(func.count(CommunityUpload.id)).where(
+            CommunityUpload.status == UploadStatus.pending
+        )
+        uploads_count = (await db.execute(uploads_stmt)).scalar_one()
+
+    return NotificationsSummaryResponse(
+        contact_messages=contact_count,
+        hosting_interest=hosting_count,
+        volunteer_applications=volunteer_count,
+        new_members=new_members_count,
+        community_uploads=uploads_count,
+    )
+
+
+# ── Digest test-send (superadmin only) ──────────────────────────────────────
+
+@router.post("/digests/run-test", response_model=DigestRunTestResponse)
+async def run_test_digest(
+    body: DigestRunTestRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Send a real digest immediately so a superadmin can eyeball it.
+
+    Runs inline (not via BackgroundTasks) so the caller gets the actual sent
+    count back. Never writes DigestRun — that guard belongs solely to the
+    scheduled send_digests.py script.
+
+    only_me=true is an explicit, self-directed test request, so the caller's
+    own digest_opt_out is ignored for it — an opted-out superadmin still gets
+    their own test send (they just won't receive the real weekly digest).
+    """
+    _require_admin(current_user)
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(days=body.window_days)
+    only_email = current_user.email if body.only_me else None
+    sent = await run_digest(
+        db, window_start, now,
+        only_email=only_email,
+        include_opted_out_email=only_email,
+    )
+    return DigestRunTestResponse(sent=sent, window_days=body.window_days)
 
 
 # ── System Settings (superadmin only) ────────────────────────────────────────
