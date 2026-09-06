@@ -1284,15 +1284,24 @@ async def list_hosting_interest(
     current_user: User = Depends(get_current_user),
 ):
     _require_lead_or_above(current_user)
-    stmt = select(HostingInterest).order_by(HostingInterest.created_at.desc())
+    stmt = (
+        select(HostingInterest, Chapter.name)
+        .outerjoin(Chapter, Chapter.id == HostingInterest.chapter_id)
+        .order_by(HostingInterest.created_at.desc())
+    )
     chapter_id = _chapter_filter(current_user)
     if chapter_id:
         stmt = stmt.where(
             HostingInterest.interest_type == InterestType.host_existing,
             HostingInterest.chapter_id == chapter_id,
         )
-    result = await db.execute(stmt)
-    return result.scalars().all()
+    rows = (await db.execute(stmt)).all()
+    out = []
+    for hi, chapter_name in rows:
+        item = HostingInterestAdminResponse.model_validate(hi)
+        item.chapter_name = chapter_name
+        out.append(item)
+    return out
 
 
 @router.patch(

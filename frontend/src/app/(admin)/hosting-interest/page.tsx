@@ -36,6 +36,7 @@ type HostingInterest = {
   handled_by: string | null;
   handled_at: string | null;
   chapter_id: string | null;
+  chapter_name: string | null;
   created_at: string;
 };
 
@@ -116,7 +117,7 @@ function SubmissionRow({
         </td>
         {showChapter && (
           <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>
-            {s.existing_chapter ?? "—"}
+            {s.chapter_name ?? s.existing_chapter ?? "—"}
           </td>
         )}
         <td style={{ padding: "14px 20px" }}>

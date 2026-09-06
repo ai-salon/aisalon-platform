@@ -269,6 +269,7 @@ class HostingInterestAdminResponse(BaseModel):
     handled_by: str | None
     handled_at: datetime | None
     chapter_id: str | None
+    chapter_name: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

@@ -630,18 +630,24 @@ function AccountCard({
     const prevOptOut = profile.digest_opt_out;
     setDigestSaving(true);
     onSaved({ digest_opt_out: !nextChecked });
-    const r = await fetch(`${API_URL}/profile/me`, {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ digest_opt_out: !nextChecked }),
-    });
-    setDigestSaving(false);
-    if (!r.ok) {
+    try {
+      const r = await fetch(`${API_URL}/profile/me`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ digest_opt_out: !nextChecked }),
+      });
+      if (!r.ok) {
+        onSaved({ digest_opt_out: prevOptOut });
+        toast.error("Failed to update digest preference");
+        return;
+      }
+      toast.success("Preference saved");
+    } catch {
       onSaved({ digest_opt_out: prevOptOut });
       toast.error("Failed to update digest preference");
-      return;
+    } finally {
+      setDigestSaving(false);
     }
-    toast.success("Preference saved");
   }
 
   async function cancelPendingEmail() {

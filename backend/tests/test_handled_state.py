@@ -120,6 +120,7 @@ async def test_lead_lists_only_own_chapter_host_existing_interest(
     body = r.json()
     assert len(body) == 1
     assert body[0]["chapter_id"] == sf_chapter.id
+    assert body[0]["chapter_name"] == sf_chapter.name
     assert body[0]["status"] == "new"
 
 
@@ -147,7 +148,12 @@ async def test_superadmin_lists_all_hosting_interest(
 
     r = await client.get("/admin/hosting-interest", headers=admin_headers)
     assert r.status_code == 200
-    assert len(r.json()) == 3
+    body = r.json()
+    assert len(body) == 3
+    by_name = {row["name"]: row for row in body}
+    assert by_name["Own"]["chapter_name"] == sf_chapter.name
+    assert by_name["Other"]["chapter_name"] == "Zed Three"
+    assert by_name["Starter"]["chapter_name"] is None
 
 
 async def test_host_cannot_list_hosting_interest(client, host_headers):
