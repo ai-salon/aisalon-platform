@@ -37,3 +37,6 @@ backend/uploads/
 
 # Superpowers
 .superpowers/
+
+# Claude Code worktrees
+.claude/worktrees/
