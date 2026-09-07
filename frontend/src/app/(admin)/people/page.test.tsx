@@ -1,0 +1,164 @@
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { renderWithSession } from '@/test/helpers'
+import PeoplePage from './page'
+
+type Call = { url: string; init?: RequestInit }
+
+const host = {
+  id: 'h1', username: 'hana', email: 'hana@example.com', role: 'host', name: 'Hana Host',
+  title: 'Host', is_founder: false, display_order: 1, profile_image_url: null,
+  profile_completed_at: '2026-01-01T00:00:00Z', hide_from_team: false,
+  chapter_code: 'sf', chapter_name: 'San Francisco',
+}
+const founder = { ...host, id: 'f1', username: 'fay', name: 'Fay Founder', title: 'Co-Founder', is_founder: true }
+const superadmin = { ...host, id: 's1', username: 'sam', name: 'Sam Super', title: 'Admin', role: 'superadmin' }
+const hidden = { ...host, id: 'x1', username: 'hal', name: 'Hidden Hal', hide_from_team: true }
+
+function mockApi({
+  people = [host],
+  summary = { hosting_interest: 0 },
+}: { people?: unknown[]; summary?: Record<string, number> } = {}) {
+  const calls: Call[] = []
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init })
+      if (url.endsWith('/admin/people')) return { ok: true, status: 200, json: async () => people }
+      if (url.endsWith('/admin/notifications/summary')) return { ok: true, status: 200, json: async () => summary }
+      if (url.includes('/admin/people/')) return { ok: true, status: 200, json: async () => ({ ok: true }) }
+      if (url.endsWith('/admin/invites')) return { ok: true, status: 201, json: async () => ({ token: 'tok123' }) }
+      if (url.endsWith('/chapters')) return { ok: true, status: 200, json: async () => [] }
+      return { ok: false, status: 404, json: async () => ({}) }
+    })
+  )
+  return calls
+}
+
+function patchCalls(calls: Call[]) {
+  return calls
+    .filter((c) => c.init?.method === 'PATCH')
+    .map((c) => ({ url: c.url, body: JSON.parse(c.init?.body as string) }))
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
+
+describe('PeoplePage for a chapter lead', () => {
+  it('lets the lead edit a host title inline', async () => {
+    const calls = mockApi()
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    const input = await screen.findByLabelText('Title for Hana Host')
+    fireEvent.change(input, { target: { value: 'Lead Host' } })
+    fireEvent.blur(input)
+
+    await waitFor(() => {
+      expect(patchCalls(calls)).toContainEqual({
+        url: expect.stringMatching(/\/admin\/people\/h1$/),
+        body: { title: 'Lead Host' },
+      })
+    })
+  })
+
+  it('lets the lead toggle whether a host is shown on the site', async () => {
+    const calls = mockApi()
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    const checkbox = await screen.findByLabelText('Show Hana Host on site')
+    expect(checkbox).toBeChecked()
+    fireEvent.click(checkbox)
+
+    await waitFor(() => {
+      expect(patchCalls(calls)).toContainEqual({
+        url: expect.stringMatching(/\/admin\/people\/h1$/),
+        body: { hide_from_team: true },
+      })
+    })
+  })
+
+  it('shows no edit controls on founder or superadmin rows', async () => {
+    mockApi({ people: [founder, superadmin] })
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    expect(await screen.findByText('Fay Founder')).toBeInTheDocument()
+    expect(screen.getByText('Sam Super')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.queryByLabelText(/on site$/)).toBeNull()
+  })
+
+  it('never shows the founder toggle to a lead', async () => {
+    mockApi()
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    await screen.findByText('Hana Host')
+    expect(screen.queryByLabelText('Founder: Hana Host')).toBeNull()
+  })
+
+  it('marks hidden members with a Hidden pill', async () => {
+    mockApi({ people: [hidden] })
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    expect(await screen.findByText('Hidden Hal')).toBeInTheDocument()
+    expect(screen.getByText('Hidden')).toBeInTheDocument()
+  })
+
+  it('shows an outstanding hosting-interest notice linking to the Host Interest page', async () => {
+    mockApi({ summary: { hosting_interest: 2 } })
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    expect(await screen.findByText(/2 new hosting requests/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /review/i })).toHaveAttribute('href', '/hosting-interest')
+  })
+
+  it('hides the hosting-interest notice when nothing is outstanding', async () => {
+    mockApi({ summary: { hosting_interest: 0 } })
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    await screen.findByText('Hana Host')
+    expect(screen.queryByText(/hosting request/i)).toBeNull()
+  })
+
+  it('reveals the invite card when the create-invite button is clicked', async () => {
+    mockApi()
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    await screen.findByText('Hana Host')
+    expect(screen.queryByText('Invite a Member')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /create invite link/i }))
+    expect(screen.getByText('Invite a Member')).toBeInTheDocument()
+  })
+})
+
+describe('PeoplePage for a superadmin', () => {
+  it('keeps the founder toggle alongside the lead controls', async () => {
+    const calls = mockApi()
+    renderWithSession(<PeoplePage />, { role: 'superadmin' })
+
+    const founderToggle = await screen.findByLabelText('Founder: Hana Host')
+    expect(screen.getByLabelText('Title for Hana Host')).toBeInTheDocument()
+    fireEvent.click(founderToggle)
+
+    await waitFor(() => {
+      expect(patchCalls(calls)).toContainEqual({
+        url: expect.stringMatching(/\/admin\/people\/h1$/),
+        body: { is_founder: true },
+      })
+    })
+  })
+})
+
+describe('PeoplePage for a host', () => {
+  it('is read-only with no invite button or notice', async () => {
+    mockApi({ summary: { hosting_interest: 3 } })
+    renderWithSession(<PeoplePage />, { role: 'host', chapterId: 'c1' })
+
+    expect(await screen.findByText('Hana Host')).toBeInTheDocument()
+    expect(screen.getByText('Host')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.queryByRole('checkbox')).toBeNull()
+    expect(screen.queryByRole('button', { name: /create invite link/i })).toBeNull()
+    expect(screen.queryByText(/hosting request/i)).toBeNull()
+  })
+})
