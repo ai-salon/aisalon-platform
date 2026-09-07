@@ -62,11 +62,11 @@ describe('PeoplePage for a chapter lead', () => {
     })
   })
 
-  it('lets the lead toggle whether a host is shown on the site', async () => {
+  it('lets the lead toggle whether a host is shown publicly', async () => {
     const calls = mockApi()
     renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
 
-    const checkbox = await screen.findByLabelText('Show Hana Host on site')
+    const checkbox = await screen.findByLabelText('Show Hana Host publicly')
     expect(checkbox).toBeChecked()
     fireEvent.click(checkbox)
 
@@ -85,7 +85,17 @@ describe('PeoplePage for a chapter lead', () => {
     expect(await screen.findByText('Fay Founder')).toBeInTheDocument()
     expect(screen.getByText('Sam Super')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).toBeNull()
-    expect(screen.queryByLabelText(/on site$/)).toBeNull()
+    expect(screen.queryByLabelText(/publicly$/)).toBeNull()
+  })
+
+  it('labels the visibility column "Public" with an explanation', async () => {
+    mockApi()
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    await screen.findByText('Hana Host')
+    const header = screen.getByRole('columnheader', { name: 'Public' })
+    expect(header).toHaveAttribute('title', expect.stringMatching(/aisalon\.xyz/))
+    expect(screen.queryByRole('columnheader', { name: /on site/i })).toBeNull()
   })
 
   it('never shows the founder toggle to a lead', async () => {
@@ -120,14 +130,15 @@ describe('PeoplePage for a chapter lead', () => {
     expect(screen.queryByText(/hosting request/i)).toBeNull()
   })
 
-  it('reveals the invite card when the create-invite button is clicked', async () => {
+  it('shows the invite card on load with no separate toggle button', async () => {
     mockApi()
     renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
 
     await screen.findByText('Hana Host')
-    expect(screen.queryByText('Invite a Member')).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: /create invite link/i }))
     expect(screen.getByText('Invite a Member')).toBeInTheDocument()
+    // Only the card's own button exists — no page-level "Create invite link" / "Close" toggle.
+    expect(screen.getAllByRole('button', { name: /create invite link/i })).toHaveLength(1)
+    expect(screen.queryByRole('button', { name: /^close$/i })).toBeNull()
   })
 })
 
@@ -150,7 +161,7 @@ describe('PeoplePage for a superadmin', () => {
 })
 
 describe('PeoplePage for a host', () => {
-  it('is read-only with no invite button or notice', async () => {
+  it('is read-only with no invite card or notice', async () => {
     mockApi({ summary: { hosting_interest: 3 } })
     renderWithSession(<PeoplePage />, { role: 'host', chapterId: 'c1' })
 
