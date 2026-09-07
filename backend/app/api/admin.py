@@ -7,7 +7,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFi
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select, func, cast, Date
+from sqlalchemy import select, func, cast, Date, or_
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.deps import get_current_user
@@ -1096,11 +1096,13 @@ async def admin_list_people(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    stmt = (
-        select(User)
-        .options(selectinload(User.chapter))
-        .where(User.hide_from_team.is_(False))
-    )
+    stmt = select(User).options(selectinload(User.chapter))
+    if current_user.role in (UserRole.superadmin, UserRole.chapter_lead):
+        # Editors also see hidden members who have a profile, so they can un-hide
+        # them. Nameless chapter ghost logins stay out of the list.
+        stmt = stmt.where(or_(User.hide_from_team.is_(False), User.name.isnot(None)))
+    else:
+        stmt = stmt.where(User.hide_from_team.is_(False))
     chapter_filter = _chapter_filter(current_user)
     if chapter_filter:
         stmt = stmt.where(User.chapter_id == chapter_filter)
@@ -1140,11 +1142,26 @@ async def admin_update_person(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    _require_admin(current_user)
+    _require_lead_or_above(current_user)
     row = await db.execute(select(User).where(User.id == user_id))
     target = row.scalar_one_or_none()
     if not target:
         raise HTTPException(status_code=404, detail="User not found")
+    if current_user.role != UserRole.superadmin:
+        # Chapter leads: own chapter only (404 so other chapters' members aren't
+        # enumerable), never superadmins or founders, presentational fields only.
+        if current_user.chapter_id is None or target.chapter_id != current_user.chapter_id:
+            raise HTTPException(status_code=404, detail="User not found")
+        if target.role == UserRole.superadmin or target.is_founder:
+            raise HTTPException(
+                status_code=403,
+                detail="Chapter leads can only edit hosts and co-leads in their chapter",
+            )
+        if body.is_founder is not None or body.profile_image_url is not None:
+            raise HTTPException(
+                status_code=403,
+                detail="Chapter leads can only change title, order, and visibility",
+            )
     if body.title is not None:
         target.title = body.title
     if body.is_founder is not None:
