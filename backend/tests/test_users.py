@@ -126,6 +126,70 @@ class TestUpdateUser:
         assert r.status_code == 200
         assert r.json()["role"] == "host"
 
+    async def test_edit_identity_and_profile_fields(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        """Superadmins can edit everything about an account from the Users page."""
+        lead = await _make_chapter_lead(db_session, "edit@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}", json={
+            "name": "Ian Eisenberg",
+            "email": "  Ian@Example.com ",
+            "username": "ian",
+            "title": "Founder",
+            "linkedin": "https://linkedin.com/in/ian",
+            "description": "bio",
+        }, headers=admin_headers)
+        assert r.status_code == 200
+        body = r.json()
+        assert body["name"] == "Ian Eisenberg"
+        assert body["email"] == "ian@example.com"
+        assert body["username"] == "ian"
+        assert body["title"] == "Founder"
+        assert body["linkedin"] == "https://linkedin.com/in/ian"
+        assert body["description"] == "bio"
+
+    async def test_blank_text_fields_are_cleared(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "ghost@aisalon.xyz", sf_chapter.id)
+        lead.name = "Ian"
+        lead.username = "sfghost"
+        db_session.add(lead)
+        await db_session.commit()
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"name": "  ", "username": ""},
+                               headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["name"] is None
+        assert r.json()["username"] is None
+
+    async def test_duplicate_email_is_409(
+        self, client: AsyncClient, admin_headers, superadmin, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "dup@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"email": superadmin.email},
+                               headers=admin_headers)
+        assert r.status_code == 409
+
+    async def test_duplicate_username_is_409(
+        self, client: AsyncClient, admin_headers, superadmin, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "dup2@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"username": superadmin.username},
+                               headers=admin_headers)
+        assert r.status_code == 409
+
+    async def test_invalid_email_is_422(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "bad@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"email": "not-an-email"},
+                               headers=admin_headers)
+        assert r.status_code == 422
+
     async def test_clear_chapter_with_explicit_null(
         self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
     ):
