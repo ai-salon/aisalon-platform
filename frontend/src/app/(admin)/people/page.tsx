@@ -47,7 +47,6 @@ export default function PeoplePage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [hostingInterest, setHostingInterest] = useState(0);
-  const [showInvite, setShowInvite] = useState(false);
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -115,33 +114,17 @@ export default function PeoplePage() {
 
   const headers = [
     "Photo", "Name", "Title", "Role", "Chapter", "Founder",
-    ...(isEditor ? ["Order", "On site"] : []),
+    ...(isEditor ? ["Order", "Public"] : []),
     "Profile",
   ];
 
   return (
     <div style={{ padding: "40px 30px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Team</h1>
-          <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
-            {people.length} member{people.length !== 1 ? "s" : ""}
-          </p>
-        </div>
-        {isEditor && (
-          <button
-            type="button"
-            onClick={() => setShowInvite((v) => !v)}
-            style={{
-              fontSize: 13, fontWeight: 700, color: showInvite ? "#696969" : "#fff",
-              background: showInvite ? "#fff" : "#d2b356",
-              border: showInvite ? "1px solid #d1d5db" : "none",
-              padding: "8px 16px", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap",
-            }}
-          >
-            {showInvite ? "Close" : "Create invite link"}
-          </button>
-        )}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Team</h1>
+        <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
+          {people.length} member{people.length !== 1 ? "s" : ""}
+        </p>
       </div>
 
       {isEditor && hostingInterest > 0 && (
@@ -165,7 +148,7 @@ export default function PeoplePage() {
         </div>
       )}
 
-      {isEditor && showInvite && (
+      {isEditor && (
         <div style={{ maxWidth: 480, marginBottom: 24 }}>
           <InviteCard />
         </div>
@@ -182,7 +165,13 @@ export default function PeoplePage() {
           <thead>
             <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
               {headers.map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}>{h}</th>
+                <th
+                  key={h}
+                  title={h === "Public" ? "Shown on the aisalon.xyz team section and chapter page" : undefined}
+                  style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}
+                >
+                  {h}
+                </th>
               ))}
             </tr>
           </thead>
@@ -284,7 +273,7 @@ export default function PeoplePage() {
                       {editable ? (
                         <input
                           type="checkbox"
-                          aria-label={`Show ${name} on site`}
+                          aria-label={`Show ${name} publicly`}
                           checked={!p.hide_from_team}
                           onChange={(e) => update(p.id, { hide_from_team: !e.target.checked })}
                         />
