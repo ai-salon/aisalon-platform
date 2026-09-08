@@ -129,11 +129,27 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    """Superadmin edit of any account. Optional text fields sent as "" are cleared."""
     is_active: bool | None = None
     role: str | None = None
     chapter_id: str | None = None
     password: str | None = None
     title: str | None = None
+    name: str | None = None
+    email: str | None = None
+    username: str | None = None
+    linkedin: str | None = None
+    description: str | None = None
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip().lower()
+        if "@" not in v or v.startswith("@") or v.endswith("@"):
+            raise ValueError("email must be a valid address")
+        return v
 
     @field_validator("role")
     @classmethod
@@ -160,6 +176,8 @@ class UserResponse(BaseModel):
     scheduling_url: str | None = None
     title: str | None = None
     name: str | None = None
+    linkedin: str | None = None
+    description: str | None = None
 
     model_config = {"from_attributes": True}
 

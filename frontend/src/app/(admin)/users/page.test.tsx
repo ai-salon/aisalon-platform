@@ -1,32 +1,43 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { screen } from '@testing-library/react'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithSession } from '@/test/helpers'
 import UsersPage from './page'
+
+type Call = { url: string; init?: RequestInit }
 
 const users = [
   {
     id: 'u1', email: 'admin@aisalon.xyz', username: 'admin', role: 'superadmin',
     title: 'Co-Founder', name: 'Ian Eisenberg', chapter_id: null, is_active: true,
+    linkedin: null, description: null,
     last_login_at: null, login_count_30d: 0, has_api_key: false, has_uploaded: false,
     has_article: false, has_read_hosting_guide: false, has_read_lead_guide: false,
   },
   {
     id: 'u2', email: 'sf@aisalon.xyz', username: 'sf', role: 'chapter_lead',
     title: null, name: null, chapter_id: 'c1', is_active: true,
+    linkedin: null, description: null,
     last_login_at: null, login_count_30d: 0, has_api_key: false, has_uploaded: false,
     has_article: false, has_read_hosting_guide: false, has_read_lead_guide: false,
   },
 ]
 
 function mockApi() {
+  const calls: Call[] = []
   vi.stubGlobal(
     'fetch',
-    vi.fn(async (url: string) => {
+    vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init })
+      if (init?.method === 'PATCH' && url.includes('/admin/users/')) {
+        const base = users.find((u) => u.id === url.split('/').pop())
+        return { ok: true, status: 200, json: async () => ({ ...base, ...JSON.parse(init.body as string) }) }
+      }
       if (url.endsWith('/admin/users')) return { ok: true, status: 200, json: async () => users }
       if (url.endsWith('/chapters')) return { ok: true, status: 200, json: async () => [{ id: 'c1', name: 'San Francisco', code: 'sf' }] }
       return { ok: false, status: 404, json: async () => ({}) }
     })
   )
+  return calls
 }
 
 afterEach(() => {
@@ -45,5 +56,45 @@ describe('UsersPage', () => {
     const ghostRow = screen.getByText('sf@aisalon.xyz').closest('tr')
     expect(ghostRow).not.toBeNull()
     expect(ghostRow!.querySelector('td')?.textContent).toBe('—')
+  })
+
+  it('lets the superadmin edit every field of an account', async () => {
+    const calls = mockApi()
+    renderWithSession(<UsersPage />, { role: 'superadmin' })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit sf@aisalon.xyz' }))
+    // Prefilled from the account.
+    expect(screen.getByLabelText('Email for sf@aisalon.xyz')).toHaveValue('sf@aisalon.xyz')
+    expect(screen.getByLabelText('Chapter for sf@aisalon.xyz')).toHaveValue('c1')
+
+    fireEvent.change(screen.getByLabelText('Name for sf@aisalon.xyz'), { target: { value: 'SF Ghost' } })
+    fireEvent.change(screen.getByLabelText('Username for sf@aisalon.xyz'), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('LinkedIn for sf@aisalon.xyz'), { target: { value: 'https://linkedin.com/in/sf' } })
+    fireEvent.change(screen.getByLabelText('Bio for sf@aisalon.xyz'), { target: { value: 'System login' } })
+    fireEvent.change(screen.getByLabelText('Role for sf@aisalon.xyz'), { target: { value: 'superadmin' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => {
+      const patch = calls.find((c) => c.init?.method === 'PATCH')
+      expect(patch?.url).toMatch(/\/admin\/users\/u2$/)
+      expect(JSON.parse(patch?.init?.body as string)).toEqual({
+        name: 'SF Ghost', email: 'sf@aisalon.xyz', username: '', title: '',
+        linkedin: 'https://linkedin.com/in/sf', description: 'System login',
+        role: 'superadmin', chapter_id: 'c1',
+      })
+    })
+    // The row reflects the saved name.
+    expect(await screen.findByText('SF Ghost')).toBeInTheDocument()
+  })
+
+  it('refuses to save an account without an email', async () => {
+    const calls = mockApi()
+    renderWithSession(<UsersPage />, { role: 'superadmin' })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit sf@aisalon.xyz' }))
+    fireEvent.change(screen.getByLabelText('Email for sf@aisalon.xyz'), { target: { value: '  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(calls.some((c) => c.init?.method === 'PATCH')).toBe(false)
   })
 })

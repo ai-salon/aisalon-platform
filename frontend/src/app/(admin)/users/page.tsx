@@ -10,6 +10,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 type UserData = {
   id: string; email: string; username: string | null; role: string;
   name: string | null; title: string | null; chapter_id: string | null; is_active: boolean;
+  linkedin: string | null; description: string | null;
   last_login_at: string | null; login_count_30d: number;
   has_api_key: boolean; has_uploaded: boolean; has_article: boolean;
   has_read_hosting_guide: boolean; has_read_lead_guide: boolean;
@@ -17,6 +18,28 @@ type UserData = {
 type Chapter = { id: string; name: string; code: string };
 
 const EMPTY_FORM = { email: "", username: "", password: "", role: "chapter_lead", chapter_id: "" };
+
+// Superadmin edit row: every account field except password (own control) and
+// the Team-page fields (founder, order, public, photo).
+type EditTextKey = "name" | "email" | "username" | "title" | "linkedin";
+const EDIT_TEXT_FIELDS: { key: EditTextKey; label: string; placeholder?: string; type?: string }[] = [
+  { key: "name", label: "Name", placeholder: "Full name" },
+  { key: "email", label: "Email", type: "email" },
+  { key: "username", label: "Username", placeholder: "optional" },
+  { key: "title", label: "Title", placeholder: "e.g. SF Chapter Lead" },
+  { key: "linkedin", label: "LinkedIn", placeholder: "https://linkedin.com/in/…" },
+];
+const EMPTY_EDIT = {
+  name: "", email: "", username: "", title: "", linkedin: "", description: "",
+  role: "host", chapter_id: "",
+};
+const editLabelStyle: React.CSSProperties = {
+  display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 600, color: "#6b7280",
+};
+const editInputStyle: React.CSSProperties = {
+  padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5,
+  background: "#fff", width: "100%", boxSizing: "border-box", fontWeight: 400, color: "#111",
+};
 
 export default function UsersPage() {
   const { data: session, status } = useSession();
@@ -32,7 +55,7 @@ export default function UsersPage() {
   const [resetPassword, setResetPassword] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
   const [editUserId, setEditUserId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ role: "host", chapter_id: "", title: "" });
+  const [editForm, setEditForm] = useState({ ...EMPTY_EDIT });
   const [editSaving, setEditSaving] = useState(false);
 
   const token = (session as any)?.accessToken;
@@ -132,16 +155,29 @@ export default function UsersPage() {
 
   function openEdit(user: UserData) {
     setEditUserId(editUserId === user.id ? null : user.id);
-    setEditForm({ role: user.role, chapter_id: user.chapter_id ?? "", title: user.title ?? "" });
+    setEditForm({
+      name: user.name ?? "", email: user.email, username: user.username ?? "",
+      title: user.title ?? "", linkedin: user.linkedin ?? "", description: user.description ?? "",
+      role: user.role, chapter_id: user.chapter_id ?? "",
+    });
     setResetUserId(null);
   }
 
   async function handleEditSave(userId: string) {
+    if (!editForm.email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
     setEditSaving(true);
+    // Blank optional text fields are sent as "" and cleared server-side.
     const r = await fetch(`${API_URL}/admin/users/${userId}`, {
       method: "PATCH",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ role: editForm.role, chapter_id: editForm.chapter_id || null, title: editForm.title.trim() || null }),
+      body: JSON.stringify({
+        name: editForm.name.trim(), email: editForm.email.trim(), username: editForm.username.trim(),
+        title: editForm.title.trim(), linkedin: editForm.linkedin.trim(), description: editForm.description.trim(),
+        role: editForm.role, chapter_id: editForm.chapter_id || null,
+      }),
     });
     setEditSaving(false);
     if (r.ok) {
@@ -346,7 +382,8 @@ export default function UsersPage() {
                   <td style={{ padding: "14px 20px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button
                       onClick={() => openEdit(u)}
-                      title="Edit title, role, and chapter"
+                      title="Edit account"
+                      aria-label={`Edit ${u.email}`}
                       style={{
                         fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
                         border: `1.5px solid ${editUserId === u.id ? "#56a1d2" : "#d1d5db"}`,
@@ -394,36 +431,62 @@ export default function UsersPage() {
                 </tr>
                 {editUserId === u.id && (
                   <tr key={`${u.id}-edit`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                    <td colSpan={11} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280" }}>Edit {u.email}:</span>
-                        <label style={{ fontSize: 12, color: "#6b7280" }}>Title</label>
-                        <input
-                          type="text"
-                          value={editForm.title}
-                          onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
-                          placeholder="e.g. SF Chapter Lead"
-                          style={{ padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5, width: 200 }}
-                        />
-                        <label style={{ fontSize: 12, color: "#6b7280" }}>Role</label>
-                        <select
-                          value={editForm.role}
-                          onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
-                          style={{ padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5, background: "#fff" }}
-                        >
-                          <option value="host">Host</option>
-                          <option value="chapter_lead">Chapter Lead</option>
-                          <option value="superadmin">Superadmin</option>
-                        </select>
-                        <label style={{ fontSize: 12, color: "#6b7280" }}>Chapter</label>
-                        <select
-                          value={editForm.chapter_id}
-                          onChange={(e) => setEditForm((f) => ({ ...f, chapter_id: e.target.value }))}
-                          style={{ padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5, background: "#fff" }}
-                        >
-                          <option value="">None</option>
-                          {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
+                    <td colSpan={11} style={{ padding: "0 20px 16px", background: "#f8f6ec" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", margin: "12px 0 10px" }}>
+                        Edit {u.email}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+                        {EDIT_TEXT_FIELDS.map(({ key, label, placeholder, type }) => (
+                          <label key={key} style={editLabelStyle}>
+                            {label}
+                            <input
+                              type={type ?? "text"}
+                              aria-label={`${label} for ${u.email}`}
+                              value={editForm[key]}
+                              onChange={(e) => setEditForm((f) => ({ ...f, [key]: e.target.value }))}
+                              placeholder={placeholder}
+                              style={editInputStyle}
+                            />
+                          </label>
+                        ))}
+                        <label style={editLabelStyle}>
+                          Role
+                          <select
+                            aria-label={`Role for ${u.email}`}
+                            value={editForm.role}
+                            onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}
+                            style={editInputStyle}
+                          >
+                            <option value="host">Host</option>
+                            <option value="chapter_lead">Chapter Lead</option>
+                            <option value="superadmin">Superadmin</option>
+                          </select>
+                        </label>
+                        <label style={editLabelStyle}>
+                          Chapter
+                          <select
+                            aria-label={`Chapter for ${u.email}`}
+                            value={editForm.chapter_id}
+                            onChange={(e) => setEditForm((f) => ({ ...f, chapter_id: e.target.value }))}
+                            style={editInputStyle}
+                          >
+                            <option value="">None</option>
+                            {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </label>
+                        <label style={{ ...editLabelStyle, gridColumn: "1 / -1" }}>
+                          Bio
+                          <textarea
+                            aria-label={`Bio for ${u.email}`}
+                            rows={2}
+                            value={editForm.description}
+                            onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                            placeholder="Shown on the public team section"
+                            style={{ ...editInputStyle, resize: "vertical", fontFamily: "inherit" }}
+                          />
+                        </label>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                         <button
                           onClick={() => handleEditSave(u.id)}
                           disabled={editSaving}
