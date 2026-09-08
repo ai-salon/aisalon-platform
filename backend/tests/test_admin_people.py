@@ -221,3 +221,16 @@ async def test_lead_cannot_edit_founder_in_own_chapter(
         f"/admin/people/{founder.id}", headers=lead_headers, json={"title": "Nope"},
     )
     assert r.status_code == 403
+
+
+async def test_superadmin_can_set_profile_image_url(
+    client: AsyncClient, admin_headers, host_user
+):
+    """The Team page lets a superadmin swap any member's photo in place."""
+    r = await client.patch(
+        f"/admin/people/{host_user.id}", headers=admin_headers,
+        json={"profile_image_url": "/uploads/abc/photo.jpg"},
+    )
+    assert r.status_code == 200
+    listed = await client.get("/admin/people", headers=admin_headers)
+    assert _by_id(listed.json(), host_user.id)["profile_image_url"] == "/uploads/abc/photo.jpg"

@@ -159,6 +159,7 @@ class UserResponse(BaseModel):
     has_read_lead_guide: bool = False
     scheduling_url: str | None = None
     title: str | None = None
+    name: str | None = None
 
     model_config = {"from_attributes": True}
 

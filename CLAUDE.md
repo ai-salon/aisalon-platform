@@ -131,9 +131,8 @@ npm run lint    # ESLint (next/core-web-vitals)
 ### Data Model
 
 ```
-User (superadmin | chapter_lead | host) → chapter_id FK
-Chapter (code: unique slug) ← Users, TeamMembers, Jobs, Articles
-TeamMember → chapter_id, display_order, is_cofounder
+User (superadmin | chapter_lead | host) → chapter_id FK; profile fields (name, title, photo, is_founder, display_order, hide_from_team) drive the public Team page
+Chapter (code: unique slug) ← Users, Jobs, Articles
 Article (draft | published) → chapter_id, job_id
   └── SocialPost → platform, status (pending|posted|failed)
 Job (pending | processing | completed | failed) → user_id, chapter_id
@@ -151,6 +150,8 @@ HostingInterest → name, email, city, interest_type (start_chapter | host_exist
 3. New members register via invite: `GET /auth/invite/{token}` validates token → `POST /auth/register` creates user, increments `invite.use_count`
 4. Admin pages call `auth()` server-side; redirect to `/login` if unauthenticated
 5. API calls include `Authorization: Bearer <token>` header
+
+**System logins vs. people.** The seeded `admin@aisalon.xyz` and `<chapter>@aisalon.xyz` accounts are break-glass ghosts: nameless, `hide_from_team=True`, never given a person's profile (`core/seed.py`, migration `d4e8a1b2c3f5`). Real people, the founder included, use their own accounts. A superadmin may carry a `chapter_id` purely so they list under that chapter on the Team page; RBAC still treats them as global. The public `/team` orders founders by `display_order` alone, then chapter leads grouped by chapter.
 
 ### RBAC Pattern
 

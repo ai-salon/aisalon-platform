@@ -3,6 +3,15 @@ import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { renderWithSession } from '@/test/helpers'
 import PeoplePage from './page'
 
+// The real cropper needs canvas + object URLs; stand in with a one-click confirm.
+vi.mock('@/components/PhotoCropper', () => ({
+  default: ({ onConfirm }: { onConfirm: (b: Blob) => void }) => (
+    <button type="button" onClick={() => onConfirm(new Blob(['img'], { type: 'image/jpeg' }))}>
+      Use photo
+    </button>
+  ),
+}))
+
 type Call = { url: string; init?: RequestInit }
 
 const host = {
@@ -27,6 +36,7 @@ function mockApi({
       if (url.endsWith('/admin/people')) return { ok: true, status: 200, json: async () => people }
       if (url.endsWith('/admin/notifications/summary')) return { ok: true, status: 200, json: async () => summary }
       if (url.includes('/admin/people/')) return { ok: true, status: 200, json: async () => ({ ok: true }) }
+      if (url.endsWith('/profile/photo')) return { ok: true, status: 200, json: async () => ({ url: '/uploads/new/photo.jpg' }) }
       if (url.endsWith('/admin/invites')) return { ok: true, status: 201, json: async () => ({ token: 'tok123' }) }
       if (url.endsWith('/chapters')) return { ok: true, status: 200, json: async () => [] }
       return { ok: false, status: 404, json: async () => ({}) }
@@ -106,6 +116,15 @@ describe('PeoplePage for a chapter lead', () => {
     expect(screen.queryByLabelText('Founder: Hana Host')).toBeNull()
   })
 
+  it('offers no photo editing to a lead', async () => {
+    mockApi()
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    await screen.findByText('Hana Host')
+    expect(screen.queryByRole('button', { name: /change photo/i })).toBeNull()
+    expect(screen.queryByLabelText('New photo file')).toBeNull()
+  })
+
   it('marks hidden members with a Hidden pill', async () => {
     mockApi({ people: [hidden] })
     renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
@@ -157,6 +176,38 @@ describe('PeoplePage for a superadmin', () => {
         body: { is_founder: true },
       })
     })
+  })
+
+  it('lets the superadmin replace a member photo from the row', async () => {
+    const calls = mockApi()
+    renderWithSession(<PeoplePage />, { role: 'superadmin' })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Change photo for Hana Host' }))
+    const file = new File(['abc'], 'hana.png', { type: 'image/png' })
+    fireEvent.change(screen.getByLabelText('New photo file'), { target: { files: [file] } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Use photo' }))
+
+    await waitFor(() => {
+      const upload = calls.find((c) => c.url.endsWith('/profile/photo'))
+      expect(upload?.init?.method).toBe('POST')
+      expect(upload?.init?.body).toBeInstanceOf(FormData)
+      expect(patchCalls(calls)).toContainEqual({
+        url: expect.stringMatching(/\/admin\/people\/h1$/),
+        body: { profile_image_url: '/uploads/new/photo.jpg' },
+      })
+    })
+  })
+
+  it('rejects non-image files before uploading anything', async () => {
+    const calls = mockApi()
+    renderWithSession(<PeoplePage />, { role: 'superadmin' })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Change photo for Hana Host' }))
+    const file = new File(['abc'], 'notes.txt', { type: 'text/plain' })
+    fireEvent.change(screen.getByLabelText('New photo file'), { target: { files: [file] } })
+
+    expect(screen.queryByRole('button', { name: 'Use photo' })).toBeNull()
+    expect(calls.some((c) => c.url.endsWith('/profile/photo'))).toBe(false)
   })
 })
 

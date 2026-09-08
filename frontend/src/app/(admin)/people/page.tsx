@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import InviteCard from "@/components/InviteCard";
+import PhotoCropper from "@/components/PhotoCropper";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png"];
 
 interface Person {
   id: string;
@@ -37,6 +40,24 @@ function displayName(p: Person) {
   return p.name || p.username || p.email;
 }
 
+function photoSrc(url: string | null): string | null {
+  if (!url) return null;
+  return url.startsWith("/uploads/") ? `${API_URL}${url}` : url;
+}
+
+function Avatar({ url }: { url: string | null }) {
+  const src = photoSrc(url);
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", display: "block" }} />;
+  }
+  return (
+    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <i className="fa fa-user" style={{ color: "#9ca3af", fontSize: 16 }} aria-hidden="true" />
+    </div>
+  );
+}
+
 export default function PeoplePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -47,6 +68,11 @@ export default function PeoplePage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [hostingInterest, setHostingInterest] = useState(0);
+  // Superadmin photo editing: one hidden file input serves every row.
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const photoTargetRef = useRef<Person | null>(null);
+  const [pendingPhoto, setPendingPhoto] = useState<{ person: Person; file: File } | null>(null);
+  const [uploadingPhotoId, setUploadingPhotoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -96,7 +122,7 @@ export default function PeoplePage() {
     return p.role !== "superadmin" && !p.is_founder;
   }
 
-  async function update(id: string, patch: Partial<Person>) {
+  async function update(id: string, patch: Partial<Person>): Promise<boolean> {
     const r = await fetch(`${API_URL}/admin/people/${id}`, {
       method: "PATCH",
       headers: {
@@ -110,6 +136,57 @@ export default function PeoplePage() {
       toast.error(body?.detail ?? "Couldn't save that change.");
     }
     refresh();
+    return r.ok;
+  }
+
+  function pickPhotoFor(p: Person) {
+    photoTargetRef.current = p;
+    photoInputRef.current?.click();
+  }
+
+  function onPhotoFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    const target = photoTargetRef.current;
+    photoTargetRef.current = null;
+    if (!file || !target) return;
+    if (!ALLOWED_PHOTO_TYPES.includes(file.type)) {
+      toast.error("Please choose a JPEG or PNG image.");
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      toast.error("Image must be under 5 MB.");
+      return;
+    }
+    setPendingPhoto({ person: target, file });
+  }
+
+  // Same two-step flow as My Profile: upload the cropped image, then point the
+  // member's profile at it via the people endpoint (superadmin-only field).
+  async function handlePhotoCropped(blob: Blob) {
+    const target = pendingPhoto?.person;
+    setPendingPhoto(null);
+    if (!target) return;
+    setUploadingPhotoId(target.id);
+    try {
+      const fd = new FormData();
+      fd.append("file", new File([blob], "photo.jpg", { type: "image/jpeg" }));
+      const uploadRes = await fetch(`${API_URL}/profile/photo`, {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: fd,
+      });
+      if (!uploadRes.ok) {
+        toast.error("Photo upload failed. Try again.");
+        return;
+      }
+      const body = await uploadRes.json();
+      if (await update(target.id, { profile_image_url: body.url })) {
+        toast.success(`Photo updated for ${displayName(target)}`);
+      }
+    } finally {
+      setUploadingPhotoId(null);
+    }
   }
 
   const headers = [
@@ -188,17 +265,33 @@ export default function PeoplePage() {
                   }}
                 >
                   <td style={cell}>
-                    {p.profile_image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.profile_image_url.startsWith("/uploads/") ? `${API_URL}${p.profile_image_url}` : p.profile_image_url}
-                        alt=""
-                        style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover" }}
-                      />
+                    {isSuperadmin ? (
+                      <button
+                        type="button"
+                        aria-label={`Change photo for ${name}`}
+                        title="Change photo"
+                        disabled={uploadingPhotoId === p.id}
+                        onClick={() => pickPhotoFor(p)}
+                        style={{
+                          position: "relative", padding: 0, border: "none", background: "transparent",
+                          borderRadius: "50%", cursor: uploadingPhotoId === p.id ? "wait" : "pointer",
+                          opacity: uploadingPhotoId === p.id ? 0.5 : 1,
+                        }}
+                      >
+                        <Avatar url={p.profile_image_url} />
+                        <span
+                          aria-hidden="true"
+                          style={{
+                            position: "absolute", right: -3, bottom: -3, width: 18, height: 18, borderRadius: "50%",
+                            background: "#56a1d2", color: "#fff", fontSize: 10, display: "flex",
+                            alignItems: "center", justifyContent: "center", boxShadow: "0 0 0 2px #fff",
+                          }}
+                        >
+                          <i className="fa fa-camera" />
+                        </span>
+                      </button>
                     ) : (
-                      <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <i className="fa fa-user" style={{ color: "#9ca3af", fontSize: 16 }} aria-hidden="true" />
-                      </div>
+                      <Avatar url={p.profile_image_url} />
                     )}
                   </td>
                   <td style={{ ...cell, fontSize: 14, fontWeight: 500, color: "#111" }}>
@@ -296,6 +389,24 @@ export default function PeoplePage() {
           </tbody>
         </table>
       </div>
+
+      {isSuperadmin && (
+        <input
+          ref={photoInputRef}
+          type="file"
+          accept="image/jpeg,image/png"
+          aria-label="New photo file"
+          onChange={onPhotoFileSelected}
+          style={{ display: "none" }}
+        />
+      )}
+      {pendingPhoto && (
+        <PhotoCropper
+          file={pendingPhoto.file}
+          onCancel={() => setPendingPhoto(null)}
+          onConfirm={handlePhotoCropped}
+        />
+      )}
     </div>
   );
 }

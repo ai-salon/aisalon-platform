@@ -9,7 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type UserData = {
   id: string; email: string; username: string | null; role: string;
-  title: string | null; chapter_id: string | null; is_active: boolean;
+  name: string | null; title: string | null; chapter_id: string | null; is_active: boolean;
   last_login_at: string | null; login_count_30d: number;
   has_api_key: boolean; has_uploaded: boolean; has_article: boolean;
   has_read_hosting_guide: boolean; has_read_lead_guide: boolean;
@@ -279,7 +279,7 @@ export default function UsersPage() {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ borderBottom: "2px solid #f8f6ec" }}>
-              {["Email", "Username", "Title", "Role", "Chapter", "Status", "Onboarding", "Last Login", "Logins (30d)", ""].map((h) => (
+              {["Name", "Email", "Username", "Title", "Role", "Chapter", "Status", "Onboarding", "Last Login", "Logins (30d)", ""].map((h) => (
                 <th key={h} style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}>{h}</th>
               ))}
             </tr>
@@ -288,7 +288,8 @@ export default function UsersPage() {
             {users.map((u, i) => (
               <>
                 <tr key={u.id} style={{ borderBottom: resetUserId === u.id || editUserId === u.id ? "none" : i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                  <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 500, color: "#111" }}>{u.email}</td>
+                  <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 600, color: "#111" }}>{u.name ?? "—"}</td>
+                  <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.email}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.username ?? "—"}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.title ?? "—"}</td>
                   <td style={{ padding: "14px 20px" }}>
@@ -393,7 +394,7 @@ export default function UsersPage() {
                 </tr>
                 {editUserId === u.id && (
                   <tr key={`${u.id}-edit`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                    <td colSpan={10} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
+                    <td colSpan={11} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280" }}>Edit {u.email}:</span>
                         <label style={{ fontSize: 12, color: "#6b7280" }}>Title</label>
@@ -442,7 +443,7 @@ export default function UsersPage() {
                 )}
                 {resetUserId === u.id && (
                   <tr key={`${u.id}-reset`} style={{ borderBottom: i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                    <td colSpan={10} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
+                    <td colSpan={11} style={{ padding: "0 20px 14px", background: "#f8f6ec" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "#6b7280" }}>New password for {u.email}:</span>
                         <input

@@ -158,3 +158,20 @@ async def test_team_sort_order_founders_first(
     r = await client.get("/team")
     names = [m["name"] for m in r.json()]
     assert names.index("Ian E") < names.index("Lead Person")
+
+
+async def test_team_founders_ordered_by_display_order_across_chapters(
+    client: AsyncClient, db_session, sf_chapter
+):
+    """A founder's display_order wins even when another founder has no chapter."""
+    await _make_completed_user(
+        db_session, email="cecilia@x", name="Cecilia C", role=UserRole.host,
+        is_founder=True, display_order=91,
+    )
+    await _make_completed_user(
+        db_session, email="ian@x", name="Ian E", role=UserRole.superadmin,
+        chapter_id=sf_chapter.id, is_founder=True, display_order=90,
+    )
+    r = await client.get("/team")
+    names = [m["name"] for m in r.json()]
+    assert names[:2] == ["Ian E", "Cecilia C"]

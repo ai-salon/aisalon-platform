@@ -28,8 +28,11 @@ async def list_team(db: AsyncSession = Depends(get_db)):
     users = result.scalars().unique().all()
 
     def sort_key(u: User) -> tuple:
+        # Founders come first, ordered purely by display_order so the founder
+        # can pin themselves to the front regardless of chapter. Chapter leads
+        # follow, grouped by chapter.
         founder_bucket = 0 if u.is_founder else 1
-        chapter_name = (u.chapter.name if u.chapter else "")
+        chapter_name = "" if u.is_founder else (u.chapter.name if u.chapter else "")
         return (founder_bucket, chapter_name, u.display_order, u.created_at)
 
     users.sort(key=sort_key)
