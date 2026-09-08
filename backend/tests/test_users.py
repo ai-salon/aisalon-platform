@@ -40,9 +40,20 @@ class TestListUsers:
     async def test_user_shape(self, client: AsyncClient, admin_headers):
         r = await client.get("/admin/users", headers=admin_headers)
         u = r.json()[0]
-        for key in ("id", "email", "username", "role", "is_active"):
+        for key in ("id", "email", "username", "role", "is_active", "name"):
             assert key in u
         assert "hashed_password" not in u
+
+    async def test_lists_profile_name(
+        self, client: AsyncClient, admin_headers, superadmin, db_session: AsyncSession
+    ):
+        """The Users page shows the display name so accounts are recognisable."""
+        superadmin.name = "Ian Eisenberg"
+        db_session.add(superadmin)
+        await db_session.commit()
+        r = await client.get("/admin/users", headers=admin_headers)
+        row = next(u for u in r.json() if u["id"] == superadmin.id)
+        assert row["name"] == "Ian Eisenberg"
 
 
 class TestCreateUser:

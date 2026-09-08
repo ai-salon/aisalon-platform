@@ -163,22 +163,12 @@ _CHAPTERS = [
 ]
 
 
+# Founder profiles that live on placeholder accounts until the person claims a
+# real login. Ian's founder profile is deliberately NOT seeded: it belongs on his
+# own account (superadmin, SF, is_founder) and the generic ``admin`` login must
+# stay a nameless ghost — see migration d4e8a1b2c3f5.
 _FOUNDERS = [
     dict(
-        match_username="admin",
-        name="Ian Eisenberg",
-        title="Founder, Executive Director",
-        description=(
-            "Ian focuses on system-level interventions to make AI more effective and "
-            "beneficial. Besides the salon, he leads Credo AI's AI Governance Research "
-            "team."
-        ),
-        profile_image_url=f"{_P}/ian_eisenberg.jpeg",
-        linkedin="https://www.linkedin.com/in/ian-eisenberg-aa17b594/",
-        display_order=90,
-    ),
-    dict(
-        match_username=None,
         username="cecilia",
         email="cecilia@aisalon.placeholder",
         chapter_code="sf",
@@ -196,6 +186,12 @@ _FOUNDERS = [
 
 
 async def seed_superadmin() -> None:
+    """Create the break-glass ``admin`` login.
+
+    Like the per-chapter ghost logins it is a system account, not a person:
+    hidden from the Team page and never given a profile. Real superadmins
+    (e.g. the founder) use their own accounts.
+    """
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(User).where(User.username == "admin"))
         if result.scalar_one_or_none():
@@ -206,6 +202,7 @@ async def seed_superadmin() -> None:
             hashed_password=hash_password(settings.ADMIN_PASSWORD),
             role=UserRole.superadmin,
             is_active=True,
+            hide_from_team=True,
         ))
         await db.commit()
         logger.info("Seeded superadmin: admin")
@@ -263,14 +260,9 @@ async def seed_chapter_leads() -> None:
 async def seed_founders() -> None:
     async with AsyncSessionLocal() as db:
         for f in _FOUNDERS:
-            target = None
-            if f.get("match_username"):
-                row = await db.execute(select(User).where(User.username == f["match_username"]))
-                target = row.scalar_one_or_none()
-            if target is None and f.get("username"):
-                row = await db.execute(select(User).where(User.username == f["username"]))
-                target = row.scalar_one_or_none()
-            if target is None and f.get("username"):
+            row = await db.execute(select(User).where(User.username == f["username"]))
+            target = row.scalar_one_or_none()
+            if target is None:
                 chapter_id = None
                 if f.get("chapter_code"):
                     cr = await db.execute(select(Chapter).where(Chapter.code == f["chapter_code"]))
