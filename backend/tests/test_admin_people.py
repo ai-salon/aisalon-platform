@@ -101,14 +101,19 @@ async def test_hidden_member_not_listed_for_host(
 
 # ── Superadmin editing (unchanged) ───────────────────────────────────────────
 
-async def test_patch_person_sets_is_founder(
+async def test_people_endpoint_ignores_is_founder(
     client: AsyncClient, admin_headers, host_user
 ):
+    """Founder is an account attribute, edited on the Users page only."""
     r = await client.patch(
         f"/admin/people/{host_user.id}", headers=admin_headers,
         json={"is_founder": True, "title": "Co-Founder"},
     )
     assert r.status_code == 200
+    listed = await client.get("/admin/people", headers=admin_headers)
+    row = _by_id(listed.json(), host_user.id)
+    assert row["is_founder"] is False
+    assert row["title"] == "Co-Founder"
 
 
 async def test_host_cannot_patch_person(
@@ -177,7 +182,9 @@ async def test_lead_cannot_set_is_founder(
     r = await client.patch(
         f"/admin/people/{host_user.id}", headers=lead_headers, json={"is_founder": True},
     )
-    assert r.status_code == 403
+    assert r.status_code == 200  # unknown field, silently ignored
+    listed = await client.get("/admin/people", headers=lead_headers)
+    assert _by_id(listed.json(), host_user.id)["is_founder"] is False
 
 
 async def test_lead_cannot_set_profile_image_url(

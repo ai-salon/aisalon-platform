@@ -117,7 +117,7 @@ async def test_team_includes_founder_who_is_host(client: AsyncClient, db_session
     assert "Cecilia" in names
 
 
-async def test_team_excludes_users_with_incomplete_profile(
+async def test_team_excludes_users_without_a_name(
     client: AsyncClient, db_session, sf_chapter
 ):
     u = User(
@@ -128,8 +128,23 @@ async def test_team_excludes_users_with_incomplete_profile(
     db_session.add(u)
     await db_session.commit()
     r = await client.get("/team")
-    names = [m["name"] for m in r.json() if m.get("name")]
-    assert "incomplete" not in names
+    assert all(m["name"] for m in r.json())
+    assert "incomplete" not in [m["name"] for m in r.json()]
+
+
+async def test_team_includes_admin_created_lead_who_never_onboarded(
+    client: AsyncClient, db_session, sf_chapter
+):
+    """An admin naming an account is enough; no onboarding timestamp required."""
+    u = User(
+        email="created@x", username="created", hashed_password=hash_password("x"),
+        role=UserRole.chapter_lead, chapter_id=sf_chapter.id, is_active=True,
+        name="Created Lead", title="SF Chapter Lead", profile_completed_at=None,
+    )
+    db_session.add(u)
+    await db_session.commit()
+    r = await client.get("/team")
+    assert "Created Lead" in [m["name"] for m in r.json()]
 
 
 async def test_team_excludes_hide_from_team_users(

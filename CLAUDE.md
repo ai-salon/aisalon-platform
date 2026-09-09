@@ -148,10 +148,19 @@ HostingInterest → name, email, city, interest_type (start_chapter | host_exist
 1. `POST /auth/login` → JWT access token + records `UserLoginEvent`
 2. NextAuth `CredentialsProvider` forwards creds to backend, stores token in 30-day session cookie
 3. New members register via invite: `GET /auth/invite/{token}` validates token → `POST /auth/register` creates user, increments `invite.use_count`
-4. Admin pages call `auth()` server-side; redirect to `/login` if unauthenticated
+4. Admin pages call `auth()` server-side; redirect to `/profile/complete` if the account has no name yet, to `/login` if unauthenticated
 5. API calls include `Authorization: Bearer <token>` header
+6. Password reset by email: `POST /auth/forgot-password` (always 202; 503 when Resend is unconfigured) emails a single-use 24h link to `/reset-password?token=…` → `POST /auth/reset-password`. Superadmins trigger the same link for any account via `POST /admin/users/{id}/password-reset-link` or by creating a user with `send_password_link: true` and no password (`services/password_reset.py`).
 
-**System logins vs. people.** The seeded `admin@aisalon.xyz` and `<chapter>@aisalon.xyz` accounts are break-glass ghosts: nameless, `hide_from_team=True`, never given a person's profile (`core/seed.py`, migration `d4e8a1b2c3f5`). Real people, the founder included, use their own accounts. A superadmin may carry a `chapter_id` purely so they list under that chapter on the Team page; RBAC still treats them as global. The public `/team` orders founders by `display_order` alone, then chapter leads grouped by chapter.
+### Users vs. Team vs. My Profile
+
+- **Users page** (`/users`, superadmin only) = **accounts**: who can log in and what they are. Create and edit everything — name, email, username, password (or emailed set-password link), role, chapter, founder flag, active. `POST/PATCH /admin/users`.
+- **Team page** (`/people`, superadmins + chapter leads) = **presentation** of the public team: photo, title, order, public toggle. Leads manage hosts and co-leads in their own chapter; superadmins manage everyone and can **view as** any chapter's lead (client-side preview of that lead's scope and controls). `PATCH /admin/people/{id}` accepts presentation fields only.
+- **My Profile** (`/profile`) = self-service for one's own name, photo, bio, LinkedIn, email change, password.
+
+**Complete = has a name.** No separate onboarding gate: the public `/team`, the admin-layout onboarding redirect, and the Team page's Profile column all key on `name`. `profile_completed_at` is an audit timestamp set whenever a name first lands (onboarding form, My Profile, or an admin on the Users page).
+
+**System logins vs. people.** The seeded `admin@aisalon.xyz` and `<chapter>@aisalon.xyz` accounts are break-glass ghosts: nameless, `hide_from_team=True`, never given a person's profile (`core/seed.py`; migration `d4e8a1b2c3f5` moved the founder's profile off `admin`). Nobody is seeded as a person — founders and leads are accounts a superadmin creates on the Users page (typically with an emailed set-password link) or that register via invite. A superadmin may carry a `chapter_id` purely so they list under that chapter on the Team page; RBAC still treats them as global. The public `/team` orders founders by `display_order` alone, then chapter leads grouped by chapter.
 
 ### RBAC Pattern
 
@@ -214,6 +223,8 @@ Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/proces
 | `/host/[code]` | `(public)/host/[code]/page.tsx` | No |
 | `/register` | `(public)/register/page.tsx` | No |
 | `/verify-email` | `(public)/verify-email/page.tsx` | No |
+| `/forgot-password` | `(public)/forgot-password/page.tsx` | No |
+| `/reset-password` | `(public)/reset-password/page.tsx` | No |
 | `/insights` | `(public)/insights/page.tsx` | No |
 | `/login` | `(admin)/login/page.tsx` | No |
 | `/profile` | `(admin)/profile/page.tsx` | Yes |
@@ -225,7 +236,7 @@ Frontend polls `GET /admin/jobs` every 5 seconds while any job is pending/proces
 | `/chapters` | `(admin)/chapters/page.tsx` | Yes (superadmin) |
 | `/chapters/edit/[code]` | `(admin)/chapters/edit/[code]/page.tsx` | Yes |
 | `/contact-messages` | `(admin)/contact-messages/page.tsx` | Yes |
-| `/team` | `(admin)/team/page.tsx` | Yes |
+| `/people` | `(admin)/people/page.tsx` | Yes (Team page; leads see their chapter) |
 | `/users` | `(admin)/users/page.tsx` | Yes (superadmin) |
 | `/settings` | `(admin)/settings/page.tsx` | Yes |
 | `/community` | `(admin)/community/page.tsx` | Yes |

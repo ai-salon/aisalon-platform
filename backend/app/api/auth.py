@@ -20,7 +20,9 @@ from app.models.login_event import UserLoginEvent
 from app.schemas.auth import (
     LoginRequest, RegisterRequest, TokenResponse, UserOut, InviteInfoResponse,
     ChangePasswordRequest, VerifyEmailChangeRequest, VerifyEmailChangeResponse,
+    ForgotPasswordRequest, ResetPasswordRequest,
 )
+from app.services import password_reset
 from app.services.email import send_email
 
 logger = get_logger(__name__)
@@ -182,6 +184,53 @@ async def verify_email_change(
         f"If this wasn't you, contact an administrator immediately.</p>",
     )
     return VerifyEmailChangeResponse(email=user.email)
+
+
+@router.post("/auth/forgot-password", status_code=202)
+@limiter.limit("5/15minutes")
+async def forgot_password(
+    request: Request,
+    body: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+):
+    """Email a single-use reset link. Always 202 so addresses can't be probed."""
+    if not password_reset.email_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Email is not configured — contact an administrator",
+        )
+    email = body.email.strip().lower()
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if user and user.is_active:
+        token = password_reset.issue_reset_token(user)
+        db.add(user)
+        await db.commit()
+        background_tasks.add_task(
+            password_reset.send_password_reset_email, user.email, token
+        )
+        logger.info("password_reset_requested", user_id=user.id)
+    else:
+        logger.info("password_reset_requested_unknown")
+    return {"detail": "If that email has an account, a reset link is on its way."}
+
+
+@router.post("/auth/reset-password", status_code=204)
+@limiter.limit("10/15minutes")
+async def reset_password(
+    request: Request,
+    body: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    user = await password_reset.find_user_by_reset_token(db, body.token)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=400, detail="Invalid or expired link")
+    user.hashed_password = hash_password(body.new_password)
+    password_reset.clear_reset_token(user)
+    db.add(user)
+    await db.commit()
+    logger.info("password_reset_completed", user_id=user.id)
 
 
 @router.post("/auth/change-password", status_code=204)

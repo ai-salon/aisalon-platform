@@ -17,7 +17,9 @@ async def list_team(db: AsyncSession = Depends(get_db)):
         select(User)
         .options(selectinload(User.chapter))
         .outerjoin(Chapter, User.chapter_id == Chapter.id)
-        .where(User.profile_completed_at.is_not(None))
+        # "Complete" means the account has a name, however it got one
+        # (onboarding form, My Profile, or an admin on the Users page).
+        .where(User.name.is_not(None))
         .where(User.hide_from_team.is_(False))
         .where(
             (User.is_founder.is_(True))

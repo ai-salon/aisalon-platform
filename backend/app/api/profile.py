@@ -88,6 +88,8 @@ async def update_my_profile(
 ):
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(current_user, field, value)
+    if current_user.name and current_user.profile_completed_at is None:
+        current_user.profile_completed_at = datetime.now(timezone.utc)
     db.add(current_user)
     await db.commit()
     await db.refresh(current_user)

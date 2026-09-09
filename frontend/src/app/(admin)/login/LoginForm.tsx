@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -124,6 +125,11 @@ export default function LoginForm() {
             {loading ? "Signing in…" : "SIGN IN"}
           </button>
         </form>
+        <p style={{ fontSize: 13, color: "#696969", textAlign: "center", margin: "18px 0 0" }}>
+          <Link href="/forgot-password" style={{ color: "#56a1d2", fontWeight: 600 }}>
+            Forgot password?
+          </Link>
+        </p>
       </div>
     </div>
   );

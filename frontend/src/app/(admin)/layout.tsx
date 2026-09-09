@@ -29,7 +29,8 @@ async function isProfileIncomplete(token: string): Promise<boolean> {
     });
     if (!res.ok) return false;
     const me = await res.json();
-    return !me.profile_completed_at;
+    // A profile is complete once it has a name, whoever set it.
+    return !me.name;
   } catch {
     return false;
   }

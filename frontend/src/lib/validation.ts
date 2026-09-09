@@ -14,7 +14,7 @@ export function validateTeamMember(form: { name: string; email?: string; role: s
   return errors
 }
 
-export function validateUser(form: { email: string; password: string; role: string }) {
+export function validateUser(form: { email: string; password: string; role: string; sendLink?: boolean }) {
   const errors: Record<string, string> = {}
   if (!form.email.trim()) {
     errors.email = 'Email is required'
@@ -22,7 +22,8 @@ export function validateUser(form: { email: string; password: string; role: stri
     errors.email = 'Enter a valid email address'
   }
   if (!form.password) {
-    errors.password = 'Password is required'
+    // No password is fine when the person will set their own via emailed link.
+    if (!form.sendLink) errors.password = 'Password is required'
   } else if (form.password.length < 8) {
     errors.password = 'Password must be at least 8 characters'
   }

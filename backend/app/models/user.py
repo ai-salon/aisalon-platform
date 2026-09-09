@@ -46,4 +46,10 @@ class User(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
+    # Emailed password reset / first-login "set your password" link
+    password_reset_token_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    password_reset_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     chapter: Mapped["Chapter | None"] = relationship("Chapter", back_populates="users")  # noqa: F821
