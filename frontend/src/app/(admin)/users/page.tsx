@@ -10,14 +10,19 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 type UserData = {
   id: string; email: string; username: string | null; role: string;
   name: string | null; title: string | null; chapter_id: string | null; is_active: boolean;
-  linkedin: string | null; description: string | null;
+  linkedin: string | null; description: string | null; is_founder: boolean;
   last_login_at: string | null; login_count_30d: number;
   has_api_key: boolean; has_uploaded: boolean; has_article: boolean;
   has_read_hosting_guide: boolean; has_read_lead_guide: boolean;
 };
 type Chapter = { id: string; name: string; code: string };
 
-const EMPTY_FORM = { email: "", username: "", password: "", role: "chapter_lead", chapter_id: "" };
+const EMPTY_FORM = {
+  email: "", username: "", password: "", role: "chapter_lead", chapter_id: "",
+  name: "", title: "", linkedin: "", description: "",
+};
+// Founder + "email them a set-password link" live beside the text fields.
+const EMPTY_FLAGS = { is_founder: false, send_link: true };
 
 // Superadmin edit row: every account field except password (own control) and
 // the Team-page fields (founder, order, public, photo).
@@ -31,7 +36,7 @@ const EDIT_TEXT_FIELDS: { key: EditTextKey; label: string; placeholder?: string;
 ];
 const EMPTY_EDIT = {
   name: "", email: "", username: "", title: "", linkedin: "", description: "",
-  role: "host", chapter_id: "",
+  role: "host", chapter_id: "", is_founder: false,
 };
 const editLabelStyle: React.CSSProperties = {
   display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 600, color: "#6b7280",
@@ -48,6 +53,7 @@ export default function UsersPage() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [createFlags, setCreateFlags] = useState({ ...EMPTY_FLAGS });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -94,7 +100,9 @@ export default function UsersPage() {
   }
 
   async function handleCreate() {
-    const errors = validateUser({ email: form.email, password: form.password, role: form.role });
+    const errors = validateUser({
+      email: form.email, password: form.password, role: form.role, sendLink: createFlags.send_link,
+    });
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
@@ -105,20 +113,44 @@ export default function UsersPage() {
     const r = await fetch(`${API_URL}/admin/users`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, username: form.username || null, chapter_id: form.chapter_id || null }),
+      body: JSON.stringify({
+        ...form,
+        username: form.username || null,
+        chapter_id: form.chapter_id || null,
+        password: form.password || null,
+        is_founder: createFlags.is_founder,
+        send_password_link: createFlags.send_link,
+      }),
     });
     setSaving(false);
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
-      setError(body.detail ?? "Failed to create user.");
-      toast.error(body.detail ?? "Failed to create user");
+      const detail = typeof body.detail === "string" ? body.detail : "Failed to create user.";
+      setError(detail);
+      toast.error(detail);
       return;
     }
     const created = await r.json();
     setUsers((prev) => [...prev, created]);
     setShowForm(false);
     setForm({ ...EMPTY_FORM, chapter_id: chapters[0]?.id ?? "" });
-    toast.success("User created");
+    setCreateFlags({ ...EMPTY_FLAGS });
+    toast.success(createFlags.send_link ? `User created — set-password link emailed to ${created.email}` : "User created");
+  }
+
+  async function handleEmailResetLink(user: UserData) {
+    const r = await fetch(`${API_URL}/admin/users/${user.id}/password-reset-link`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (r.ok) {
+      toast.success(`Set-password link emailed to ${user.email}`);
+      setResetUserId(null);
+      setResetPassword("");
+    } else {
+      const body = await r.json().catch(() => ({}));
+      toast.error(typeof body.detail === "string" ? body.detail : "Couldn't send the link");
+    }
   }
 
   async function handleDelete(user: UserData) {
@@ -158,7 +190,7 @@ export default function UsersPage() {
     setEditForm({
       name: user.name ?? "", email: user.email, username: user.username ?? "",
       title: user.title ?? "", linkedin: user.linkedin ?? "", description: user.description ?? "",
-      role: user.role, chapter_id: user.chapter_id ?? "",
+      role: user.role, chapter_id: user.chapter_id ?? "", is_founder: !!user.is_founder,
     });
     setResetUserId(null);
   }
@@ -176,7 +208,7 @@ export default function UsersPage() {
       body: JSON.stringify({
         name: editForm.name.trim(), email: editForm.email.trim(), username: editForm.username.trim(),
         title: editForm.title.trim(), linkedin: editForm.linkedin.trim(), description: editForm.description.trim(),
-        role: editForm.role, chapter_id: editForm.chapter_id || null,
+        role: editForm.role, chapter_id: editForm.chapter_id || null, is_founder: editForm.is_founder,
       }),
     });
     setEditSaving(false);
@@ -237,8 +269,16 @@ export default function UsersPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
               { key: "email", label: "Email", type: "email", required: true },
+              { key: "name", label: "Name", type: "text", required: false },
               { key: "username", label: "Username (optional)", type: "text", required: false },
-              { key: "password", label: "Password", type: "password", required: true },
+              { key: "title", label: "Title", type: "text", required: false },
+              { key: "linkedin", label: "LinkedIn", type: "url", required: false },
+              {
+                key: "password",
+                label: createFlags.send_link ? "Password (optional — they'll choose their own)" : "Password",
+                type: "password",
+                required: !createFlags.send_link,
+              },
             ].map(({ key, label, type, required }) => (
               <div key={key}>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>
@@ -246,6 +286,7 @@ export default function UsersPage() {
                 </label>
                 <input
                   type={type}
+                  aria-label={label}
                   value={(form as Record<string, string>)[key]}
                   onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
                   style={{
@@ -297,6 +338,33 @@ export default function UsersPage() {
                 {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 5 }}>Bio</label>
+              <textarea
+                aria-label="Bio"
+                rows={2}
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="Shown on the public team section"
+                style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }}
+              />
+            </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#111" }}>
+              <input
+                type="checkbox"
+                checked={createFlags.is_founder}
+                onChange={(e) => setCreateFlags((f) => ({ ...f, is_founder: e.target.checked }))}
+              />
+              Founder
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#111" }}>
+              <input
+                type="checkbox"
+                checked={createFlags.send_link}
+                onChange={(e) => setCreateFlags((f) => ({ ...f, send_link: e.target.checked }))}
+              />
+              Email them a link to set their password
+            </label>
           </div>
           {error && <p style={{ fontSize: 13, color: "#ef4444", marginTop: 10 }}>{error}</p>}
           <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
@@ -396,6 +464,7 @@ export default function UsersPage() {
                     <button
                       onClick={() => { setResetUserId(resetUserId === u.id ? null : u.id); setResetPassword(""); setEditUserId(null); }}
                       title="Reset password"
+                      aria-label={`Reset password for ${u.email}`}
                       style={{
                         fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 5, cursor: "pointer", background: "transparent",
                         border: `1.5px solid ${resetUserId === u.id ? "#56a1d2" : "#d1d5db"}`,
@@ -474,6 +543,15 @@ export default function UsersPage() {
                             {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                           </select>
                         </label>
+                        <label style={{ ...editLabelStyle, flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "end", paddingBottom: 6 }}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Founder for ${u.email}`}
+                            checked={editForm.is_founder}
+                            onChange={(e) => setEditForm((f) => ({ ...f, is_founder: e.target.checked }))}
+                          />
+                          Founder
+                        </label>
                         <label style={{ ...editLabelStyle, gridColumn: "1 / -1" }}>
                           Bio
                           <textarea
@@ -522,6 +600,15 @@ export default function UsersPage() {
                           style={{ padding: "6px 14px", fontSize: 12, fontWeight: 700, background: "#56a1d2", color: "#fff", border: "none", borderRadius: 5, cursor: "pointer" }}
                         >
                           {resetSaving ? "Saving…" : "Save"}
+                        </button>
+                        <span style={{ fontSize: 12, color: "#9ca3af" }}>or</span>
+                        <button
+                          onClick={() => handleEmailResetLink(u)}
+                          aria-label={`Email reset link to ${u.email}`}
+                          style={{ padding: "6px 14px", fontSize: 12, fontWeight: 700, background: "transparent", border: "1.5px solid #56a1d2", borderRadius: 5, cursor: "pointer", color: "#56a1d2" }}
+                        >
+                          <i className="fa fa-envelope-o" style={{ marginRight: 6 }} aria-hidden="true" />
+                          Email reset link
                         </button>
                         <button
                           onClick={() => { setResetUserId(null); setResetPassword(""); }}

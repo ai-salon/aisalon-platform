@@ -1,8 +1,10 @@
-"""Startup seed: superadmin + chapters + chapter leads + founders + topics + volunteer roles."""
-from datetime import datetime, timezone
+"""Startup seed: system logins (admin + chapter ghosts), chapters, topics, volunteer roles.
+
+People are never seeded. Founders and chapter leads are ordinary accounts a
+superadmin creates on the Users page (or that register via invite).
+"""
 from pathlib import Path
 import re
-import secrets
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
@@ -16,13 +18,7 @@ from app.models.topic import Topic
 
 logger = get_logger(__name__)
 
-_P = "/images/people"
-
 _TOPICS_DIR = Path(__file__).resolve().parents[2] / "docs" / "topics"
-
-
-def _now():
-    return datetime.now(timezone.utc)
 
 
 _CHAPTERS = [
@@ -163,28 +159,6 @@ _CHAPTERS = [
 ]
 
 
-# Founder profiles that live on placeholder accounts until the person claims a
-# real login. Ian's founder profile is deliberately NOT seeded: it belongs on his
-# own account (superadmin, SF, is_founder) and the generic ``admin`` login must
-# stay a nameless ghost — see migration d4e8a1b2c3f5.
-_FOUNDERS = [
-    dict(
-        username="cecilia",
-        email="cecilia@aisalon.placeholder",
-        chapter_code="sf",
-        name="Cecilia Callas",
-        title="Co-Founder, Advisor",
-        description=(
-            "Cecilia Callas is an AI Ethicist, Responsible AI expert and writer based "
-            "in San Francisco, CA."
-        ),
-        profile_image_url=f"{_P}/cecilia_callas.jpeg",
-        linkedin="https://www.linkedin.com/in/ceciliacallas/",
-        display_order=91,
-    ),
-]
-
-
 async def seed_superadmin() -> None:
     """Create the break-glass ``admin`` login.
 
@@ -253,44 +227,6 @@ async def seed_chapter_leads() -> None:
                 db.add(user)
                 await db.flush()
                 logger.info("Seeded base chapter user: %s", code)
-
-        await db.commit()
-
-
-async def seed_founders() -> None:
-    async with AsyncSessionLocal() as db:
-        for f in _FOUNDERS:
-            row = await db.execute(select(User).where(User.username == f["username"]))
-            target = row.scalar_one_or_none()
-            if target is None:
-                chapter_id = None
-                if f.get("chapter_code"):
-                    cr = await db.execute(select(Chapter).where(Chapter.code == f["chapter_code"]))
-                    ch = cr.scalar_one_or_none()
-                    chapter_id = ch.id if ch else None
-                target = User(
-                    username=f["username"],
-                    email=f.get("email") or f"{f['username']}@aisalon.placeholder",
-                    hashed_password=hash_password(secrets.token_urlsafe(16)),
-                    role=UserRole.host,
-                    chapter_id=chapter_id,
-                    is_active=True,
-                )
-                db.add(target)
-                await db.flush()
-                logger.info("Seeded founder user: %s", f["username"])
-
-            if target.profile_completed_at:
-                continue
-
-            target.name = f["name"]
-            target.title = f["title"]
-            target.description = f.get("description") or None
-            target.profile_image_url = f["profile_image_url"]
-            target.linkedin = f.get("linkedin") or None
-            target.is_founder = True
-            target.display_order = f.get("display_order", 0)
-            target.profile_completed_at = _now()
 
         await db.commit()
 

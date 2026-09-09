@@ -31,7 +31,6 @@ from app.core.seed import (
     seed_superadmin,
     seed_chapters,
     seed_chapter_leads,
-    seed_founders,
     seed_volunteer_roles,
     seed_topics,
 )
@@ -96,7 +95,6 @@ async def lifespan(app: FastAPI):
     await seed_superadmin()
     await seed_chapters()
     await seed_chapter_leads()
-    await seed_founders()
     await seed_volunteer_roles()
     await seed_topics()
     yield

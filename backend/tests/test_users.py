@@ -1,6 +1,9 @@
 """Tests for /admin/users endpoints (user management)."""
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User, UserRole
@@ -83,8 +86,108 @@ class TestCreateUser:
         }, headers=admin_headers)
         assert r.status_code == 409
 
+    async def test_creates_complete_account_with_profile_fields(
+        self, client: AsyncClient, admin_headers, sf_chapter
+    ):
+        r = await client.post("/admin/users", json={
+            "email": "Cecilia@Example.com", "password": "securepass", "role": "host",
+            "chapter_id": sf_chapter.id, "name": "Cecilia Callas", "title": "Co-Founder",
+            "linkedin": "https://linkedin.com/in/cc", "description": "bio", "is_founder": True,
+        }, headers=admin_headers)
+        assert r.status_code == 201
+        body = r.json()
+        assert body["email"] == "cecilia@example.com"
+        assert body["name"] == "Cecilia Callas"
+        assert body["title"] == "Co-Founder"
+        assert body["is_founder"] is True
+        # Named on creation => complete, and public straight away.
+        people = await client.get("/admin/people", headers=admin_headers)
+        row = next(p for p in people.json() if p["id"] == body["id"])
+        assert row["profile_completed_at"] is not None
+        team = await client.get("/team")
+        assert "Cecilia Callas" in [m["name"] for m in team.json()]
+
+    async def test_requires_password_or_link(self, client: AsyncClient, admin_headers):
+        r = await client.post("/admin/users", json={
+            "email": "nopass@aisalon.xyz", "role": "host",
+        }, headers=admin_headers)
+        assert r.status_code == 400
+
+    async def test_send_password_link_on_create(
+        self, client: AsyncClient, admin_headers, db_session: AsyncSession
+    ):
+        with patch(
+            "app.services.password_reset.send_email", new=AsyncMock(return_value=True)
+        ) as m, patch("app.services.password_reset.settings.RESEND_API_KEY", "re_test"):
+            r = await client.post("/admin/users", json={
+                "email": "link@aisalon.xyz", "role": "host", "name": "Link Person",
+                "send_password_link": True,
+            }, headers=admin_headers)
+        assert r.status_code == 201
+        m.assert_awaited_once()
+        to, subject, html = m.await_args.args[:3]
+        assert to == ["link@aisalon.xyz"]
+        assert "Set your" in subject
+        assert "/reset-password?token=" in html
+        created = (
+            await db_session.execute(select(User).where(User.email == "link@aisalon.xyz"))
+        ).scalar_one()
+        assert created.password_reset_token_hash is not None
+
+    async def test_send_password_link_needs_email_configured(
+        self, client: AsyncClient, admin_headers
+    ):
+        with patch("app.services.password_reset.settings.RESEND_API_KEY", ""):
+            r = await client.post("/admin/users", json={
+                "email": "nolink@aisalon.xyz", "role": "host", "send_password_link": True,
+            }, headers=admin_headers)
+        assert r.status_code == 503
+
+
+class TestPasswordResetLink:
+    async def test_admin_can_email_a_reset_link(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "linkme@aisalon.xyz", sf_chapter.id)
+        with patch(
+            "app.services.password_reset.send_email", new=AsyncMock(return_value=True)
+        ) as m, patch("app.services.password_reset.settings.RESEND_API_KEY", "re_test"):
+            r = await client.post(
+                f"/admin/users/{lead.id}/password-reset-link", headers=admin_headers
+            )
+        assert r.status_code == 202
+        m.assert_awaited_once()
+        assert m.await_args.args[0] == ["linkme@aisalon.xyz"]
+
+    async def test_requires_superadmin(
+        self, client: AsyncClient, lead_headers, chapter_lead
+    ):
+        r = await client.post(
+            f"/admin/users/{chapter_lead.id}/password-reset-link", headers=lead_headers
+        )
+        assert r.status_code == 403
+
+    async def test_unknown_user_is_404(self, client: AsyncClient, admin_headers):
+        with patch("app.services.password_reset.settings.RESEND_API_KEY", "re_test"):
+            r = await client.post("/admin/users/nope/password-reset-link", headers=admin_headers)
+        assert r.status_code == 404
+
 
 class TestUpdateUser:
+    async def test_set_founder_and_name_completes_profile(
+        self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
+    ):
+        lead = await _make_chapter_lead(db_session, "founder@aisalon.xyz", sf_chapter.id)
+        r = await client.patch(f"/admin/users/{lead.id}",
+                               json={"is_founder": True, "name": "Ian Eisenberg"},
+                               headers=admin_headers)
+        assert r.status_code == 200
+        assert r.json()["is_founder"] is True
+        people = await client.get("/admin/people", headers=admin_headers)
+        row = next(p for p in people.json() if p["id"] == lead.id)
+        assert row["is_founder"] is True
+        assert row["profile_completed_at"] is not None
+
     async def test_deactivate_user(
         self, client: AsyncClient, admin_headers, sf_chapter, db_session: AsyncSession
     ):

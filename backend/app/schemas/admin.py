@@ -121,11 +121,35 @@ class ArticleCreate(BaseModel):
 # ── Users ──────────────────────────────────────────────────────────────────────
 
 class UserCreate(BaseModel):
+    """Superadmin creates a complete account. Either give a password or set
+    ``send_password_link`` so the person chooses their own via email."""
     email: str
     username: str | None = None
-    password: str
+    password: str | None = None
+    send_password_link: bool = False
     role: str = "chapter_lead"
     chapter_id: str | None = None
+    name: str | None = None
+    title: str | None = None
+    linkedin: str | None = None
+    description: str | None = None
+    is_founder: bool = False
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        if "@" not in v or v.startswith("@") or v.endswith("@"):
+            raise ValueError("email must be a valid address")
+        return v
+
+    @field_validator("name", "username", "title", "linkedin", "description")
+    @classmethod
+    def blank_to_none(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
 
 
 class UserUpdate(BaseModel):
@@ -140,6 +164,7 @@ class UserUpdate(BaseModel):
     username: str | None = None
     linkedin: str | None = None
     description: str | None = None
+    is_founder: bool | None = None
 
     @field_validator("email")
     @classmethod
@@ -178,6 +203,7 @@ class UserResponse(BaseModel):
     name: str | None = None
     linkedin: str | None = None
     description: str | None = None
+    is_founder: bool = False
 
     model_config = {"from_attributes": True}
 

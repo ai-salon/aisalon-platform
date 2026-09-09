@@ -28,6 +28,12 @@ interface Person {
   chapter_name: string | null;
 }
 
+interface ChapterOption {
+  id: string;
+  code: string;
+  name: string;
+}
+
 const cell: React.CSSProperties = { padding: "14px 20px" };
 const inputStyle: React.CSSProperties = {
   padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5,
@@ -58,21 +64,36 @@ function Avatar({ url }: { url: string | null }) {
   );
 }
 
+/**
+ * Team page = presentation of the public team: photo, title, order, public.
+ * Account attributes (founder, role, chapter, identity) live on the Users page.
+ * Superadmins can preview the page exactly as a given chapter's lead sees it.
+ */
 export default function PeoplePage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const token = (session as unknown as { accessToken?: string })?.accessToken;
-  const userRole = (session?.user as unknown as { role?: string } | undefined)?.role;
-  const isSuperadmin = userRole === "superadmin";
-  const isEditor = isSuperadmin || userRole === "chapter_lead";
+  const sessionRole = (session?.user as unknown as { role?: string } | undefined)?.role;
+  const isSuperadmin = sessionRole === "superadmin";
   const [people, setPeople] = useState<Person[]>([]);
+  const [chapters, setChapters] = useState<ChapterOption[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [hostingInterest, setHostingInterest] = useState(0);
+  // Superadmin "view as": chapter code being previewed, or "" for the real view.
+  const [viewAs, setViewAs] = useState("");
   // Superadmin photo editing: one hidden file input serves every row.
   const photoInputRef = useRef<HTMLInputElement>(null);
   const photoTargetRef = useRef<Person | null>(null);
   const [pendingPhoto, setPendingPhoto] = useState<{ person: Person; file: File } | null>(null);
   const [uploadingPhotoId, setUploadingPhotoId] = useState<string | null>(null);
+
+  const previewing = isSuperadmin && viewAs !== "";
+  // The role whose controls we render. While previewing, act like a lead.
+  const userRole = previewing ? "chapter_lead" : sessionRole;
+  const canUseSuperadminControls = isSuperadmin && !previewing;
+  const isEditor = userRole === "superadmin" || userRole === "chapter_lead";
+  const previewChapter = chapters.find((c) => c.code === viewAs);
+  const visible = previewing ? people.filter((p) => p.chapter_code === viewAs) : people;
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -101,6 +122,15 @@ export default function PeoplePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // Chapter list for the superadmin "view as" switch.
+  useEffect(() => {
+    if (!token || !isSuperadmin) return;
+    fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((c: ChapterOption[]) => setChapters(Array.isArray(c) ? c : []))
+      .catch(() => {});
+  }, [token, isSuperadmin]);
+
   // Outstanding hosting-interest count, already scoped per role by the API.
   useEffect(() => {
     if (!token || !isEditor) return;
@@ -117,7 +147,7 @@ export default function PeoplePage() {
   /** Superadmins edit anyone. Leads edit hosts and co-leads in their chapter
    *  (the list is already chapter-scoped by the API), never superadmins or founders. */
   function canEditRow(p: Person) {
-    if (isSuperadmin) return true;
+    if (canUseSuperadminControls) return true;
     if (userRole !== "chapter_lead") return false;
     return p.role !== "superadmin" && !p.is_founder;
   }
@@ -190,19 +220,62 @@ export default function PeoplePage() {
   }
 
   const headers = [
-    "Photo", "Name", "Title", "Role", "Chapter", "Founder",
+    "Photo", "Name", "Title", "Role", "Chapter",
     ...(isEditor ? ["Order", "Public"] : []),
     "Profile",
   ];
 
   return (
     <div style={{ padding: "40px 30px" }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Team</h1>
-        <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
-          {people.length} member{people.length !== 1 ? "s" : ""}
-        </p>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#111", margin: 0 }}>Team</h1>
+          <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
+            {visible.length} member{visible.length !== 1 ? "s" : ""}
+            {previewChapter ? ` in ${previewChapter.name}` : ""}
+          </p>
+        </div>
+        {isSuperadmin && (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#696969" }}>
+            View as
+            <select
+              aria-label="View as chapter"
+              value={viewAs}
+              onChange={(e) => setViewAs(e.target.value)}
+              style={{ ...inputStyle, background: "#fff" }}
+            >
+              <option value="">Superadmin (all chapters)</option>
+              {chapters.map((c) => (
+                <option key={c.id} value={c.code}>{c.name} chapter lead</option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
+
+      {previewing && (
+        <div
+          role="status"
+          style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
+            background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8,
+            padding: "12px 16px", marginBottom: 20, fontSize: 14, color: "#1e3a8a",
+          }}
+        >
+          <span>
+            <i className="fa fa-eye" style={{ marginRight: 8 }} aria-hidden="true" />
+            Previewing this page as a <strong>{previewChapter?.name ?? viewAs}</strong> chapter lead would see it.
+            Only lead-level controls are shown.
+          </span>
+          <button
+            type="button"
+            onClick={() => setViewAs("")}
+            style={{ fontWeight: 700, color: "#1d4ed8", background: "transparent", border: "none", cursor: "pointer", whiteSpace: "nowrap" }}
+          >
+            Exit preview
+          </button>
+        </div>
+      )}
 
       {isEditor && hostingInterest > 0 && (
         <div
@@ -216,7 +289,7 @@ export default function PeoplePage() {
           <span>
             <i className="fa fa-star" style={{ marginRight: 8 }} aria-hidden="true" />
             <strong>{hostingInterest} new hosting request{hostingInterest === 1 ? "" : "s"}</strong>
-            {isSuperadmin ? "" : " for your chapter"}
+            {canUseSuperadminControls ? "" : " for your chapter"}
             {" "}from people who want to host a salon.
           </span>
           <Link href="/hosting-interest" style={{ fontWeight: 700, color: "#a16207", whiteSpace: "nowrap" }}>
@@ -244,7 +317,13 @@ export default function PeoplePage() {
               {headers.map((h) => (
                 <th
                   key={h}
-                  title={h === "Public" ? "Shown on the aisalon.xyz team section and chapter page" : undefined}
+                  title={
+                    h === "Public"
+                      ? "Shown on the aisalon.xyz team section and chapter page"
+                      : h === "Profile"
+                        ? "Complete once the account has a name"
+                        : undefined
+                  }
                   style={{ textAlign: "left", padding: "12px 20px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, color: "#9ca3af" }}
                 >
                   {h}
@@ -253,19 +332,20 @@ export default function PeoplePage() {
             </tr>
           </thead>
           <tbody>
-            {people.map((p, i) => {
+            {visible.map((p, i) => {
               const editable = canEditRow(p);
               const name = displayName(p);
+              const complete = !!p.name;
               return (
                 <tr
                   key={p.id}
                   style={{
-                    borderBottom: i < people.length - 1 ? "1px solid #f8f6ec" : "none",
+                    borderBottom: i < visible.length - 1 ? "1px solid #f8f6ec" : "none",
                     opacity: p.hide_from_team ? 0.6 : 1,
                   }}
                 >
                   <td style={cell}>
-                    {isSuperadmin ? (
+                    {canUseSuperadminControls ? (
                       <button
                         type="button"
                         aria-label={`Change photo for ${name}`}
@@ -297,6 +377,7 @@ export default function PeoplePage() {
                   <td style={{ ...cell, fontSize: 14, fontWeight: 500, color: "#111" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                       {name}
+                      {p.is_founder && <span style={pill("#fef3c7", "#a16207")}>Founder</span>}
                       {p.hide_from_team && <span style={pill("#f3f4f6", "#6b7280")}>Hidden</span>}
                     </span>
                   </td>
@@ -331,18 +412,6 @@ export default function PeoplePage() {
                   <td style={{ ...cell, fontSize: 13, color: "#d2b356", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>
                     {p.chapter_name || "—"}
                   </td>
-                  <td style={cell}>
-                    {isSuperadmin ? (
-                      <input
-                        type="checkbox"
-                        aria-label={`Founder: ${name}`}
-                        checked={p.is_founder}
-                        onChange={(e) => update(p.id, { is_founder: e.target.checked })}
-                      />
-                    ) : (
-                      <span style={{ fontSize: 13, color: "#696969" }}>{p.is_founder ? "Yes" : "—"}</span>
-                    )}
-                  </td>
                   {isEditor && (
                     <td style={cell}>
                       {editable ? (
@@ -376,11 +445,8 @@ export default function PeoplePage() {
                     </td>
                   )}
                   <td style={cell}>
-                    <span style={pill(
-                      p.profile_completed_at ? "#dcfce7" : "#f3f4f6",
-                      p.profile_completed_at ? "#16a34a" : "#9ca3af",
-                    )}>
-                      {p.profile_completed_at ? "Complete" : "Incomplete"}
+                    <span style={pill(complete ? "#dcfce7" : "#f3f4f6", complete ? "#16a34a" : "#9ca3af")}>
+                      {complete ? "Complete" : "Incomplete"}
                     </span>
                   </td>
                 </tr>
@@ -390,7 +456,7 @@ export default function PeoplePage() {
         </table>
       </div>
 
-      {isSuperadmin && (
+      {canUseSuperadminControls && (
         <input
           ref={photoInputRef}
           type="file"

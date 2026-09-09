@@ -41,6 +41,7 @@ from app.schemas.admin import (
     NotificationsSummaryResponse,
     DigestRunTestRequest, DigestRunTestResponse,
 )
+from app.services import password_reset
 from app.services.digest import run_digest
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor, system_key_for
@@ -1012,10 +1013,21 @@ async def get_chapter_leads(
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     body: UserCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     _require_admin(current_user)
+    if not body.password and not body.send_password_link:
+        raise HTTPException(
+            status_code=400,
+            detail="Give a password or send the person a link to set one",
+        )
+    if body.send_password_link and not password_reset.email_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="Email is not configured — set a password instead",
+        )
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered")
@@ -1023,18 +1035,63 @@ async def create_user(
         existing_un = await db.execute(select(User).where(User.username == body.username))
         if existing_un.scalar_one_or_none():
             raise HTTPException(status_code=409, detail="Username already taken")
+    if body.chapter_id is not None:
+        chapter_result = await db.execute(select(Chapter).where(Chapter.id == body.chapter_id))
+        if not chapter_result.scalar_one_or_none():
+            raise HTTPException(status_code=404, detail="Chapter not found")
     user = User(
         email=body.email,
         username=body.username,
-        hashed_password=hash_password(body.password),
+        # No password given: an unguessable placeholder until the person sets one.
+        hashed_password=hash_password(body.password or secrets.token_urlsafe(24)),
         role=body.role,
         chapter_id=body.chapter_id,
         is_active=True,
+        name=body.name,
+        title=body.title,
+        linkedin=body.linkedin,
+        description=body.description,
+        is_founder=body.is_founder,
+        # An account created with a name is complete; no onboarding prompt.
+        profile_completed_at=datetime.now(timezone.utc) if body.name else None,
     )
+    token = password_reset.issue_reset_token(user) if body.send_password_link else None
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    if token:
+        background_tasks.add_task(
+            password_reset.send_password_reset_email, user.email, token, new_account=True
+        )
+        logger.info("password_link_sent_on_create", user_id=user.id)
     return user
+
+
+@router.post("/users/{user_id}/password-reset-link", status_code=status.HTTP_202_ACCEPTED)
+async def send_user_password_reset_link(
+    user_id: str,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Email an existing account a single-use link to set a new password."""
+    _require_admin(current_user)
+    if not password_reset.email_configured():
+        raise HTTPException(
+            status_code=503, detail="Email is not configured — contact an administrator"
+        )
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    token = password_reset.issue_reset_token(user)
+    db.add(user)
+    await db.commit()
+    background_tasks.add_task(
+        password_reset.send_password_reset_email, user.email, token, new_account=True
+    )
+    logger.info("password_link_sent_by_admin", user_id=user.id)
+    return {"detail": f"Set-password link sent to {user.email}"}
 
 
 @router.patch("/users/{user_id}", response_model=UserResponse)
@@ -1052,7 +1109,7 @@ async def update_user(
     # exclude_unset (not exclude_none) so an explicit chapter_id: null clears
     # the chapter; explicit nulls are meaningless for the other fields.
     data = body.model_dump(exclude_unset=True)
-    for field in ("role", "is_active", "password", "email"):
+    for field in ("role", "is_active", "password", "email", "is_founder"):
         if field in data and data[field] is None:
             data.pop(field)
     # Optional text fields: blank means clear (e.g. turning a login back into a
@@ -1084,6 +1141,9 @@ async def update_user(
         data["hashed_password"] = hash_password(data.pop("password"))
     for field, value in data.items():
         setattr(user, field, value)
+    # Completeness is "has a name": an admin naming an account completes it.
+    if user.name and user.profile_completed_at is None:
+        user.profile_completed_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(user)
     return user
@@ -1145,8 +1205,9 @@ async def admin_list_people(
 
 
 class PersonUpdate(BaseModel):
+    # Presentation only. Account attributes (founder, role, chapter, identity)
+    # live on the Users page / PATCH /admin/users.
     title: str | None = None
-    is_founder: bool | None = None
     display_order: int | None = None
     profile_image_url: str | None = None
     hide_from_team: bool | None = None
@@ -1174,15 +1235,13 @@ async def admin_update_person(
                 status_code=403,
                 detail="Chapter leads can only edit hosts and co-leads in their chapter",
             )
-        if body.is_founder is not None or body.profile_image_url is not None:
+        if body.profile_image_url is not None:
             raise HTTPException(
                 status_code=403,
                 detail="Chapter leads can only change title, order, and visibility",
             )
     if body.title is not None:
         target.title = body.title
-    if body.is_founder is not None:
-        target.is_founder = body.is_founder
     if body.display_order is not None:
         target.display_order = body.display_order
     if body.profile_image_url is not None:

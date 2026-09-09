@@ -27,7 +27,8 @@ const hidden = { ...host, id: 'x1', username: 'hal', name: 'Hidden Hal', hide_fr
 function mockApi({
   people = [host],
   summary = { hosting_interest: 0 },
-}: { people?: unknown[]; summary?: Record<string, number> } = {}) {
+  chapters = [] as unknown[],
+}: { people?: unknown[]; summary?: Record<string, number>; chapters?: unknown[] } = {}) {
   const calls: Call[] = []
   vi.stubGlobal(
     'fetch',
@@ -38,7 +39,7 @@ function mockApi({
       if (url.includes('/admin/people/')) return { ok: true, status: 200, json: async () => ({ ok: true }) }
       if (url.endsWith('/profile/photo')) return { ok: true, status: 200, json: async () => ({ url: '/uploads/new/photo.jpg' }) }
       if (url.endsWith('/admin/invites')) return { ok: true, status: 201, json: async () => ({ token: 'tok123' }) }
-      if (url.endsWith('/chapters')) return { ok: true, status: 200, json: async () => [] }
+      if (url.endsWith('/chapters')) return { ok: true, status: 200, json: async () => chapters }
       return { ok: false, status: 404, json: async () => ({}) }
     })
   )
@@ -162,20 +163,47 @@ describe('PeoplePage for a chapter lead', () => {
 })
 
 describe('PeoplePage for a superadmin', () => {
-  it('keeps the founder toggle alongside the lead controls', async () => {
-    const calls = mockApi()
+  it('shows Founder as a read-only badge, never a toggle', async () => {
+    mockApi({ people: [host, founder] })
     renderWithSession(<PeoplePage />, { role: 'superadmin' })
 
-    const founderToggle = await screen.findByLabelText('Founder: Hana Host')
+    expect(await screen.findByText('Fay Founder')).toBeInTheDocument()
+    expect(screen.getByText('Founder')).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'Founder' })).toBeNull()
+    expect(screen.queryByLabelText(/^Founder:/)).toBeNull()
     expect(screen.getByLabelText('Title for Hana Host')).toBeInTheDocument()
-    fireEvent.click(founderToggle)
+  })
 
-    await waitFor(() => {
-      expect(patchCalls(calls)).toContainEqual({
-        url: expect.stringMatching(/\/admin\/people\/h1$/),
-        body: { is_founder: true },
-      })
+  it('marks a profile complete as soon as it has a name', async () => {
+    mockApi({ people: [{ ...host, profile_completed_at: null }, { ...host, id: 'n1', name: null, username: 'nameless' }] })
+    renderWithSession(<PeoplePage />, { role: 'superadmin' })
+
+    await screen.findByText('Hana Host')
+    expect(screen.getAllByText('Complete')).toHaveLength(1)
+    expect(screen.getAllByText('Incomplete')).toHaveLength(1)
+  })
+
+  it('can preview the page as a chapter lead and exit again', async () => {
+    const berlinHost = { ...host, id: 'b1', username: 'bea', name: 'Bea Berlin', chapter_code: 'berlin', chapter_name: 'Berlin' }
+    mockApi({
+      people: [host, berlinHost],
+      chapters: [{ id: 'c1', code: 'sf', name: 'San Francisco' }, { id: 'c2', code: 'berlin', name: 'Berlin' }],
     })
+    renderWithSession(<PeoplePage />, { role: 'superadmin' })
+
+    await screen.findByText('Bea Berlin')
+    fireEvent.change(await screen.findByLabelText('View as chapter'), { target: { value: 'sf' } })
+
+    // Only SF members, lead-level controls only.
+    expect(screen.queryByText('Bea Berlin')).toBeNull()
+    expect(screen.getByText('Hana Host')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent(/San Francisco/)
+    expect(screen.queryByRole('button', { name: /change photo/i })).toBeNull()
+    expect(screen.getByLabelText('Title for Hana Host')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exit preview' }))
+    expect(await screen.findByText('Bea Berlin')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Change photo for Hana Host' })).toBeInTheDocument()
   })
 
   it('lets the superadmin replace a member photo from the row', async () => {

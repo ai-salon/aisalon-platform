@@ -1,22 +1,22 @@
-"""Tests for the superadmin + founder seed.
+"""Tests for the system-login seed.
 
 The seeded ``admin`` login is a break-glass system account, like the
-``<chapter>@aisalon.xyz`` ghosts: it must never carry a person's profile or
-appear on the Team page. Founder profiles belong on real people's accounts.
+``<chapter>@aisalon.xyz`` ghosts: nameless, hidden from the Team page, never a
+person. People (founders included) are never seeded; a superadmin creates them.
 """
 from unittest.mock import patch
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.core.seed import _FOUNDERS, seed_founders, seed_superadmin
+from app.core import seed
+from app.core.seed import seed_chapter_leads, seed_chapters, seed_superadmin
 from app.models.user import User, UserRole
 
 
-def test_no_founder_entry_targets_the_admin_login():
-    for f in _FOUNDERS:
-        assert f.get("match_username") != "admin"
-        assert f.get("username") != "admin"
+def test_nobody_is_seeded_as_a_person():
+    assert not hasattr(seed, "seed_founders")
+    assert not hasattr(seed, "_FOUNDERS")
 
 
 async def test_seed_superadmin_creates_a_hidden_ghost(db_engine):
@@ -31,36 +31,16 @@ async def test_seed_superadmin_creates_a_hidden_ghost(db_engine):
     assert admin.hide_from_team is True
     assert admin.name is None
     assert admin.is_founder is False
+    assert admin.profile_completed_at is None
 
 
-async def test_seed_founders_leaves_the_admin_login_untouched(db_engine):
+async def test_all_seeded_logins_are_nameless_and_hidden(db_engine):
     TestSession = async_sessionmaker(db_engine, expire_on_commit=False)
     with patch("app.core.seed.AsyncSessionLocal", TestSession):
         await seed_superadmin()
-        await seed_founders()
+        await seed_chapters()
+        await seed_chapter_leads()
     async with TestSession() as session:
-        admin = (
-            await session.execute(select(User).where(User.username == "admin"))
-        ).scalar_one()
-        founders = (
-            await session.execute(select(User).where(User.is_founder.is_(True)))
-        ).scalars().all()
-    assert admin.name is None
-    assert admin.is_founder is False
-    assert admin.profile_completed_at is None
-    assert admin.hide_from_team is True
-    # Seeded founders get their own accounts, never the admin login.
-    assert all(f.username != "admin" for f in founders)
-    assert len(founders) == len(_FOUNDERS)
-
-
-async def test_seed_founders_is_idempotent(db_engine):
-    TestSession = async_sessionmaker(db_engine, expire_on_commit=False)
-    with patch("app.core.seed.AsyncSessionLocal", TestSession):
-        await seed_founders()
-        await seed_founders()
-    async with TestSession() as session:
-        founders = (
-            await session.execute(select(User).where(User.is_founder.is_(True)))
-        ).scalars().all()
-    assert len(founders) == len(_FOUNDERS)
+        users = (await session.execute(select(User))).scalars().all()
+    assert len(users) >= 2
+    assert all(u.name is None and u.hide_from_team and not u.is_founder for u in users)
