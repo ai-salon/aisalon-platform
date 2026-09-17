@@ -154,8 +154,10 @@ HostingInterest → name, email, city, interest_type (start_chapter | host_exist
 
 ### Users vs. Team vs. My Profile
 
-- **Users page** (`/users`, superadmin only) = **accounts**: who can log in and what they are. Create and edit everything — name, email, username, password (or emailed set-password link), role, chapter, founder flag, active. `POST/PATCH /admin/users`.
-- **Team page** (`/people`, superadmins + chapter leads) = **presentation** of the public team: photo, title, order, public toggle. Leads manage hosts and co-leads in their own chapter; superadmins manage everyone and can **view as** any chapter's lead (client-side preview of that lead's scope and controls). `PATCH /admin/people/{id}` accepts presentation fields only.
+One `users` table, two lenses. Rule of thumb: if it affects whether or how someone signs in, it's Users; if it affects what the public sees, it's Team. **Users is the superset** (everything, superadmin only); **Team is the lead-safe presentation subset**.
+
+- **Users page** (`/users`, superadmin only) = **accounts**, the master record: every login incl. system ghosts. Create and edit everything — name, email, username, password (or emailed set-password link), role, chapter, founder flag, active, *and* the presentation trio (photo, display order, public) so a person can be created whole in one place. `POST/PATCH /admin/users`. Add User is for when you know the person's email.
+- **Team page** (`/people`, superadmins + chapter leads; hosts read-only) = **the roster as the site shows it**, in the same order (`services/team_order.roster_sort_key`, shared with the public `/team`): photo, title, order, public toggle. Leads manage hosts and co-leads in their own chapter, never founders or superadmins, and may only set photos that came through `/profile/photo` (`/uploads/…`); superadmins manage everyone and can **view as** any chapter's lead (client-side preview of that lead's scope and controls). Invite links (self-registration into a chapter) live here. `PATCH /admin/people/{id}` accepts presentation fields only. Title is editable on both pages by design (Users ⊇ Team).
 - **My Profile** (`/profile`) = self-service for one's own name, photo, bio, LinkedIn, email change, password.
 
 **Complete = has a name.** No separate onboarding gate: the public `/team`, the admin-layout onboarding redirect, and the Team page's Profile column all key on `name`. `profile_completed_at` is an audit timestamp set whenever a name first lands (onboarding form, My Profile, or an admin on the Users page).

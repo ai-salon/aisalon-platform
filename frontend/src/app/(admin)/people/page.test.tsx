@@ -117,13 +117,33 @@ describe('PeoplePage for a chapter lead', () => {
     expect(screen.queryByLabelText('Founder: Hana Host')).toBeNull()
   })
 
-  it('offers no photo editing to a lead', async () => {
-    mockApi()
+  it('lets a lead change photos for members they manage, not for founders or superadmins', async () => {
+    const calls = mockApi({ people: [host, founder, superadmin] })
     renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
 
     await screen.findByText('Hana Host')
-    expect(screen.queryByRole('button', { name: /change photo/i })).toBeNull()
-    expect(screen.queryByLabelText('New photo file')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Change photo for Fay Founder' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Change photo for Sam Super' })).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Change photo for Hana Host' }))
+    const file = new File(['abc'], 'hana.png', { type: 'image/png' })
+    fireEvent.change(screen.getByLabelText('New photo file'), { target: { files: [file] } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Use photo' }))
+
+    await waitFor(() => {
+      expect(patchCalls(calls)).toContainEqual({
+        url: expect.stringMatching(/\/admin\/people\/h1$/),
+        body: { profile_image_url: '/uploads/new/photo.jpg' },
+      })
+    })
+  })
+
+  it('explains invite links without pointing a lead at the Users page', async () => {
+    mockApi()
+    renderWithSession(<PeoplePage />, { role: 'chapter_lead', chapterId: 'c1' })
+
+    expect(await screen.findByText(/register themselves into a chapter/i)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Users page' })).toBeNull()
   })
 
   it('marks hidden members with a Hidden pill', async () => {
@@ -186,24 +206,30 @@ describe('PeoplePage for a superadmin', () => {
   it('can preview the page as a chapter lead and exit again', async () => {
     const berlinHost = { ...host, id: 'b1', username: 'bea', name: 'Bea Berlin', chapter_code: 'berlin', chapter_name: 'Berlin' }
     mockApi({
-      people: [host, berlinHost],
+      people: [founder, host, berlinHost],
       chapters: [{ id: 'c1', code: 'sf', name: 'San Francisco' }, { id: 'c2', code: 'berlin', name: 'Berlin' }],
     })
     renderWithSession(<PeoplePage />, { role: 'superadmin' })
 
     await screen.findByText('Bea Berlin')
+    // As superadmin, every row is editable, founders included.
+    expect(screen.getByLabelText('Title for Fay Founder')).toBeInTheDocument()
     fireEvent.change(await screen.findByLabelText('View as chapter'), { target: { value: 'sf' } })
 
-    // Only SF members, lead-level controls only.
+    // Only SF members, and only what an SF lead may touch.
     expect(screen.queryByText('Bea Berlin')).toBeNull()
     expect(screen.getByText('Hana Host')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent(/San Francisco/)
-    expect(screen.queryByRole('button', { name: /change photo/i })).toBeNull()
     expect(screen.getByLabelText('Title for Hana Host')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Change photo for Hana Host' })).toBeInTheDocument()
+    expect(screen.queryByLabelText('Title for Fay Founder')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Change photo for Fay Founder' })).toBeNull()
+    expect(screen.queryByRole('link', { name: 'Users page' })).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'Exit preview' }))
     expect(await screen.findByText('Bea Berlin')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Change photo for Hana Host' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Title for Fay Founder')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Users page' })).toHaveAttribute('href', '/users')
   })
 
   it('lets the superadmin replace a member photo from the row', async () => {

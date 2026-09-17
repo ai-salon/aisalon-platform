@@ -65,9 +65,11 @@ function Avatar({ url }: { url: string | null }) {
 }
 
 /**
- * Team page = presentation of the public team: photo, title, order, public.
- * Account attributes (founder, role, chapter, identity) live on the Users page.
- * Superadmins can preview the page exactly as a given chapter's lead sees it.
+ * Team page = the roster as the public site shows it, in the same order, with
+ * the presentation controls: photo, title, order, public. Leads manage hosts
+ * and co-leads in their chapter; superadmins manage everyone. Account
+ * attributes (founder, role, chapter, identity) live on the Users page, which
+ * is the superset. Superadmins can preview the page as a given chapter's lead.
  */
 export default function PeoplePage() {
   const { data: session, status } = useSession();
@@ -81,7 +83,7 @@ export default function PeoplePage() {
   const [hostingInterest, setHostingInterest] = useState(0);
   // Superadmin "view as": chapter code being previewed, or "" for the real view.
   const [viewAs, setViewAs] = useState("");
-  // Superadmin photo editing: one hidden file input serves every row.
+  // Photo editing (any row the viewer may edit): one hidden file input serves every row.
   const photoInputRef = useRef<HTMLInputElement>(null);
   const photoTargetRef = useRef<Person | null>(null);
   const [pendingPhoto, setPendingPhoto] = useState<{ person: Person; file: File } | null>(null);
@@ -301,6 +303,15 @@ export default function PeoplePage() {
       {isEditor && (
         <div style={{ maxWidth: 480, marginBottom: 24 }}>
           <InviteCard />
+          <p style={{ fontSize: 12, color: "#696969", margin: "8px 2px 0" }}>
+            An invite link lets someone register themselves into a chapter.
+            {canUseSuperadminControls && (
+              <>
+                {" "}To create a complete account yourself, with their profile filled in, use Add User on the{" "}
+                <Link href="/users" style={{ color: "#56a1d2", fontWeight: 600 }}>Users page</Link>.
+              </>
+            )}
+          </p>
         </div>
       )}
 
@@ -345,7 +356,7 @@ export default function PeoplePage() {
                   }}
                 >
                   <td style={cell}>
-                    {canUseSuperadminControls ? (
+                    {editable ? (
                       <button
                         type="button"
                         aria-label={`Change photo for ${name}`}
@@ -456,7 +467,7 @@ export default function PeoplePage() {
         </table>
       </div>
 
-      {canUseSuperadminControls && (
+      {isEditor && (
         <input
           ref={photoInputRef}
           type="file"

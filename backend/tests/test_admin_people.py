@@ -187,12 +187,51 @@ async def test_lead_cannot_set_is_founder(
     assert _by_id(listed.json(), host_user.id)["is_founder"] is False
 
 
-async def test_lead_cannot_set_profile_image_url(
+async def test_lead_can_set_uploaded_photo_for_own_chapter_host(
+    client: AsyncClient, lead_headers, host_user
+):
+    r = await client.patch(
+        f"/admin/people/{host_user.id}", headers=lead_headers,
+        json={"profile_image_url": "/uploads/abc/photo.jpg"},
+    )
+    assert r.status_code == 200
+    listed = await client.get("/admin/people", headers=lead_headers)
+    assert _by_id(listed.json(), host_user.id)["profile_image_url"] == "/uploads/abc/photo.jpg"
+
+
+async def test_lead_cannot_point_a_photo_at_an_external_url(
     client: AsyncClient, lead_headers, host_user
 ):
     r = await client.patch(
         f"/admin/people/{host_user.id}", headers=lead_headers,
         json={"profile_image_url": "https://example.com/x.png"},
+    )
+    assert r.status_code == 403
+
+
+async def test_lead_can_remove_a_photo(
+    client: AsyncClient, db_session, lead_headers, host_user
+):
+    host_user.profile_image_url = "/uploads/old/photo.jpg"
+    db_session.add(host_user)
+    await db_session.commit()
+    r = await client.patch(
+        f"/admin/people/{host_user.id}", headers=lead_headers, json={"profile_image_url": ""},
+    )
+    assert r.status_code == 200
+    listed = await client.get("/admin/people", headers=lead_headers)
+    assert _by_id(listed.json(), host_user.id)["profile_image_url"] is None
+
+
+async def test_lead_cannot_set_photo_for_a_founder(
+    client: AsyncClient, db_session, lead_headers, sf_chapter
+):
+    founder = await _member(
+        db_session, "f2@aisalon.xyz", UserRole.host, sf_chapter.id, name="Founder", is_founder=True,
+    )
+    r = await client.patch(
+        f"/admin/people/{founder.id}", headers=lead_headers,
+        json={"profile_image_url": "/uploads/abc/photo.jpg"},
     )
     assert r.status_code == 403
 
@@ -241,3 +280,30 @@ async def test_superadmin_can_set_profile_image_url(
     assert r.status_code == 200
     listed = await client.get("/admin/people", headers=admin_headers)
     assert _by_id(listed.json(), host_user.id)["profile_image_url"] == "/uploads/abc/photo.jpg"
+
+
+async def test_people_are_listed_in_the_public_roster_order(
+    client: AsyncClient, db_session, admin_headers, sf_chapter
+):
+    """Founders first by display_order, then grouped by chapter, order, name —
+    the same ordering the public /team uses."""
+    berlin = await _chapter(db_session, "berlin", "Berlin")
+    zed = await _member(db_session, "zed@x.co", UserRole.host, sf_chapter.id, name="Zed")
+    amy = await _member(db_session, "amy@x.co", UserRole.host, sf_chapter.id, name="Amy")
+    late = await _member(db_session, "late@x.co", UserRole.host, sf_chapter.id, name="Late")
+    bea = await _member(db_session, "bea@x.co", UserRole.chapter_lead, berlin.id, name="Bea")
+    cec = await _member(
+        db_session, "cec@x.co", UserRole.host, sf_chapter.id, name="Cec", is_founder=True,
+    )
+    ian = await _member(
+        db_session, "ian@x.co", UserRole.superadmin, sf_chapter.id, name="Ian", is_founder=True,
+    )
+    for user, order in ((ian, 90), (cec, 91), (late, 5)):
+        user.display_order = order
+    db_session.add_all([ian, cec, late])
+    await db_session.commit()
+
+    listed = await client.get("/admin/people", headers=admin_headers)
+    mine = {u.id for u in (zed, amy, late, bea, cec, ian)}
+    names = [p["name"] for p in listed.json() if p["id"] in mine]
+    assert names == ["Ian", "Cec", "Bea", "Amy", "Zed", "Late"]
