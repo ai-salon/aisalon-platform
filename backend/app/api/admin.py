@@ -42,6 +42,7 @@ from app.schemas.admin import (
     DigestRunTestRequest, DigestRunTestResponse,
 )
 from app.services import password_reset
+from app.services.team_order import roster_sort_key
 from app.services.digest import run_digest
 from app.services.storage import save_upload
 from app.services.processor import SocraticProcessor, system_key_for
@@ -1052,6 +1053,9 @@ async def create_user(
         linkedin=body.linkedin,
         description=body.description,
         is_founder=body.is_founder,
+        profile_image_url=body.profile_image_url,
+        display_order=body.display_order,
+        hide_from_team=body.hide_from_team,
         # An account created with a name is complete; no onboarding prompt.
         profile_completed_at=datetime.now(timezone.utc) if body.name else None,
     )
@@ -1109,12 +1113,17 @@ async def update_user(
     # exclude_unset (not exclude_none) so an explicit chapter_id: null clears
     # the chapter; explicit nulls are meaningless for the other fields.
     data = body.model_dump(exclude_unset=True)
-    for field in ("role", "is_active", "password", "email", "is_founder"):
+    for field in (
+        "role", "is_active", "password", "email", "is_founder",
+        "display_order", "hide_from_team",
+    ):
         if field in data and data[field] is None:
             data.pop(field)
     # Optional text fields: blank means clear (e.g. turning a login back into a
-    # nameless ghost).
-    for field in ("name", "username", "title", "linkedin", "description"):
+    # nameless ghost, or removing a photo).
+    for field in (
+        "name", "username", "title", "linkedin", "description", "profile_image_url"
+    ):
         if isinstance(data.get(field), str):
             data[field] = data[field].strip() or None
     if "role" in data and user_id == current_user.id and data["role"] != current_user.role.value:
@@ -1183,7 +1192,9 @@ async def admin_list_people(
     chapter_filter = _chapter_filter(current_user)
     if chapter_filter:
         stmt = stmt.where(User.chapter_id == chapter_filter)
-    result = await db.execute(stmt.order_by(User.display_order, User.name))
+    result = await db.execute(stmt)
+    # Same ordering as the public /team, so the roster reads as the site does.
+    people = sorted(result.scalars().unique().all(), key=roster_sort_key)
     return [
         {
             "id": u.id,
@@ -1200,7 +1211,7 @@ async def admin_list_people(
             "chapter_code": u.chapter.code if u.chapter else None,
             "chapter_name": u.chapter.name if u.chapter else None,
         }
-        for u in result.scalars().unique().all()
+        for u in people
     ]
 
 
@@ -1235,17 +1246,20 @@ async def admin_update_person(
                 status_code=403,
                 detail="Chapter leads can only edit hosts and co-leads in their chapter",
             )
-        if body.profile_image_url is not None:
+        # Leads may set photos for the members they manage, but only ones that
+        # came through our upload endpoint, never an arbitrary external URL.
+        if body.profile_image_url and not body.profile_image_url.startswith("/uploads/"):
             raise HTTPException(
                 status_code=403,
-                detail="Chapter leads can only change title, order, and visibility",
+                detail="Chapter leads can only use photos uploaded here",
             )
     if body.title is not None:
         target.title = body.title
     if body.display_order is not None:
         target.display_order = body.display_order
     if body.profile_image_url is not None:
-        target.profile_image_url = body.profile_image_url
+        # "" removes the photo.
+        target.profile_image_url = body.profile_image_url or None
     if body.hide_from_team is not None:
         target.hide_from_team = body.hide_from_team
     await db.commit()

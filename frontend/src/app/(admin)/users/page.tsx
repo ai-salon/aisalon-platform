@@ -2,8 +2,10 @@
 import { useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "@/lib/toast";
 import { validateUser } from "@/lib/validation";
+import PhotoPicker, { photoSrc } from "@/components/PhotoPicker";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -11,6 +13,7 @@ type UserData = {
   id: string; email: string; username: string | null; role: string;
   name: string | null; title: string | null; chapter_id: string | null; is_active: boolean;
   linkedin: string | null; description: string | null; is_founder: boolean;
+  profile_image_url: string | null; display_order: number; hide_from_team: boolean;
   last_login_at: string | null; login_count_30d: number;
   has_api_key: boolean; has_uploaded: boolean; has_article: boolean;
   has_read_hosting_guide: boolean; has_read_lead_guide: boolean;
@@ -21,11 +24,15 @@ const EMPTY_FORM = {
   email: "", username: "", password: "", role: "chapter_lead", chapter_id: "",
   name: "", title: "", linkedin: "", description: "",
 };
-// Founder + "email them a set-password link" live beside the text fields.
-const EMPTY_FLAGS = { is_founder: false, send_link: true };
+// Non-text create fields: founder, the emailed set-password link, and the
+// presentation trio (photo, order, public) so an account can be created whole.
+const EMPTY_FLAGS = {
+  is_founder: false, send_link: true, is_public: true, display_order: 0, profile_image_url: "",
+};
 
-// Superadmin edit row: every account field except password (own control) and
-// the Team-page fields (founder, order, public, photo).
+// Users is the master record: the edit row covers every account field,
+// presentation included. The Team page edits the presentation subset only.
+// Password has its own control (key button).
 type EditTextKey = "name" | "email" | "username" | "title" | "linkedin";
 const EDIT_TEXT_FIELDS: { key: EditTextKey; label: string; placeholder?: string; type?: string }[] = [
   { key: "name", label: "Name", placeholder: "Full name" },
@@ -37,6 +44,7 @@ const EDIT_TEXT_FIELDS: { key: EditTextKey; label: string; placeholder?: string;
 const EMPTY_EDIT = {
   name: "", email: "", username: "", title: "", linkedin: "", description: "",
   role: "host", chapter_id: "", is_founder: false,
+  profile_image_url: "", display_order: 0, hide_from_team: false,
 };
 const editLabelStyle: React.CSSProperties = {
   display: "flex", flexDirection: "column", gap: 4, fontSize: 12, fontWeight: 600, color: "#6b7280",
@@ -120,6 +128,9 @@ export default function UsersPage() {
         password: form.password || null,
         is_founder: createFlags.is_founder,
         send_password_link: createFlags.send_link,
+        profile_image_url: createFlags.profile_image_url || null,
+        display_order: createFlags.display_order,
+        hide_from_team: !createFlags.is_public,
       }),
     });
     setSaving(false);
@@ -191,6 +202,9 @@ export default function UsersPage() {
       name: user.name ?? "", email: user.email, username: user.username ?? "",
       title: user.title ?? "", linkedin: user.linkedin ?? "", description: user.description ?? "",
       role: user.role, chapter_id: user.chapter_id ?? "", is_founder: !!user.is_founder,
+      profile_image_url: user.profile_image_url ?? "",
+      display_order: user.display_order ?? 0,
+      hide_from_team: !!user.hide_from_team,
     });
     setResetUserId(null);
   }
@@ -209,6 +223,9 @@ export default function UsersPage() {
         name: editForm.name.trim(), email: editForm.email.trim(), username: editForm.username.trim(),
         title: editForm.title.trim(), linkedin: editForm.linkedin.trim(), description: editForm.description.trim(),
         role: editForm.role, chapter_id: editForm.chapter_id || null, is_founder: editForm.is_founder,
+        profile_image_url: editForm.profile_image_url,
+        display_order: Number(editForm.display_order) || 0,
+        hide_from_team: editForm.hide_from_team,
       }),
     });
     setEditSaving(false);
@@ -248,6 +265,12 @@ export default function UsersPage() {
           <p style={{ fontSize: 14, color: "#696969", marginTop: 4, marginBottom: 0 }}>
             {users.length} user{users.length !== 1 ? "s" : ""}
           </p>
+          <p style={{ fontSize: 13, color: "#696969", marginTop: 8, marginBottom: 0, maxWidth: 640 }}>
+            Every account that can sign in, system logins included. <strong>Add User</strong> when you know
+            the person&apos;s email: fill in their profile and they get a link to set a password. For people
+            who should register themselves into a chapter, use an invite link on the{" "}
+            <Link href="/people" style={{ color: "#56a1d2", fontWeight: 600 }}>Team page</Link>.
+          </p>
         </div>
         <button
           onClick={() => { setShowForm(true); setError(""); }}
@@ -266,6 +289,14 @@ export default function UsersPage() {
       {showForm && (
         <div style={{ background: "#fff", borderRadius: 8, padding: "24px", boxShadow: "0 2px 16px rgba(0,0,0,0.10)", marginBottom: 24, border: "1.5px solid #56a1d2" }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 18px" }}>New User</h3>
+          <div style={{ marginBottom: 16 }}>
+            <PhotoPicker
+              url={createFlags.profile_image_url}
+              token={token}
+              label="the new user"
+              onChange={(url) => setCreateFlags((f) => ({ ...f, profile_image_url: url }))}
+            />
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             {[
               { key: "email", label: "Email", type: "email", required: true },
@@ -360,6 +391,24 @@ export default function UsersPage() {
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#111" }}>
               <input
                 type="checkbox"
+                checked={createFlags.is_public}
+                onChange={(e) => setCreateFlags((f) => ({ ...f, is_public: e.target.checked }))}
+              />
+              Show on the public site
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#111" }}>
+              Display order
+              <input
+                type="number"
+                aria-label="Display order"
+                value={createFlags.display_order}
+                onChange={(e) => setCreateFlags((f) => ({ ...f, display_order: Number(e.target.value) || 0 }))}
+                style={{ width: 72, padding: "6px 10px", fontSize: 13, border: "1.5px solid #d1d5db", borderRadius: 5 }}
+              />
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#111" }}>
+              <input
+                type="checkbox"
                 checked={createFlags.send_link}
                 onChange={(e) => setCreateFlags((f) => ({ ...f, send_link: e.target.checked }))}
               />
@@ -392,7 +441,19 @@ export default function UsersPage() {
             {users.map((u, i) => (
               <>
                 <tr key={u.id} style={{ borderBottom: resetUserId === u.id || editUserId === u.id ? "none" : i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
-                  <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 600, color: "#111" }}>{u.name ?? "—"}</td>
+                  <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 600, color: "#111" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                      {photoSrc(u.profile_image_url) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={photoSrc(u.profile_image_url)!} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
+                      ) : (
+                        <span aria-hidden="true" style={{ width: 28, height: 28, borderRadius: "50%", background: "#f3f4f6", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                          <i className="fa fa-user" style={{ color: "#9ca3af", fontSize: 12 }} />
+                        </span>
+                      )}
+                      {u.name ?? "—"}
+                    </span>
+                  </td>
                   <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.email}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.username ?? "—"}</td>
                   <td style={{ padding: "14px 20px", fontSize: 13, color: "#696969" }}>{u.title ?? "—"}</td>
@@ -504,6 +565,14 @@ export default function UsersPage() {
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", margin: "12px 0 10px" }}>
                         Edit {u.email}
                       </div>
+                      <div style={{ marginBottom: 12 }}>
+                        <PhotoPicker
+                          url={editForm.profile_image_url}
+                          token={token}
+                          label={u.email}
+                          onChange={(url) => setEditForm((f) => ({ ...f, profile_image_url: url }))}
+                        />
+                      </div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
                         {EDIT_TEXT_FIELDS.map(({ key, label, placeholder, type }) => (
                           <label key={key} style={editLabelStyle}>
@@ -551,6 +620,25 @@ export default function UsersPage() {
                             onChange={(e) => setEditForm((f) => ({ ...f, is_founder: e.target.checked }))}
                           />
                           Founder
+                        </label>
+                        <label style={editLabelStyle}>
+                          Display order
+                          <input
+                            type="number"
+                            aria-label={`Display order for ${u.email}`}
+                            value={editForm.display_order}
+                            onChange={(e) => setEditForm((f) => ({ ...f, display_order: Number(e.target.value) || 0 }))}
+                            style={editInputStyle}
+                          />
+                        </label>
+                        <label style={{ ...editLabelStyle, flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "end", paddingBottom: 6 }}>
+                          <input
+                            type="checkbox"
+                            aria-label={`Show ${u.email} on the public site`}
+                            checked={!editForm.hide_from_team}
+                            onChange={(e) => setEditForm((f) => ({ ...f, hide_from_team: !e.target.checked }))}
+                          />
+                          Show on the public site
                         </label>
                         <label style={{ ...editLabelStyle, gridColumn: "1 / -1" }}>
                           Bio

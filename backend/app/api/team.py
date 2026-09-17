@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.chapter import Chapter
 from app.schemas.team import TeamMemberOut
+from app.services.team_order import roster_sort_key
 
 router = APIRouter(prefix="/team", tags=["team"])
 
@@ -27,17 +28,8 @@ async def list_team(db: AsyncSession = Depends(get_db)):
         )
     )
     result = await db.execute(stmt)
-    users = result.scalars().unique().all()
-
-    def sort_key(u: User) -> tuple:
-        # Founders come first, ordered purely by display_order so the founder
-        # can pin themselves to the front regardless of chapter. Chapter leads
-        # follow, grouped by chapter.
-        founder_bucket = 0 if u.is_founder else 1
-        chapter_name = "" if u.is_founder else (u.chapter.name if u.chapter else "")
-        return (founder_bucket, chapter_name, u.display_order, u.created_at)
-
-    users.sort(key=sort_key)
+    # Same ordering as the admin Team page (see services/team_order.py).
+    users = sorted(result.scalars().unique().all(), key=roster_sort_key)
 
     return [
         TeamMemberOut(

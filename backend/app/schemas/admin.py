@@ -134,6 +134,10 @@ class UserCreate(BaseModel):
     linkedin: str | None = None
     description: str | None = None
     is_founder: bool = False
+    # Presentation fields too, so an account can be created complete in one place.
+    profile_image_url: str | None = None
+    display_order: int = 0
+    hide_from_team: bool = False
 
     @field_validator("email")
     @classmethod
@@ -143,7 +147,9 @@ class UserCreate(BaseModel):
             raise ValueError("email must be a valid address")
         return v
 
-    @field_validator("name", "username", "title", "linkedin", "description")
+    @field_validator(
+        "name", "username", "title", "linkedin", "description", "profile_image_url"
+    )
     @classmethod
     def blank_to_none(cls, v: str | None) -> str | None:
         if v is None:
@@ -165,6 +171,9 @@ class UserUpdate(BaseModel):
     linkedin: str | None = None
     description: str | None = None
     is_founder: bool | None = None
+    profile_image_url: str | None = None
+    display_order: int | None = None
+    hide_from_team: bool | None = None
 
     @field_validator("email")
     @classmethod
@@ -204,6 +213,9 @@ class UserResponse(BaseModel):
     linkedin: str | None = None
     description: str | None = None
     is_founder: bool = False
+    profile_image_url: str | None = None
+    display_order: int = 0
+    hide_from_team: bool = False
 
     model_config = {"from_attributes": True}
 
