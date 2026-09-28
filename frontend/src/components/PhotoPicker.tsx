@@ -3,15 +3,11 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import PhotoCropper from "@/components/PhotoCropper";
+import { photoSrc } from "@/components/MemberAvatar";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png"];
-
-export function photoSrc(url: string | null | undefined): string | null {
-  if (!url) return null;
-  return url.startsWith("/uploads/") ? `${API_URL}${url}` : url;
-}
 
 interface Props {
   /** Current photo URL ("" or null for none). */
