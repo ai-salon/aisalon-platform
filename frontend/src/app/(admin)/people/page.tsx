@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import InviteCard from "@/components/InviteCard";
+import MemberAvatar from "@/components/MemberAvatar";
 import PhotoCropper from "@/components/PhotoCropper";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -46,22 +47,8 @@ function displayName(p: Person) {
   return p.name || p.username || p.email;
 }
 
-function photoSrc(url: string | null): string | null {
-  if (!url) return null;
-  return url.startsWith("/uploads/") ? `${API_URL}${url}` : url;
-}
-
-function Avatar({ url }: { url: string | null }) {
-  const src = photoSrc(url);
-  if (src) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", display: "block" }} />;
-  }
-  return (
-    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#f3f4f6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <i className="fa fa-user" style={{ color: "#9ca3af", fontSize: 16 }} aria-hidden="true" />
-    </div>
-  );
+function Avatar({ person }: { person: Person }) {
+  return <MemberAvatar url={person.profile_image_url} name={displayName(person)} size={40} />;
 }
 
 /**
@@ -358,7 +345,7 @@ export default function PeoplePage() {
                           opacity: uploadingPhotoId === p.id ? 0.5 : 1,
                         }}
                       >
-                        <Avatar url={p.profile_image_url} />
+                        <Avatar person={p} />
                         <span
                           aria-hidden="true"
                           style={{
@@ -371,7 +358,7 @@ export default function PeoplePage() {
                         </span>
                       </button>
                     ) : (
-                      <Avatar url={p.profile_image_url} />
+                      <Avatar person={p} />
                     )}
                   </td>
                   <td style={{ ...cell, fontSize: 14, fontWeight: 500, color: "#111" }}>

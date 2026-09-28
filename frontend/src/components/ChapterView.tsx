@@ -2,8 +2,7 @@ import type { JSX } from "react";
 import Link from "next/link";
 import type { OgData } from "@/lib/og";
 import { InteractiveLogo } from "@/components/InteractiveLogo";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+import MemberAvatar from "@/components/MemberAvatar";
 
 export type ChapterViewData = {
   code: string; name: string; title: string; tagline: string;
@@ -301,26 +300,7 @@ export default function ChapterView({
               {members.map((m) => (
                 <div key={m.id} style={{ textAlign: "center" }}>
                   {/* Photo */}
-                  <div
-                    style={{
-                      width: 195,
-                      height: 195,
-                      borderRadius: "50%",
-                      background: "#f0ebe0",
-                      margin: "0 auto 20px",
-                      overflow: "hidden",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    {m.profile_image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={m.profile_image_url.startsWith("/uploads/") ? `${API_URL}${m.profile_image_url}` : m.profile_image_url} alt={m.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    ) : (
-                      <i className="fa fa-user" style={{ fontSize: 64, color: "#d2b356" }} aria-hidden="true" />
-                    )}
-                  </div>
+                  <MemberAvatar url={m.profile_image_url} name={m.name} size={195} style={{ margin: "0 auto 20px" }} />
                   {/* Name + LinkedIn */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 4 }}>
                     <h4 style={{ fontSize: 17, fontWeight: 700, color: "#111", margin: 0 }}>{m.name}</h4>
