@@ -7,24 +7,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import OnboardingBanner, { type OnboardingStep } from "@/components/OnboardingBanner";
 import InviteCard from "@/components/InviteCard";
+import MemberAvatar from "@/components/MemberAvatar";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 function TeamAvatar({ url, name, size = 28 }: { url: string; name: string; size?: number }) {
-  const [broken, setBroken] = useState(false);
-  const src = url.startsWith("/uploads/") ? `${API_URL}${url}` : url;
-  if (!url || broken) {
-    return (
-      <div style={{ width: size, height: size, borderRadius: "50%", background: "#f0ebe0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: size * 0.43, flexShrink: 0 }}>
-        👤
-      </div>
-    );
-  }
-  return (
-    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0 }}>
-      <img src={src} alt={name} onError={() => setBroken(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-    </div>
-  );
+  return <MemberAvatar url={url} name={name} size={size} />;
 }
 
 // ─── Reusable primitives ──────────────────────────────────────────────────────
