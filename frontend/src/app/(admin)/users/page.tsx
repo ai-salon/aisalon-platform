@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "@/lib/toast";
 import { validateUser } from "@/lib/validation";
-import PhotoPicker, { photoSrc } from "@/components/PhotoPicker";
+import MemberAvatar from "@/components/MemberAvatar";
+import PhotoPicker from "@/components/PhotoPicker";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -443,14 +444,7 @@ export default function UsersPage() {
                 <tr key={u.id} style={{ borderBottom: resetUserId === u.id || editUserId === u.id ? "none" : i < users.length - 1 ? "1px solid #f8f6ec" : "none" }}>
                   <td style={{ padding: "14px 20px", fontSize: 14, fontWeight: 600, color: "#111" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                      {photoSrc(u.profile_image_url) ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={photoSrc(u.profile_image_url)!} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
-                      ) : (
-                        <span aria-hidden="true" style={{ width: 28, height: 28, borderRadius: "50%", background: "#f3f4f6", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                          <i className="fa fa-user" style={{ color: "#9ca3af", fontSize: 12 }} />
-                        </span>
-                      )}
+                      <MemberAvatar url={u.profile_image_url} name="" size={28} />
                       {u.name ?? "—"}
                     </span>
                   </td>
