@@ -39,7 +39,7 @@ function mockApi({
       if (url.includes('/admin/people/')) return { ok: true, status: 200, json: async () => ({ ok: true }) }
       if (url.endsWith('/profile/photo')) return { ok: true, status: 200, json: async () => ({ url: '/uploads/new/photo.jpg' }) }
       if (url.endsWith('/admin/invites')) return { ok: true, status: 201, json: async () => ({ token: 'tok123' }) }
-      if (url.endsWith('/chapters')) return { ok: true, status: 200, json: async () => chapters }
+      if (url.endsWith('/admin/chapters')) return { ok: true, status: 200, json: async () => chapters }
       return { ok: false, status: 404, json: async () => ({}) }
     })
   )

@@ -29,9 +29,13 @@ async function getSubstackPublicationUrl(token: string): Promise<string | null> 
   }
 }
 
-async function getChapters(): Promise<{ id: string; name: string }[]> {
+async function getChapters(token: string): Promise<{ id: string; name: string }[]> {
   try {
-    const r = await fetch(`${API_URL}/chapters`, { cache: "no-store" });
+    // Admin read: an article's chapter may still be a draft.
+    const r = await fetch(`${API_URL}/admin/chapters`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
     if (!r.ok) return [];
     return r.json();
   } catch {
@@ -52,7 +56,7 @@ export default async function ArticleDetailPage({
   const [article, substackPublicationUrl, chapters] = await Promise.all([
     getArticle(token, id),
     getSubstackPublicationUrl(token),
-    getChapters(),
+    getChapters(token),
   ]);
   if (!article) notFound();
 

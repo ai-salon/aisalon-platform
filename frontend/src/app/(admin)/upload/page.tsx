@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { chapterOptionLabel } from "@/lib/chapters";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -18,7 +19,7 @@ const TERMINAL = new Set(["completed", "failed"]);
 export default function UploadPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [chapters, setChapters] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [chapters, setChapters] = useState<{ id: string; name: string; code: string; status?: string }[]>([]);
   const [chapterId, setChapterId] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -42,8 +43,8 @@ export default function UploadPage() {
 
   useEffect(() => {
     if (!token) return;
-    // Fetch chapters
-    fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
+    // Fetch chapters (every status — the API scopes leads to their own)
+    fetch(`${API_URL}/admin/chapters`, { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         setChapters(data);
@@ -375,7 +376,7 @@ export default function UploadPage() {
                   }}
                 >
                   {availableChapters.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>{chapterOptionLabel(c)}</option>
                   ))}
                 </select>
               </div>

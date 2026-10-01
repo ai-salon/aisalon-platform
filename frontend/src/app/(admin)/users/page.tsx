@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "@/lib/toast";
 import { validateUser } from "@/lib/validation";
+import { chapterOptionLabel } from "@/lib/chapters";
 import MemberAvatar from "@/components/MemberAvatar";
 import PhotoPicker from "@/components/PhotoPicker";
 
@@ -19,7 +20,7 @@ type UserData = {
   has_api_key: boolean; has_uploaded: boolean; has_article: boolean;
   has_read_hosting_guide: boolean; has_read_lead_guide: boolean;
 };
-type Chapter = { id: string; name: string; code: string };
+type Chapter = { id: string; name: string; code: string; status?: string };
 
 const EMPTY_FORM = {
   email: "", username: "", password: "", role: "chapter_lead", chapter_id: "",
@@ -85,7 +86,8 @@ export default function UsersPage() {
     if (!token || userRole !== "superadmin") return;
     Promise.all([
       fetch(`${API_URL}/admin/users`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } }),
+      // Every status: people get assigned to a chapter before it goes public.
+      fetch(`${API_URL}/admin/chapters`, { headers: { Authorization: `Bearer ${token}` } }),
     ]).then(async ([usersRes, chaptersRes]) => {
       if (usersRes.status === 401 || chaptersRes.status === 401) {
         signOut({ redirectTo: "/login" });
@@ -367,7 +369,7 @@ export default function UsersPage() {
                 style={{ width: "100%", padding: "9px 12px", fontSize: 14, border: "1.5px solid #d1d5db", borderRadius: 6, background: "#fff" }}
               >
                 <option value="">None</option>
-                {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {chapters.map((c) => <option key={c.id} value={c.id}>{chapterOptionLabel(c)}</option>)}
               </select>
             </div>
             <div style={{ gridColumn: "1 / -1" }}>
@@ -603,7 +605,7 @@ export default function UsersPage() {
                             style={editInputStyle}
                           >
                             <option value="">None</option>
-                            {chapters.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            {chapters.map((c) => <option key={c.id} value={c.id}>{chapterOptionLabel(c)}</option>)}
                           </select>
                         </label>
                         <label style={{ ...editLabelStyle, flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "end", paddingBottom: 6 }}>

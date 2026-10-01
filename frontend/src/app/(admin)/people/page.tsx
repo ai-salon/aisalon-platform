@@ -5,6 +5,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { chapterOptionLabel } from "@/lib/chapters";
 import InviteCard from "@/components/InviteCard";
 import MemberAvatar from "@/components/MemberAvatar";
 import PhotoCropper from "@/components/PhotoCropper";
@@ -33,6 +34,7 @@ interface ChapterOption {
   id: string;
   code: string;
   name: string;
+  status?: string;
 }
 
 const cell: React.CSSProperties = { padding: "14px 20px" };
@@ -114,7 +116,7 @@ export default function PeoplePage() {
   // Chapter list for the superadmin "view as" switch.
   useEffect(() => {
     if (!token || !isSuperadmin) return;
-    fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/admin/chapters`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => (r.ok ? r.json() : []))
       .then((c: ChapterOption[]) => setChapters(Array.isArray(c) ? c : []))
       .catch(() => {});
@@ -235,7 +237,7 @@ export default function PeoplePage() {
             >
               <option value="">Superadmin (all chapters)</option>
               {chapters.map((c) => (
-                <option key={c.id} value={c.code}>{c.name} chapter lead</option>
+                <option key={c.id} value={c.code}>{chapterOptionLabel(c)} chapter lead</option>
               ))}
             </select>
           </label>

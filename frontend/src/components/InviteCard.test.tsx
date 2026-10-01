@@ -14,7 +14,7 @@ function mockApi(chapters: { id: string; name: string; code: string }[] = []) {
       if (url.endsWith('/admin/invites')) {
         return { ok: true, status: 201, json: async () => ({ token: 'tok123' }) }
       }
-      if (url.endsWith('/chapters')) {
+      if (url.endsWith('/admin/chapters')) {
         return { ok: true, status: 200, json: async () => chapters }
       }
       return { ok: false, status: 404, json: async () => ({}) }
