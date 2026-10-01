@@ -799,16 +799,49 @@ async def get_transcript(
 
 
 # ── Chapters (admin edit) ─────────────────────────────────────────────────────
+#
+# Chapter status (draft / active / archived) only governs the *public* site —
+# see api/chapters.py and api/team.py. Inside admin, every status is operational:
+# a draft chapter can be edited by its lead, assigned users, invited into, and
+# picked for uploads. Changing status is the one superadmin-only action.
 
 @router.get("/chapters", response_model=list[ChapterResponse])
 async def list_chapters_admin(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """List all chapters regardless of status (superadmin view)."""
-    _require_admin(current_user)
-    result = await db.execute(select(Chapter).order_by(Chapter.name))
+    """List chapters regardless of status: all for superadmins, own for others."""
+    stmt = select(Chapter).order_by(Chapter.name)
+    if current_user.role != UserRole.superadmin:
+        if not current_user.chapter_id:
+            return []
+        stmt = stmt.where(Chapter.id == current_user.chapter_id)
+    result = await db.execute(stmt)
     return result.scalars().all()
+
+
+@router.get("/chapters/{identifier}", response_model=ChapterResponse)
+async def get_chapter_admin(
+    identifier: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Read one chapter (by code or id) regardless of status.
+
+    The public GET /chapters/{identifier} 404s on drafts; admin pages use this
+    so a chapter can be built up before it is shown.
+    """
+    result = await db.execute(
+        select(Chapter).where(
+            (Chapter.id == identifier) | (Chapter.code == identifier)
+        )
+    )
+    chapter = result.scalar_one_or_none()
+    if not chapter:
+        raise HTTPException(status_code=404, detail="Chapter not found")
+    if current_user.role != UserRole.superadmin and current_user.chapter_id != chapter.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    return chapter
 
 
 @router.post("/chapters", status_code=status.HTTP_201_CREATED)
@@ -894,7 +927,20 @@ async def update_chapter(
     if current_user.role != UserRole.superadmin and current_user.chapter_id != chapter.id:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    for field, value in body.model_dump(exclude_none=True).items():
+    updates = body.model_dump(exclude_none=True)
+    # Showing a chapter (or retiring it) is a superadmin decision. Leads may
+    # round-trip the status they loaded, but not move it.
+    if (
+        current_user.role != UserRole.superadmin
+        and "status" in updates
+        and updates["status"] != chapter.status
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only a superadmin can change a chapter's status",
+        )
+
+    for field, value in updates.items():
         setattr(chapter, field, value)
     await db.commit()
     await db.refresh(chapter)
