@@ -164,6 +164,10 @@ One `users` table, two lenses. Rule of thumb: if it affects whether or how someo
 
 **System logins vs. people.** The seeded `admin@aisalon.xyz` and `<chapter>@aisalon.xyz` accounts are break-glass ghosts: nameless, `hide_from_team=True`, never given a person's profile (`core/seed.py`; migration `d4e8a1b2c3f5` moved the founder's profile off `admin`). Nobody is seeded as a person — founders and leads are accounts a superadmin creates on the Users page (typically with an emailed set-password link) or that register via invite. A superadmin may carry a `chapter_id` purely so they list under that chapter on the Team page; RBAC still treats them as global. The public `/team` orders founders by `display_order` alone, then chapter leads grouped by chapter.
 
+### Chapter status = public visibility only
+
+`Chapter.status` (`draft` → `active` → `archived`, new chapters start as `draft`) is checked in exactly three places, all public: `GET /chapters`, `GET /chapters/{code}` (+ contact), and `GET /team` (hides leads of non-active chapters). Inside admin a chapter is fully operational at every status — its lead can edit it, users can be assigned and invited, uploads and articles attached — so a chapter is built up quietly and then shown. **Admin code must read chapters via `GET /admin/chapters` (all for superadmins, own chapter for leads/hosts) and `GET /admin/chapters/{identifier}`, never the public endpoints**, and pickers label non-live chapters with `lib/chapters.chapterOptionLabel` ("Berlin (draft)"). Changing status is superadmin-only: `PATCH /admin/chapters/{id}` 403s a lead who sends a *different* status (round-tripping the loaded one is fine), and the edit page only renders the Status select for superadmins.
+
 ### RBAC Pattern
 
 Three helpers in `api/admin.py` used on every admin endpoint:
