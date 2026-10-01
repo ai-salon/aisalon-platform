@@ -8,7 +8,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 async function getChapterName(token: string, chapterId: string): Promise<string | undefined> {
   try {
-    const res = await fetch(`${API_URL}/chapters`, {
+    // Admin read so a lead of a not-yet-public chapter still sees its name.
+    const res = await fetch(`${API_URL}/admin/chapters`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });

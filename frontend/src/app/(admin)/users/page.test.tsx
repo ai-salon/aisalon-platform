@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { renderWithSession } from '@/test/helpers'
 import UsersPage from './page'
 
@@ -53,7 +53,16 @@ function mockApi() {
         return { ok: true, status: 201, json: async () => ({ ...users[1], id: 'u3', ...body }) }
       }
       if (url.endsWith('/admin/users')) return { ok: true, status: 200, json: async () => users }
-      if (url.endsWith('/chapters')) return { ok: true, status: 200, json: async () => [{ id: 'c1', name: 'San Francisco', code: 'sf' }] }
+      // Admin pages must read chapters through /admin/chapters: the public
+      // /chapters hides drafts, which is exactly where new people get assigned.
+      if (url.endsWith('/admin/chapters')) {
+        return {
+          ok: true, status: 200, json: async () => [
+            { id: 'c1', name: 'San Francisco', code: 'sf', status: 'active' },
+            { id: 'c2', name: 'Berlin', code: 'berlin', status: 'draft' },
+          ],
+        }
+      }
       return { ok: false, status: 404, json: async () => ({}) }
     })
   )
@@ -76,6 +85,16 @@ describe('UsersPage', () => {
     const ghostRow = screen.getByText('sf@aisalon.xyz').closest('tr')
     expect(ghostRow).not.toBeNull()
     expect(ghostRow!.querySelector('td')?.textContent).toBe('—')
+  })
+
+  it('offers draft chapters in the chapter picker, labelled, so people can be added before launch', async () => {
+    mockApi()
+    renderWithSession(<UsersPage />, { role: 'superadmin' })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Edit sf@aisalon.xyz' }))
+    const picker = screen.getByLabelText('Chapter for sf@aisalon.xyz')
+    expect(within(picker).getByRole('option', { name: 'Berlin (draft)' })).toHaveValue('c2')
+    expect(within(picker).getByRole('option', { name: 'San Francisco' })).toHaveValue('c1')
   })
 
   it('says when to use Add User and points to the Team page for invites', async () => {

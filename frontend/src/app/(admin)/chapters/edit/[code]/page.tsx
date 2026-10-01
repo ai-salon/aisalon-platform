@@ -60,6 +60,9 @@ export default function ChapterEditPage() {
   const [activePane, setActivePane] = useState<"edit" | "preview">("edit");
 
   const token = (session as any)?.accessToken;
+  // Showing a chapter (draft → active) or retiring it is a superadmin call;
+  // the API refuses status changes from anyone else.
+  const isSuperadmin = (session?.user as any)?.role === "superadmin";
 
   useEffect(() => {
     if (status === "unauthenticated") router.replace("/login");
@@ -67,7 +70,8 @@ export default function ChapterEditPage() {
 
   useEffect(() => {
     if (!token || !code) return;
-    fetch(`${API_URL}/chapters/${code}`, {
+    // Admin read: the public /chapters/{code} 404s while the chapter is a draft.
+    fetch(`${API_URL}/admin/chapters/${code}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
@@ -185,11 +189,13 @@ export default function ChapterEditPage() {
         {showEditPane && (
           <div style={{ flex: 1, minWidth: isNarrow ? 0 : 420, width: isNarrow ? "100%" : undefined }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              {isSuperadmin && (
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
+                <label htmlFor="chapter-status" style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>
                   Status
                 </label>
                 <select
+                  id="chapter-status"
                   value={(form.status as string) ?? "draft"}
                   onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
                   style={{
@@ -207,6 +213,7 @@ export default function ChapterEditPage() {
                   <option value="archived">Archived</option>
                 </select>
               </div>
+              )}
 
               {EDITABLE_FIELDS.map(({ key, label, hint, hintHref, multiline, maxLength }) => {
                 const value = (form[key] as string) ?? "";

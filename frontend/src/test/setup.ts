@@ -6,6 +6,7 @@ afterEach(cleanup)
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn().mockReturnValue('/dashboard'),
+  useParams: vi.fn().mockReturnValue({}),
   useRouter: vi.fn().mockReturnValue({
     push: vi.fn(),
     replace: vi.fn(),

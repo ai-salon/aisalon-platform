@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { chapterOptionLabel } from "@/lib/chapters";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -18,7 +19,7 @@ export default function InviteCard() {
   const userChapterId = user?.chapterId;
   const isSuperadmin = userRole === "superadmin";
 
-  const [chapters, setChapters] = useState<{ id: string; name: string; code: string }[]>([]);
+  const [chapters, setChapters] = useState<{ id: string; name: string; code: string; status?: string }[]>([]);
   const [selectedChapterId, setSelectedChapterId] = useState(userChapterId ?? "");
   const [selectedRole, setSelectedRole] = useState("host");
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -28,7 +29,8 @@ export default function InviteCard() {
 
   useEffect(() => {
     if (!isSuperadmin || !token) return;
-    fetch(`${API_URL}/chapters`, { headers: { Authorization: `Bearer ${token}` } })
+    // Every status — a chapter gets its first people while still a draft.
+    fetch(`${API_URL}/admin/chapters`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then((c) => {
         setChapters(c);
@@ -98,7 +100,7 @@ export default function InviteCard() {
                 style={{ flex: 1, minWidth: 100, padding: "6px 8px", fontSize: 12, border: "1.5px solid #d1d5db", borderRadius: 6, background: "#fff" }}
               >
                 {chapters.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
+                  <option key={c.id} value={c.id}>{chapterOptionLabel(c)}</option>
                 ))}
               </select>
               <select
