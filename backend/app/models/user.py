@@ -1,7 +1,8 @@
 import uuid
 import enum
 from datetime import datetime
-from sqlalchemy import String, Boolean, ForeignKey, Enum as SAEnum, DateTime, Integer, Text
+from typing import Any
+from sqlalchemy import String, Boolean, ForeignKey, Enum as SAEnum, DateTime, Integer, Text, JSON
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 from app.models.base import Base, TimestampMixin
 
@@ -26,6 +27,8 @@ class User(Base, TimestampMixin):
     hosting_guide_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     lead_guide_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     scheduling_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    # Getting Started checklist state: {check_key: True}; unchecked keys are absent.
+    onboarding_checks: Mapped[Any | None] = mapped_column(JSON, nullable=True)
 
     # Profile fields (added 2026-04-26)
     name: Mapped[str | None] = mapped_column(String(120), nullable=True)

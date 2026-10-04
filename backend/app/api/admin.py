@@ -32,7 +32,7 @@ from app.schemas.admin import (
     JobResponse,
     ArticleResponse, ArticleUpdate, ArticleCreate,
     ChapterCreate, ChapterUpdate, ChapterResponse,
-    UserCreate, UserUpdate, UserResponse, GuideReadRequest,
+    UserCreate, UserUpdate, UserResponse, GuideReadRequest, OnboardingCheckUpdate,
     InviteCreate, InviteResponse,
     ChapterStats, CommunityStatsResponse,
     SystemSettingRequest, SystemSettingResponse,
@@ -1013,6 +1013,28 @@ async def mark_guide_read(
         await db.commit()
 
 
+_MAX_ONBOARDING_CHECKS = 100
+
+
+@router.put("/me/onboarding-checks")
+async def set_onboarding_check(
+    body: OnboardingCheckUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # Reassign a fresh dict so SQLAlchemy sees the JSON column change.
+    checks = dict(current_user.onboarding_checks or {})
+    if body.done:
+        if body.key not in checks and len(checks) >= _MAX_ONBOARDING_CHECKS:
+            raise HTTPException(status_code=400, detail="Too many checklist items")
+        checks[body.key] = True
+    else:
+        checks.pop(body.key, None)
+    current_user.onboarding_checks = checks
+    await db.commit()
+    return {"onboarding_checks": checks}
+
+
 class SchedulingUrlUpdate(BaseModel):
     scheduling_url: str | None = None
 
@@ -1041,7 +1063,7 @@ async def get_chapter_leads(
     if not chapter_id:
         return []
     result = await db.execute(
-        select(User.id, User.email, User.username, User.scheduling_url)
+        select(User.id, User.email, User.username, User.name, User.scheduling_url)
         .where(User.chapter_id == chapter_id)
         .where(User.role == UserRole.chapter_lead)
         .where(User.is_active.is_(True))
@@ -1050,7 +1072,7 @@ async def get_chapter_leads(
     return [
         {
             "id": row.id,
-            "name": row.username or row.email.split("@")[0],
+            "name": row.name or row.username or row.email.split("@")[0],
             "scheduling_url": row.scheduling_url,
         }
         for row in rows

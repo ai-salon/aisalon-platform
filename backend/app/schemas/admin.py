@@ -216,12 +216,23 @@ class UserResponse(BaseModel):
     profile_image_url: str | None = None
     display_order: int = 0
     hide_from_team: bool = False
+    onboarding_checks: dict[str, bool] = {}
 
     model_config = {"from_attributes": True}
+
+    @field_validator("onboarding_checks", mode="before")
+    @classmethod
+    def none_to_empty(cls, v: dict | None) -> dict:
+        return v or {}
 
 
 class GuideReadRequest(BaseModel):
     guide: str  # "hosting" | "lead"
+
+
+class OnboardingCheckUpdate(BaseModel):
+    key: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,63}$")
+    done: bool
 
 
 # ── Invites ────────────────────────────────────────────────────────────────────
