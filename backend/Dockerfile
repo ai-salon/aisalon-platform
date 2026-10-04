@@ -3,7 +3,11 @@ FROM python:3.11-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
-RUN pip install poetry && poetry config virtualenvs.create false
+# App dependencies live in their own venv (/app/.venv) so `poetry install` never
+# upgrades packages Poetry itself is running on (a shared site-packages broke the
+# build mid-install when Poetry 2.5 updated attrs/certifi under itself).
+RUN pip install poetry && poetry config virtualenvs.in-project true
+ENV PATH="/app/.venv/bin:$PATH"
 
 COPY pyproject.toml poetry.lock* ./
 RUN poetry install --only main --no-interaction
