@@ -273,8 +273,6 @@ We'll explore questions like:
             eventTitle={eventTitle}
             eventDescription={eventDescription}
             regQuestions={regQuestions}
-            chapterName={city}
-            lumaTag={lumaTag}
           />
         )}
 
