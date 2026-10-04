@@ -21,7 +21,12 @@ interface Job { id: string; input_filename: string; status: string; created_at: 
 interface Article { id: string; title: string; status: string; created_at: string }
 interface TeamMember { id: string; chapter_id: string }
 interface ChapterRecord { id: string; code: string; name: string; tagline?: string; description?: string }
-interface MeResponse { has_read_hosting_guide: boolean; has_read_lead_guide: boolean; scheduling_url?: string | null }
+interface MeResponse {
+  has_read_hosting_guide: boolean;
+  has_read_lead_guide: boolean;
+  scheduling_url?: string | null;
+  onboarding_checks?: Record<string, boolean>;
+}
 interface ChapterLead { id: string; name: string; scheduling_url: string | null }
 
 export default async function DashboardPage() {
@@ -78,6 +83,7 @@ export default async function DashboardPage() {
       hasReadHostingGuide={hasReadHostingGuide}
       hasReadLeadGuide={hasReadLeadGuide}
       chapterLeads={chapterLeadList}
+      onboardingChecks={me?.onboarding_checks ?? {}}
     />
   );
 }
