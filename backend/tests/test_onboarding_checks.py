@@ -84,3 +84,23 @@ async def test_me_reports_guide_read_and_scheduling_url(client, lead_headers):
     me = (await client.get("/admin/me", headers=lead_headers)).json()
     assert me["has_read_hosting_guide"] is True
     assert me["scheduling_url"] == "https://cal.com/lead"
+
+
+async def test_chapter_leads_skip_nameless_ghost_login(client, db_session, host_headers, chapter_lead, sf_chapter):
+    """The seeded <chapter>@aisalon.xyz ghost is nameless; it must never be offered as a 1:1."""
+    from tests.conftest import _make_user
+    from app.models.user import UserRole
+
+    ghost = await _make_user(db_session, "sf@aisalon.xyz", UserRole.chapter_lead, sf_chapter.id, username="sf-ghost")
+    ghost.hide_from_team = True
+    chapter_lead.name = "Priya Raman"
+    await db_session.commit()
+
+    r = await client.get("/admin/chapter-leads", headers=host_headers)
+    assert [lead["name"] for lead in r.json()] == ["Priya Raman"]
+
+
+async def test_chapter_leads_empty_when_only_ghost(client, host_headers, chapter_lead):
+    # The fixture lead has no name — exactly the ghost shape.
+    r = await client.get("/admin/chapter-leads", headers=host_headers)
+    assert r.json() == []

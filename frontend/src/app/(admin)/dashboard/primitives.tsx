@@ -143,11 +143,13 @@ export function CopyBox({ content }: { content: string }) {
   );
 }
 
-export function MarkdownCopyBox({ content }: { content: string }) {
+export function MarkdownCopyBox({ content, maxHeight }: { content: string; maxHeight?: number }) {
   return (
     <div style={{ position: "relative", marginTop: 10 }}>
       <div
         style={{
+          maxHeight,
+          overflowY: maxHeight ? "auto" : undefined,
           background: "#f8f6ec",
           border: "1px solid #ede9d8",
           borderRadius: 8,

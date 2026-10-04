@@ -68,6 +68,19 @@ describe('WelcomeDashboard — host onboarding', () => {
   })
 })
 
+describe('WelcomeDashboard — no real chapter lead', () => {
+  it('points the 1:1 and first-event support at Ian', () => {
+    renderHost({ chapterLeads: [] })
+    fireEvent.click(screen.getByRole('button', { name: /^🏡 hosting guide$/i }))
+    const oneOnOne = screen.getByRole('checkbox', { name: /schedule a 1:1 with ian eisenberg/i })
+    expect(oneOnOne.closest('div')!.querySelector('a')).toHaveAttribute(
+      'href',
+      'https://cal.com/ianeisenberg/ai-salon-coordination'
+    )
+    expect(screen.getByRole('checkbox', { name: /ask ian for support on your first event/i })).toBeInTheDocument()
+  })
+})
+
 describe('WelcomeDashboard — chapter lead tabs', () => {
   it('calls the editable chapter page the Chapter Hub', () => {
     stubFetch()

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { CopyBox } from "./primitives";
+import { CopyBox, MarkdownCopyBox } from "./primitives";
 
 export const LUMA_CREATE_URL = "https://luma.com/create?calendar=cal-XHZLGpY8HDOAYm3";
 
@@ -19,7 +19,7 @@ interface Step {
   detail: React.ReactNode;
   /** Pointer position on the create-page screenshot, in % of width/height. */
   pin?: { x: number; y: number };
-  /** A second screenshot for steps that happen in a dialog or another tab. */
+  /** A screenshot of the component this step happens in. */
   shot?: Shot;
 }
 
@@ -35,11 +35,13 @@ const RAIL_X = 36.6;
 
 function buildSteps({
   eventTitle,
+  eventDescription,
   regQuestions,
   chapterName,
   lumaTag,
 }: {
   eventTitle: string;
+  eventDescription: string;
   regQuestions: string[];
   chapterName?: string;
   lumaTag?: string;
@@ -59,10 +61,11 @@ function buildSteps({
     },
     {
       id: "name",
-      title: "Paste your event title",
+      title: "Add the event title",
       detail: (
         <>
-          Click <strong>Event Name</strong> and paste: <code style={codeStyle}>{eventTitle || "Ai Salon: [Theme]"}</code>
+          Click <strong>Event Name</strong> and paste:
+          <CopyBox content={eventTitle || "Ai Salon: [Theme]"} />
         </>
       ),
       pin: { x: RAIL_X, y: 19.3 },
@@ -81,14 +84,20 @@ function buildSteps({
     },
     {
       id: "description",
-      title: "Paste the event description",
-      detail: "From step 2. Replace every [FILL IN] before you go public.",
+      title: "Fill out the description",
+      detail: (
+        <>
+          Click <strong>Add Description</strong>. Start by pasting the template, then replace every{" "}
+          <strong>[FILL IN]</strong> before you go public.
+          <MarkdownCopyBox content={eventDescription} maxHeight={240} />
+        </>
+      ),
       pin: { x: RAIL_X, y: 53 },
     },
     {
       id: "approval",
       title: "Turn on Require Approval",
-      detail: "This is how you curate the room — you'll review every registration. Leave Ticket Price as Free.",
+      detail: "This is how you curate the room — you'll review every registration. Expect to approve about half: accept 20–30 for 15 attendees. Leave Ticket Price as Free.",
       pin: { x: RAIL_X, y: 70.6 },
     },
     {
@@ -117,9 +126,9 @@ function buildSteps({
       title: "Add contact@aisalon.xyz as a co-host",
       detail: (
         <>
-          On the event&apos;s <strong>Overview</strong> tab → <strong>Hosts</strong> → Add Host →{" "}
-          <code style={codeStyle}>contact@aisalon.xyz</code>. This lets the core team help with approvals and
-          promotion.
+          On the event&apos;s <strong>Overview</strong> tab → <strong>Hosts</strong> → Add Host, then paste:
+          <CopyBox content="contact@aisalon.xyz" />
+          This lets the core team help with approvals and promotion.
         </>
       ),
     },
@@ -129,7 +138,8 @@ function buildSteps({
       detail: (
         <>
           <strong>Registration</strong> tab → <strong>Custom Questions</strong> → Add Question. Use{" "}
-          <strong>Text</strong> for the first two and <strong>Social Profile</strong> (LinkedIn) for the third.
+          <strong>Text</strong> for the first two and <strong>Social Profile</strong> (LinkedIn) for the third. Paste
+          each one:
           {regQuestions.map((q) => (
             <CopyBox key={q} content={q} />
           ))}
@@ -158,7 +168,8 @@ function buildSteps({
                 >
                   Ai Salon {chapterName || lumaTag} calendar ↗
                 </a>
-                .
+                . The tag to add:
+                <CopyBox content={lumaTag} />
               </>
             ),
           },
@@ -174,20 +185,13 @@ function buildSteps({
   return { onCreatePage, afterCreate };
 }
 
-const codeStyle: React.CSSProperties = {
-  background: "#f8f6ec",
-  padding: "1px 6px",
-  borderRadius: 4,
-  fontFamily: "monospace",
-  fontSize: 12,
-};
-
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "center" });
 }
 
 export default function LumaWalkthrough(props: {
   eventTitle: string;
+  eventDescription: string;
   regQuestions: string[];
   chapterName?: string;
   lumaTag?: string;
@@ -198,8 +202,32 @@ export default function LumaWalkthrough(props: {
 
   const [done, setDone] = useState<Record<string, boolean>>({});
   const [active, setActive] = useState<string | null>(null);
-  const [openShot, setOpenShot] = useState<string | null>(null);
-  const doneCount = all.filter((s) => done[s.id]).length;
+  // Capacity's dialog screenshot is opt-in; after-create screenshots show by default.
+  const [shotOpen, setShotOpen] = useState<Record<string, boolean>>(
+    Object.fromEntries(afterCreate.filter((s) => s.shot).map((s) => [s.id, true]))
+  );
+  const [createOpen, setCreateOpen] = useState(true);
+  const [afterOpen, setAfterOpen] = useState(true);
+
+  const createDone = onCreatePage.filter((s) => done[s.id]).length;
+  const afterDone = afterCreate.filter((s) => done[s.id]).length;
+  const doneCount = createDone + afterDone;
+
+  function toggle(step: Step) {
+    const nowDone = !done[step.id];
+    const next = { ...done, [step.id]: nowDone };
+    setDone(next);
+    if (!nowDone) return;
+    // Finishing a section folds it away and keeps focus on what's left.
+    if (onCreatePage.includes(step) && onCreatePage.every((s) => next[s.id])) {
+      setCreateOpen(false);
+      setAfterOpen(true);
+      scrollToId("luma-section-after");
+    }
+    if (afterCreate.includes(step) && afterCreate.every((s) => next[s.id])) {
+      setAfterOpen(false);
+    }
+  }
 
   function focusStep(id: string) {
     setActive(id);
@@ -210,6 +238,7 @@ export default function LumaWalkthrough(props: {
     const n = numberOf(step.id);
     const isDone = !!done[step.id];
     const isActive = active === step.id;
+    const showShot = !!step.shot && !!shotOpen[step.id];
     return (
       <div
         key={step.id}
@@ -233,7 +262,7 @@ export default function LumaWalkthrough(props: {
             <input
               type="checkbox"
               checked={isDone}
-              onChange={() => setDone((d) => ({ ...d, [step.id]: !isDone }))}
+              onChange={() => toggle(step)}
               style={{ width: 17, height: 17, accentColor: "#d2b356", cursor: "pointer", flexShrink: 0 }}
             />
             <span
@@ -248,43 +277,45 @@ export default function LumaWalkthrough(props: {
             </span>
           </label>
           {!isDone && (
-            <div style={{ fontSize: 13, color: "#555", lineHeight: 1.6, margin: "6px 0 0 27px" }}>{step.detail}</div>
-          )}
-          <div style={{ display: "flex", gap: 14, margin: "8px 0 0 27px", flexWrap: "wrap" }}>
-            {step.pin && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActive(step.id);
-                  scrollToId("luma-create-shot");
-                }}
-                style={linkButton}
-              >
-                📍 Show on screenshot
-              </button>
-            )}
-            {step.shot && (
-              <button
-                type="button"
-                aria-label={`Show me how to ${step.title.toLowerCase()}`}
-                aria-expanded={openShot === step.id}
-                onClick={() => setOpenShot(openShot === step.id ? null : step.id)}
-                style={linkButton}
-              >
-                {openShot === step.id ? "Hide screenshot ▲" : "🖼️ Show me ▼"}
-              </button>
-            )}
-          </div>
-          {step.shot && openShot === step.id && (
-            <div style={{ marginTop: 10, borderRadius: 8, overflow: "hidden", border: "1px solid #ede9d8" }}>
-              <Image
-                src={step.shot.src}
-                alt={step.shot.alt}
-                width={step.shot.width}
-                height={step.shot.height}
-                style={{ width: "100%", height: "auto", display: "block" }}
-              />
-            </div>
+            <>
+              <div style={{ fontSize: 13, color: "#555", lineHeight: 1.6, margin: "6px 0 0 27px" }}>{step.detail}</div>
+              <div style={{ display: "flex", gap: 14, margin: "8px 0 0 27px", flexWrap: "wrap" }}>
+                {step.pin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActive(step.id);
+                      scrollToId("luma-create-shot");
+                    }}
+                    style={linkButton}
+                  >
+                    📍 Show on screenshot
+                  </button>
+                )}
+                {step.shot && (
+                  <button
+                    type="button"
+                    aria-label={`${showShot ? "Hide" : "Show me"} how to ${step.title.toLowerCase()}`}
+                    aria-expanded={showShot}
+                    onClick={() => setShotOpen((o) => ({ ...o, [step.id]: !showShot }))}
+                    style={linkButton}
+                  >
+                    {showShot ? "Hide screenshot ▲" : "🖼️ Show me ▼"}
+                  </button>
+                )}
+              </div>
+              {step.shot && showShot && (
+                <div style={{ margin: "10px 0 0 27px", borderRadius: 8, overflow: "hidden", border: "1px solid #ede9d8" }}>
+                  <Image
+                    src={step.shot.src}
+                    alt={step.shot.alt}
+                    width={step.shot.width}
+                    height={step.shot.height}
+                    style={{ width: "100%", height: "auto", display: "block" }}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -305,71 +336,23 @@ export default function LumaWalkthrough(props: {
           background: "linear-gradient(135deg, #56a1d2 0%, #3d7fb8 100%)",
           borderRadius: 10,
           textDecoration: "none",
-          marginBottom: 18,
+          marginBottom: 14,
           color: "#fff",
         }}
       >
         <span style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <span style={{ fontSize: 22 }}>🗓️</span>
           <span>
-            <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>Open Luma&apos;s Create Event page</span>
+            <span style={{ display: "block", fontSize: 15, fontWeight: 800 }}>Create your event here — open Luma</span>
             <span style={{ display: "block", fontSize: 12, opacity: 0.9, marginTop: 2 }}>
-              Opens in a new tab on the Ai Salon calendar — keep this page beside it
+              Opens in a new tab on the Ai Salon calendar. Keep this page beside it and paste as you go.
             </span>
           </span>
         </span>
         <span style={{ fontSize: 20, fontWeight: 700 }}>↗</span>
       </a>
 
-      {/* Annotated screenshot */}
-      <div
-        id="luma-create-shot"
-        style={{ background: "#2a2217", borderRadius: 12, padding: 10, marginBottom: 18 }}
-      >
-        <div style={{ position: "relative", lineHeight: 0 }}>
-          <Image
-            src={CREATE_PAGE.src}
-            alt={CREATE_PAGE.alt}
-            width={CREATE_PAGE.width}
-            height={CREATE_PAGE.height}
-            priority
-            style={{ width: "100%", height: "auto", display: "block", borderRadius: 6 }}
-          />
-          {onCreatePage.map((step) => {
-            const n = numberOf(step.id);
-            const isActive = active === step.id;
-            return (
-              <button
-                key={step.id}
-                type="button"
-                aria-label={`Pointer ${n}: ${step.title}`}
-                title={step.title}
-                onClick={() => focusStep(step.id)}
-                style={{
-                  position: "absolute",
-                  left: `${step.pin!.x}%`,
-                  top: `${step.pin!.y}%`,
-                  transform: `translate(-50%, -50%) scale(${isActive ? 1.2 : 1})`,
-                  padding: 0,
-                  border: "none",
-                  background: "none",
-                  cursor: "pointer",
-                  transition: "transform 0.15s",
-                }}
-              >
-                <PinBadge n={n} done={!!done[step.id]} glow={isActive} />
-              </button>
-            );
-          })}
-        </div>
-        <p style={{ fontSize: 12, color: "#d8cfb5", margin: "8px 4px 2px", lineHeight: 1.5 }}>
-          Click a number to jump to that step. Steps {onCreatePage.length + 1}–{all.length} happen after you click
-          Create Event.
-        </p>
-      </div>
-
-      {/* Checklist */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
         <div style={{ flex: 1, height: 8, background: "#f0ebe0", borderRadius: 4, overflow: "hidden" }}>
           <div
             style={{
@@ -385,14 +368,136 @@ export default function LumaWalkthrough(props: {
         </span>
       </div>
 
-      <GroupHeading>On the Create Event page</GroupHeading>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-        {onCreatePage.map(renderStep)}
-      </div>
+      <Section
+        id="luma-section-create"
+        title="On the Create Event page"
+        doneCount={createDone}
+        total={onCreatePage.length}
+        open={createOpen}
+        onToggle={() => setCreateOpen((o) => !o)}
+      >
+        {/* Annotated screenshot */}
+        <div id="luma-create-shot" style={{ background: "#2a2217", borderRadius: 12, padding: 10, marginBottom: 14 }}>
+          <div style={{ position: "relative", lineHeight: 0 }}>
+            <Image
+              src={CREATE_PAGE.src}
+              alt={CREATE_PAGE.alt}
+              width={CREATE_PAGE.width}
+              height={CREATE_PAGE.height}
+              priority
+              style={{ width: "100%", height: "auto", display: "block", borderRadius: 6 }}
+            />
+            {onCreatePage.map((step) => {
+              const n = numberOf(step.id);
+              const isActive = active === step.id;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  aria-label={`Pointer ${n}: ${step.title}`}
+                  title={step.title}
+                  onClick={() => focusStep(step.id)}
+                  style={{
+                    position: "absolute",
+                    left: `${step.pin!.x}%`,
+                    top: `${step.pin!.y}%`,
+                    transform: `translate(-50%, -50%) scale(${isActive ? 1.2 : 1})`,
+                    padding: 0,
+                    border: "none",
+                    background: "none",
+                    cursor: "pointer",
+                    transition: "transform 0.15s",
+                  }}
+                >
+                  <PinBadge n={n} done={!!done[step.id]} glow={isActive} />
+                </button>
+              );
+            })}
+          </div>
+          <p style={{ fontSize: 12, color: "#d8cfb5", margin: "8px 4px 2px", lineHeight: 1.5 }}>
+            Click a number to jump to that step.
+          </p>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{onCreatePage.map(renderStep)}</div>
+      </Section>
 
-      <GroupHeading>After you click Create Event</GroupHeading>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{afterCreate.map(renderStep)}</div>
+      <Section
+        id="luma-section-after"
+        title="After you click Create Event"
+        doneCount={afterDone}
+        total={afterCreate.length}
+        open={afterOpen}
+        onToggle={() => setAfterOpen((o) => !o)}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{afterCreate.map(renderStep)}</div>
+      </Section>
     </div>
+  );
+}
+
+function Section({
+  id,
+  title,
+  doneCount,
+  total,
+  open,
+  onToggle,
+  children,
+}: {
+  id: string;
+  title: string;
+  doneCount: number;
+  total: number;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  const complete = doneCount === total;
+  return (
+    <section id={id} style={{ marginBottom: 14, scrollMarginTop: 20 }}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={`${id}-body`}
+        onClick={onToggle}
+        style={{
+          width: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "12px 14px",
+          marginBottom: open ? 10 : 0,
+          background: complete ? "#f0fdf4" : "#fdf9f0",
+          border: `1px solid ${complete ? "#bbf7d0" : "#ede9d8"}`,
+          borderRadius: 10,
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        <span style={{ fontSize: 14, fontWeight: 800, color: "#111" }}>
+          {complete ? "✅ " : ""}
+          {title}
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: complete ? "#16a34a" : "#696969" }}>
+            {doneCount}/{total}
+          </span>
+          <span
+            aria-hidden
+            style={{
+              color: "#d2b356",
+              fontSize: 10,
+              transform: open ? "rotate(180deg)" : "none",
+              transition: "transform 0.2s",
+            }}
+          >
+            ▼
+          </span>
+        </span>
+      </button>
+      {open && <div id={`${id}-body`}>{children}</div>}
+    </section>
   );
 }
 
@@ -419,23 +524,6 @@ function PinBadge({ n, done, glow }: { n: number; done: boolean; glow?: boolean 
     >
       {done ? "✓" : n}
     </span>
-  );
-}
-
-function GroupHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      style={{
-        fontSize: 11,
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: 1.5,
-        color: "#d2b356",
-        margin: "0 0 8px 2px",
-      }}
-    >
-      {children}
-    </p>
   );
 }
 
