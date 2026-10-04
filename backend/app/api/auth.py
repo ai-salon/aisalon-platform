@@ -18,7 +18,7 @@ from app.models.invite import Invite
 from app.models.chapter import Chapter
 from app.models.login_event import UserLoginEvent
 from app.schemas.auth import (
-    LoginRequest, RegisterRequest, TokenResponse, UserOut, InviteInfoResponse,
+    LoginRequest, RegisterRequest, TokenResponse, InviteInfoResponse,
     ChangePasswordRequest, VerifyEmailChangeRequest, VerifyEmailChangeResponse,
     ForgotPasswordRequest, ResetPasswordRequest,
 )
@@ -137,11 +137,6 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
         {"sub": user.id, "email": user.email, "role": user.role.value}
     )
     return TokenResponse(access_token=token)
-
-
-@router.get("/admin/me", response_model=UserOut)
-async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
 
 
 @router.post("/auth/verify-email-change", response_model=VerifyEmailChangeResponse)
