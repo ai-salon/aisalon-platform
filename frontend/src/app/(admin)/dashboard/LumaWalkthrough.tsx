@@ -37,14 +37,10 @@ function buildSteps({
   eventTitle,
   eventDescription,
   regQuestions,
-  chapterName,
-  lumaTag,
 }: {
   eventTitle: string;
   eventDescription: string;
   regQuestions: string[];
-  chapterName?: string;
-  lumaTag?: string;
 }): { onCreatePage: Step[]; afterCreate: Step[] } {
   const onCreatePage: Step[] = [
     {
@@ -152,29 +148,6 @@ function buildSteps({
         height: 868,
       },
     },
-    ...(lumaTag
-      ? [
-          {
-            id: "tag",
-            title: `Tag it “${lumaTag}”`,
-            detail: (
-              <>
-                So it shows on the{" "}
-                <a
-                  href={`https://lu.ma/Ai-salon?tag=${lumaTag}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{ color: "#56a1d2", fontWeight: 600 }}
-                >
-                  Ai Salon {chapterName || lumaTag} calendar ↗
-                </a>
-                . The tag to add:
-                <CopyBox content={lumaTag} />
-              </>
-            ),
-          },
-        ]
-      : []),
     {
       id: "public",
       title: "Go public 2–3 weeks out",
@@ -193,8 +166,6 @@ export default function LumaWalkthrough(props: {
   eventTitle: string;
   eventDescription: string;
   regQuestions: string[];
-  chapterName?: string;
-  lumaTag?: string;
 }) {
   const { onCreatePage, afterCreate } = buildSteps(props);
   const all = [...onCreatePage, ...afterCreate];

@@ -6,8 +6,6 @@ const PROPS = {
   eventTitle: 'Ai Salon: Work [SF]',
   eventDescription: 'Join us for an intimate Ai Salon conversation on "Work".',
   regQuestions: ['Q1?', 'Q2?', 'LinkedIn URL'],
-  chapterName: 'San Francisco',
-  lumaTag: 'sf',
 }
 
 const CREATE_PAGE_STEPS = [
@@ -90,10 +88,8 @@ describe('LumaWalkthrough', () => {
     expect(screen.getByText(`1 of ${total} done`)).toBeInTheDocument()
   })
 
-  it('includes the chapter tag step only when the chapter has one', () => {
-    const { rerender } = render(<LumaWalkthrough {...PROPS} />)
-    expect(screen.getByText(/tag it .sf./i)).toBeInTheDocument()
-    rerender(<LumaWalkthrough {...PROPS} lumaTag="" />)
+  it('has no tagging step (hosts cannot tag on the Ai Salon calendar)', () => {
+    render(<LumaWalkthrough {...PROPS} />)
     expect(screen.queryByText(/tag it/i)).not.toBeInTheDocument()
   })
 })
