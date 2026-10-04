@@ -19,19 +19,18 @@ describe('EventCreator stepper', () => {
     expect(screen.getByRole('button', { name: /^next/i })).toBeDisabled()
   })
 
-  it('walks details → templates → Luma → promote and back', () => {
+  it('walks details → Luma (templates pasted in place) → promote and back', () => {
     render(<EventCreator chapterName="Bangalore" chapterCode="bangalore" />)
     fireEvent.change(screen.getByRole('textbox', { name: /theme/i }), { target: { value: 'AI & Love' } })
     next()
 
-    expect(screen.getByText('Ai Salon: AI & Love [BANGALORE]')).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: /theme/i })).not.toBeInTheDocument()
-    next()
-
-    expect(screen.getByRole('link', { name: /open luma/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /create your event here/i })).toHaveAttribute(
       'href',
       expect.stringContaining('luma.com/create')
     )
+    // The title is ready to copy inside its Luma step — no separate templates step.
+    expect(screen.getByText('Ai Salon: AI & Love [BANGALORE]')).toBeInTheDocument()
     expect(screen.getByText(/turn on require approval/i)).toBeInTheDocument()
     next()
 
@@ -40,10 +39,15 @@ describe('EventCreator stepper', () => {
     expect(screen.getByText(/turn on require approval/i)).toBeInTheDocument()
   })
 
+  it('has three steps', () => {
+    render(<EventCreator chapterName="Bangalore" chapterCode="bangalore" />)
+    const progress = screen.getByRole('navigation', { name: /event setup steps/i })
+    expect(within(progress).getAllByRole('button')).toHaveLength(3)
+  })
+
   it('lets you jump back to an earlier step from the progress bar', () => {
     render(<EventCreator chapterName="Bangalore" chapterCode="bangalore" />)
     fireEvent.change(screen.getByRole('textbox', { name: /theme/i }), { target: { value: 'Work' } })
-    next()
     next()
     const progress = screen.getByRole('navigation', { name: /event setup steps/i })
     fireEvent.click(within(progress).getByRole('button', { name: /details/i }))

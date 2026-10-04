@@ -1067,12 +1067,14 @@ async def get_chapter_leads(
         .where(User.chapter_id == chapter_id)
         .where(User.role == UserRole.chapter_lead)
         .where(User.is_active.is_(True))
+        # Nameless leads are the seeded <chapter>@aisalon.xyz ghost logins, not people.
+        .where(User.name.is_not(None))
     )
     rows = result.all()
     return [
         {
             "id": row.id,
-            "name": row.name or row.username or row.email.split("@")[0],
+            "name": row.name,
             "scheduling_url": row.scheduling_url,
         }
         for row in rows

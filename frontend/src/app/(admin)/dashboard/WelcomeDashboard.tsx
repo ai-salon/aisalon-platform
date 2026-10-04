@@ -148,10 +148,15 @@ function ValueRow({
 
 type ChapterLead = { id: string; name: string; scheduling_url: string | null };
 
+const IAN = { name: "Ian Eisenberg", schedulingUrl: "https://cal.com/ianeisenberg/ai-salon-coordination" };
+
+// /admin/chapter-leads only returns real (named) leads; with none — e.g. only the
+// chapter's ghost login — support routes to Ian.
 function leadSummary(chapterLeads: ChapterLead[]) {
-  const names = chapterLeads.map((l) => l.name).filter(Boolean);
+  if (chapterLeads.length === 0) return { hasLead: false, names: IAN.name, schedulingUrl: IAN.schedulingUrl };
   return {
-    names: names.length ? names.join(" or ") : undefined,
+    hasLead: true,
+    names: chapterLeads.map((l) => l.name).join(" or "),
     schedulingUrl: chapterLeads.find((l) => l.scheduling_url)?.scheduling_url ?? undefined,
   };
 }
@@ -171,12 +176,14 @@ function HostingGuide({
           One-time onboarding for new hosts — it all builds to your first salon. Your progress is saved.
         </p>
         <CheckItem checkId="host-lead-1on1" link={lead.schedulingUrl}>
-          Schedule a 1:1 with your chapter lead{lead.names ? ` (${lead.names})` : ""}
+          {lead.hasLead ? `Schedule a 1:1 with your chapter lead (${lead.names})` : `Schedule a 1:1 with ${lead.names}`}
         </CheckItem>
         <CheckItem checkId="host-website" link="https://aisalon.xyz/">
           Read the Ai Salon website — understand what we&apos;re about
         </CheckItem>
-        <CheckItem checkId="host-lead-support">Ask your chapter lead for support on your first event</CheckItem>
+        <CheckItem checkId="host-lead-support">
+          {lead.hasLead ? "Ask your chapter lead" : "Ask Ian"} for support on your first event
+        </CheckItem>
         <CheckItem checkId="host-first-event" action={{ label: "Create Event →", onClick: onCreateEvent }}>
           Host your first event
         </CheckItem>

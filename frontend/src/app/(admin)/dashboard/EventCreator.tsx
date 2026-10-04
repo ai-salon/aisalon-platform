@@ -2,11 +2,9 @@
 
 import { useRef, useState } from "react";
 import LumaWalkthrough, { LUMA_CREATE_URL } from "./LumaWalkthrough";
-import { CopyBox, MarkdownCopyBox } from "./primitives";
 
 const STEPS = [
   { id: "details", label: "Details", title: "What's your salon about?" },
-  { id: "templates", label: "Copy templates", title: "Your ready-to-paste templates" },
   { id: "luma", label: "Set up on Luma", title: "Create it on Luma, step by step" },
   { id: "promote", label: "Promote", title: "Fill the room" },
 ] as const;
@@ -65,7 +63,7 @@ We'll explore questions like:
     {
       emoji: "🗓️",
       label: "Luma — Global Ai Salon Calendar",
-      desc: "Already covered if you created it from the button in step 3.",
+      desc: "Already covered if you created it from the button in step 2.",
       link: LUMA_CREATE_URL,
       linkLabel: "Ai Salon calendar →",
       primary: true,
@@ -132,7 +130,7 @@ We'll explore questions like:
       <div style={{ marginBottom: 18 }}>
         <h2 style={{ fontSize: 20, fontWeight: 800, color: "#111", margin: "0 0 4px" }}>🗓️ Create Your Event</h2>
         <p style={{ fontSize: 13, color: "#696969", margin: 0 }}>
-          Four short steps from idea to a live Luma page. Take them one at a time.
+          Three short steps from idea to a live Luma page. Take them one at a time.
         </p>
       </div>
 
@@ -263,45 +261,24 @@ We'll explore questions like:
                   : "Deep expertise, recurring series — AI Empowered"}
               </p>
             </div>
+            <p style={{ gridColumn: "1 / -1", fontSize: 12, color: "#696969", margin: 0 }}>
+              Next, we&apos;ll walk you through Luma with your title, description, and registration questions ready to
+              paste at each step.
+            </p>
           </div>
         )}
 
         {step === 1 && (
-          <div>
-            <p style={{ fontSize: 13, color: "#696969", margin: "0 0 16px" }}>
-              Copy these now — the next step tells you exactly where each one goes in Luma.
-            </p>
-            <div style={{ marginBottom: 18 }}>
-              <p style={blockTitle}>Event Title</p>
-              <CopyBox content={eventTitle} />
-            </div>
-            <div style={{ marginBottom: 18 }}>
-              <p style={blockTitle}>Event Description</p>
-              <p style={{ fontSize: 11, color: "#999", margin: "0 0 4px" }}>
-                Replace all <strong>[FILL IN]</strong> sections before publishing.
-              </p>
-              <MarkdownCopyBox content={eventDescription} />
-            </div>
-            <div>
-              <p style={blockTitle}>Registration Questions</p>
-              <p style={{ fontSize: 11, color: "#999", margin: "0 0 8px" }}>
-                Curate for enthusiasm, knowledge, and diversity. Typical acceptance rate ~50% — accept 20–30 guests if
-                you want 15 attendees.
-              </p>
-              {regQuestions.map((q) => (
-                <div key={q} style={{ marginBottom: 6 }}>
-                  <CopyBox content={q} />
-                </div>
-              ))}
-            </div>
-          </div>
+          <LumaWalkthrough
+            eventTitle={eventTitle}
+            eventDescription={eventDescription}
+            regQuestions={regQuestions}
+            chapterName={city}
+            lumaTag={lumaTag}
+          />
         )}
 
         {step === 2 && (
-          <LumaWalkthrough eventTitle={eventTitle} regQuestions={regQuestions} chapterName={city} lumaTag={lumaTag} />
-        )}
-
-        {step === 3 && (
           <div>
             <p style={{ fontSize: 13, fontWeight: 700, color: "#444", margin: "0 0 10px" }}>Where to promote your event</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -405,8 +382,6 @@ const fieldLabel: React.CSSProperties = {
   color: "#444",
   marginBottom: 6,
 };
-
-const blockTitle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: "#111", margin: "0 0 4px" };
 
 const secondaryButton: React.CSSProperties = {
   padding: "10px 18px",
