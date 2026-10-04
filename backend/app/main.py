@@ -25,6 +25,7 @@ from app.api.community import router as community_router
 from app.api.feature_flags import router as feature_flags_router
 from app.api.graph import public_router as graph_public_router, admin_router as graph_admin_router
 from app.api.profile import router as profile_router
+from app.api.events import admin_router as events_admin_router
 from app.core.config import settings
 from app.core.logging import setup_logging, get_logger
 from app.core.seed import (
@@ -162,6 +163,7 @@ app.include_router(feature_flags_router)
 app.include_router(graph_public_router)
 app.include_router(graph_admin_router)
 app.include_router(profile_router)
+app.include_router(events_admin_router)
 
 upload_dir = Path(settings.UPLOAD_DIR)
 upload_dir.mkdir(parents=True, exist_ok=True)
