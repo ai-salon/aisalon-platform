@@ -4,6 +4,7 @@ import { fetchOgData, type OgData } from "@/lib/og";
 import { getPublicFlags } from "@/lib/featureFlags";
 import ChapterView, { type ArticleCard, type Member } from "@/components/ChapterView";
 import ChapterContactForm from "@/components/ChapterContactForm";
+import type { SalonEvent } from "@/lib/events";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -27,6 +28,19 @@ async function getChapter(code: string): Promise<Chapter | null> {
 async function getChapterArticles(chapterId: string): Promise<ArticleCard[]> {
   try {
     const r = await fetch(`${API_URL}/articles?chapter_id=${chapterId}`, { cache: "no-store" });
+    if (!r.ok) return [];
+    return r.json();
+  } catch {
+    return [];
+  }
+}
+
+async function getPastEvents(code: string): Promise<SalonEvent[]> {
+  // Luma-backed and best-effort: any failure just hides the section.
+  try {
+    const r = await fetch(`${API_URL}/chapters/${code}/events?period=past&limit=6`, {
+      next: { revalidate: 600 },
+    });
     if (!r.ok) return [];
     return r.json();
   } catch {
@@ -71,6 +85,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
     }
   }
   const sortedMembers = await getChapterTeam(chapter.code);
+  const pastEvents = await getPastEvents(chapter.code);
 
   return (
     <ChapterView
@@ -78,6 +93,7 @@ export default async function ChapterPage({ params }: { params: Promise<{ code: 
       articles={articles}
       ogMap={ogMap}
       members={sortedMembers}
+      pastEvents={pastEvents}
       insightsEnabled={flags.insights_enabled}
       contactSlot={<ChapterContactForm code={chapter.code} chapterName={chapter.name} />}
     />

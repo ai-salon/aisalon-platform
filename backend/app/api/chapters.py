@@ -1,7 +1,8 @@
 import html
 from datetime import datetime, timezone
+from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 
@@ -13,6 +14,8 @@ from app.models.contact_message import ContactMessage
 from app.models.user import User, UserRole
 from app.schemas.chapter import ChapterSummary, ChapterDetail
 from app.schemas.contact import ContactRequest
+from app.schemas.events import EventOut
+from app.services import luma_events
 from app.services.email import send_email
 
 logger = get_logger(__name__)
@@ -45,6 +48,26 @@ async def get_chapter(identifier: str, db: AsyncSession = Depends(get_db)):
     if not chapter:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chapter not found")
     return chapter
+
+
+@router.get("/{identifier}/events", response_model=list[EventOut])
+async def chapter_events(
+    identifier: str,
+    period: Literal["past", "future"] = "past",
+    limit: int = Query(default=12, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """A live chapter's Luma events. Empty when it has no Luma calendar;
+    503 when Luma is unreachable (the page hides the section)."""
+    chapter = await get_chapter(identifier, db)
+    source = luma_events.parse_source(chapter.calendar_embed, chapter.event_link)
+    if source is None:
+        return []
+    try:
+        events = await luma_events.events_for(source, period)
+    except luma_events.EventsUnavailable:
+        raise HTTPException(status_code=503, detail="Events are temporarily unavailable")
+    return events[:limit]
 
 
 @router.post("/{identifier}/contact", status_code=202)

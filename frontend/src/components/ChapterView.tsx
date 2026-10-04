@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { OgData } from "@/lib/og";
 import { InteractiveLogo } from "@/components/InteractiveLogo";
 import MemberAvatar from "@/components/MemberAvatar";
+import { formatEventDate, pastEventsLink, type SalonEvent } from "@/lib/events";
 
 export type ChapterViewData = {
   code: string; name: string; title: string; tagline: string;
@@ -47,16 +48,19 @@ export default function ChapterView({
   insightsEnabled = false,
   previewMode = false,
   contactSlot = null,
+  pastEvents = [],
 }: {
   chapter: ChapterViewData;
   articles: ArticleCard[];
   ogMap: Record<string, OgData>;
   members: Member[];
+  pastEvents?: SalonEvent[]; // most recent first; section hidden when empty
   insightsEnabled?: boolean; // gates the "View all community insights" link (public-feature-flags)
   previewMode?: boolean; // true inside the editor: disable interactions
   contactSlot?: React.ReactNode; // Task 9 mounts the contact section here
 }): JSX.Element {
   const ctaStyle = previewMode ? { pointerEvents: "none" as const } : undefined;
+  const pastLink = chapter.event_link ? pastEventsLink(chapter.event_link) : null;
 
   return (
     <div>
@@ -153,6 +157,81 @@ export default function ChapterView({
                   style={{ display: "inline-block", ...ctaStyle }}
                 >
                   View All {chapter.name} Events
+                </a>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* ── PAST EVENTS ── */}
+      {pastEvents.length > 0 && (
+        <section style={{ background: "#fff", padding: chapter.calendar_embed ? "0 30px 72px" : "72px 30px" }}>
+          <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+            {!chapter.calendar_embed && <span className="section-label">Events</span>}
+            <h2 className="section-title">Past Events</h2>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: 20,
+                marginTop: 24,
+              }}
+            >
+              {pastEvents.map((e) => (
+                <a
+                  key={e.id}
+                  href={e.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ textDecoration: "none", ...ctaStyle }}
+                  data-umami-event="chapter-past-event-click"
+                  data-umami-event-title={e.name}
+                >
+                  <article
+                    style={{
+                      background: "#fff",
+                      borderRadius: 8,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                      overflow: "hidden",
+                      height: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    {e.cover_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={e.cover_url}
+                        alt=""
+                        loading="lazy"
+                        style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", display: "block" }}
+                      />
+                    ) : (
+                      <div style={{ width: "100%", aspectRatio: "16 / 9", background: "#f0ebe0" }} />
+                    )}
+                    <div style={{ padding: "14px 18px 18px" }}>
+                      <span style={{ fontSize: 12, color: "#9ca3af", display: "block", marginBottom: 6 }}>
+                        {formatEventDate(e)}
+                        {e.city ? ` · ${e.city}` : ""}
+                      </span>
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111", margin: 0, lineHeight: 1.35 }}>
+                        {e.name}
+                      </h3>
+                    </div>
+                  </article>
+                </a>
+              ))}
+            </div>
+            {pastLink && (
+              <div style={{ textAlign: "center", marginTop: 24 }}>
+                <a
+                  href={pastLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontSize: 14, color: "#56a1d2", fontWeight: 600, textDecoration: "none", ...ctaStyle }}
+                >
+                  See all past {chapter.name} events →
                 </a>
               </div>
             )}
