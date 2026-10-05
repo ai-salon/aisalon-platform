@@ -133,6 +133,19 @@ class TestEventsFor:
         with pytest.raises(luma_events.EventsUnavailable):
             await luma_events.events_for(luma_events.LumaSource(CAL, "sf"), "past")
 
+    async def test_backs_off_after_failure(self, monkeypatch):
+        calls = []
+
+        async def boom(params):
+            calls.append(params)
+            raise RuntimeError("luma down")
+
+        monkeypatch.setattr(luma_events, "_get_items", boom)
+        for tag in ("sf", "berlin", "zurich"):
+            with pytest.raises(luma_events.EventsUnavailable):
+                await luma_events.events_for(luma_events.LumaSource(CAL, tag), "past")
+        assert len(calls) == 1  # later chapters fail fast instead of re-requesting
+
     async def test_serves_stale_cache_when_upstream_fails(self, monkeypatch):
         src = luma_events.LumaSource(CAL, "sf")
         first = await luma_events.events_for(src, "past")
