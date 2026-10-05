@@ -34,14 +34,15 @@ from app.schemas.admin import (
     ChapterCreate, ChapterUpdate, ChapterResponse,
     UserCreate, UserUpdate, UserResponse, GuideReadRequest, OnboardingCheckUpdate,
     InviteCreate, InviteResponse,
-    ChapterStats, CommunityStatsResponse,
+    ChapterStats, ChapterHealth, CommunityStatsResponse,
     SystemSettingRequest, SystemSettingResponse,
     ProcessingConfigResponse, ProcessingTestRequest, ProcessingTestResponse,
     HandledPatch, ContactMessageOut, HostingInterestAdminResponse,
     NotificationsSummaryResponse,
     DigestRunTestRequest, DigestRunTestResponse,
 )
-from app.services import password_reset
+from app.services import luma_events, password_reset
+from app.services.community_health import HealthInputs, compute_health
 from app.services.team_order import roster_sort_key
 from app.services.digest import run_digest
 from app.services.storage import save_upload
@@ -287,6 +288,8 @@ async def community_stats(
     result = await db.execute(stmt.order_by(Chapter.name))
     chapters = result.scalars().all()
 
+    now = datetime.now(timezone.utc)
+    year_ago = now - timedelta(days=365)
     stats_list: list[ChapterStats] = []
     total_articles = total_published = total_draft = 0
     total_jobs = total_completed = total_failed = 0
@@ -328,7 +331,53 @@ async def community_stats(
         )
         team_size = team_result.scalar() or 0
 
+        # Hosts: named, active leads + hosts. Nameless system logins aren't people.
+        people_rows = (await db.execute(
+            select(User.role).where(
+                User.chapter_id == ch.id,
+                User.is_active.is_(True),
+                User.name.is_not(None),
+                User.name != "",
+                User.role.in_([UserRole.chapter_lead, UserRole.host]),
+            )
+        )).scalars().all()
+        hosts_count = len(people_rows)
+
+        # Published articles dated by publish_date, falling back to creation.
+        published_dates = [
+            pd or ca.date()
+            for pd, ca in (await db.execute(
+                select(Article.publish_date, Article.created_at).where(
+                    Article.chapter_id == ch.id,
+                    Article.status == ArticleStatus.published,
+                )
+            )).all()
+        ]
+
+        events = await _chapter_event_stats(ch, now)
+        health = compute_health(
+            HealthInputs(
+                events_last_year=events["events_last_year"],
+                last_event_at=events["last_event_dt"],
+                upcoming_events=events["upcoming_events"],
+                events_available=events["events_available"],
+                articles_last_year=sum(1 for d in published_dates if d >= year_ago.date()),
+                last_article_on=max(published_dates, default=None),
+                people=hosts_count,
+                has_lead=UserRole.chapter_lead in people_rows,
+            ),
+            now,
+        )
+
         stats_list.append(ChapterStats(
+            hosts_count=hosts_count,
+            past_events=events["past_events"],
+            events_last_year=events["events_last_year"],
+            upcoming_events=events["upcoming_events"],
+            last_event_at=events["last_event_at"],
+            next_event_at=events["next_event_at"],
+            events_available=events["events_available"],
+            health=ChapterHealth.model_validate(health),
             chapter_id=ch.id,
             chapter_name=ch.name,
             chapter_code=ch.code,
@@ -359,9 +408,48 @@ async def community_stats(
         completed_jobs=total_completed,
         failed_jobs=total_failed,
         team_size=total_team,
+        hosts_count=sum(s.hosts_count for s in stats_list),
+        past_events=sum(s.past_events for s in stats_list),
+        events_last_year=sum(s.events_last_year for s in stats_list),
+        upcoming_events=sum(s.upcoming_events for s in stats_list),
+        events_available=all(s.events_available for s in stats_list),
     )
 
     return CommunityStatsResponse(chapters=stats_list, totals=totals)
+
+
+async def _chapter_event_stats(ch: Chapter, now: datetime) -> dict:
+    """Luma event counts for one chapter. Never raises: an outage just marks
+    events unavailable so the rest of the stats still load."""
+    out = {
+        "past_events": 0, "events_last_year": 0, "upcoming_events": 0,
+        "last_event_at": None, "next_event_at": None, "last_event_dt": None,
+        "events_available": True,
+    }
+    source = luma_events.parse_source(ch.calendar_embed, ch.event_link)
+    if source is None:
+        return out  # no Luma calendar: genuinely zero events
+    try:
+        past = await luma_events.events_for(source, "past")
+        future = await luma_events.events_for(source, "future")
+    except luma_events.EventsUnavailable:
+        out["events_available"] = False
+        return out
+
+    def _dt(iso: str) -> datetime:
+        return datetime.fromisoformat(iso.replace("Z", "+00:00"))
+
+    year_ago = now - timedelta(days=365)
+    past_dts = [_dt(e.start_at) for e in past]
+    out["past_events"] = len(past)
+    out["events_last_year"] = sum(1 for d in past_dts if d >= year_ago)
+    out["upcoming_events"] = len(future)
+    if past:
+        latest = max(past, key=lambda e: e.start_at)
+        out["last_event_at"], out["last_event_dt"] = latest.start_at, _dt(latest.start_at)
+    if future:
+        out["next_event_at"] = min(future, key=lambda e: e.start_at).start_at
+    return out
 
 
 # ── API Keys ──────────────────────────────────────────────────────────────────

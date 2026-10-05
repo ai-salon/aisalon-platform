@@ -132,13 +132,19 @@ async def _fetch_calendar(calendar_api_id: str, period: Period) -> list[LumaEven
 
 # ── cache ───────────────────────────────────────────────────────────────────
 
+FAILURE_BACKOFF_SECONDS = 60
+
 _cache: dict[tuple[str, str], tuple[float, list[LumaEvent]]] = {}
 _locks: dict[tuple[str, str], asyncio.Lock] = {}
+# After a failed fetch, fail fast for a minute instead of letting every chapter
+# on a page wait out its own timeout.
+_failed_until: dict[tuple[str, str], float] = {}
 
 
 def clear_cache() -> None:
     _cache.clear()
     _locks.clear()
+    _failed_until.clear()
 
 
 def expire_cache() -> None:
@@ -158,9 +164,14 @@ async def calendar_events(calendar_api_id: str, period: Period) -> list[LumaEven
         hit = _cache.get(key)
         if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
             return hit[1]
+        if time.monotonic() < _failed_until.get(key, 0.0):
+            if hit:
+                return hit[1]
+            raise EventsUnavailable("Luma recently failed; backing off")
         try:
             events = await _fetch_calendar(calendar_api_id, period)
         except Exception as exc:
+            _failed_until[key] = time.monotonic() + FAILURE_BACKOFF_SECONDS
             logger.warning(
                 "luma_fetch_failed",
                 calendar_api_id=calendar_api_id,

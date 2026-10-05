@@ -268,6 +268,40 @@ class ChapterStats(BaseModel):
     completed_jobs: int = 0
     failed_jobs: int = 0
     team_size: int = 0
+    # Named, active leads + hosts (excludes nameless system logins)
+    hosts_count: int = 0
+    # Luma events
+    past_events: int = 0
+    events_last_year: int = 0
+    upcoming_events: int = 0
+    last_event_at: str | None = None
+    next_event_at: str | None = None
+    events_available: bool = True
+    health: "ChapterHealth | None" = None
+
+
+class HealthComponentOut(BaseModel):
+    key: str
+    group: str
+    label: str
+    points: float
+    max_points: int
+    detail: str
+    available: bool
+
+    model_config = {"from_attributes": True}
+
+
+class ChapterHealth(BaseModel):
+    score: int
+    label: str
+    partial: bool
+    components: list[HealthComponentOut]
+
+    model_config = {"from_attributes": True}
+
+
+ChapterStats.model_rebuild()
 
 
 class CommunityStatsResponse(BaseModel):
