@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import EventCreator from "./EventCreator";
@@ -197,8 +198,9 @@ function HostingGuide({
           Use this checklist for every salon you run.
         </p>
         <CheckItem>Secure a space and choose a theme</CheckItem>
-        <CheckItem link="https://lu.ma/">
-          Create a Luma event, add to the Ai Salon calendar, add contact@aisalon.xyz as co-host
+        <CheckItem link="https://luma.com/ai-salon">
+          Create your Luma event on the Ai Salon calendar and add contact@aisalon.xyz as a Manager
+          host (the Luma walkthrough covers both)
         </CheckItem>
         <CheckItem>Get event approved on the Ai Salon calendar</CheckItem>
         <CheckItem>Curate attendees using registration questions</CheckItem>
@@ -359,9 +361,6 @@ function HostingGuide({
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#444", lineHeight: 1.9 }}>
             <li>
               Create the event early — set visibility to <strong>private</strong> first
-            </li>
-            <li>
-              Add <strong>contact@aisalon.xyz</strong> as co-host
             </li>
             <li>Go public 2–3 weeks before (you can do this before you have the location)</li>
             <li>Require approval; hide the address until approved</li>
@@ -1231,6 +1230,36 @@ function SuperadminChapterGuide({
 
 // ─── Tab bar ─────────────────────────────────────────────────────────────────
 
+const HOST_TABS = ["getting-started", "event-creator", "hosting-guide"] as const;
+const LEAD_TABS = ["getting-started", "event-creator", "hosting-guide", "chapter-lead-guide", "guide"] as const;
+
+/**
+ * Tab state mirrored to `?tab=` so each onboarding tab can be linked to. Local state keeps tab
+ * switches instant; pushState updates the URL without re-running the page's server fetches.
+ */
+function useTabParam<T extends string>(valid: readonly T[], fallback: T): [T, (tab: T) => void] {
+  const fromUrl = (value: string | null): T => (valid.includes(value as T) ? (value as T) : fallback);
+  const params = useSearchParams();
+  const [tab, setTabState] = useState<T>(() => fromUrl(params?.get("tab") ?? null));
+
+  const setTab = useCallback((next: T) => {
+    setTabState(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", next);
+    window.history.pushState(null, "", url);
+  }, []);
+
+  // Back/forward buttons move between tabs.
+  useEffect(() => {
+    const onPop = () => setTabState(fromUrl(new URL(window.location.href).searchParams.get("tab")));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return [tab, setTab];
+}
+
 function TabBar<T extends string>({
   tabs,
   active,
@@ -1403,8 +1432,8 @@ export default function WelcomeDashboard({
   const isSuperadmin = userRole === "superadmin";
 
   // Tab state per role
-  const [hostTab, setHostTab] = useState<"getting-started" | "event-creator" | "hosting-guide">("getting-started");
-  const [leadTab, setLeadTab] = useState<"getting-started" | "event-creator" | "hosting-guide" | "chapter-lead-guide" | "guide">("getting-started");
+  const [hostTab, setHostTab] = useTabParam(HOST_TABS, "getting-started");
+  const [leadTab, setLeadTab] = useTabParam(LEAD_TABS, "getting-started");
 
   const leadNames = leadSummary(chapterLeads).names;
 

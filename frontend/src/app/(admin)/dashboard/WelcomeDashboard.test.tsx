@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { screen, fireEvent, within } from '@testing-library/react'
+import { useSearchParams } from 'next/navigation'
 import { renderWithSession } from '@/test/helpers'
 import WelcomeDashboard from './WelcomeDashboard'
 
@@ -65,6 +66,36 @@ describe('WelcomeDashboard — host onboarding', () => {
     renderHost({ onboardingChecks: { 'host-website': true } })
     fireEvent.click(screen.getByRole('button', { name: /^🏡 hosting guide$/i }))
     expect(screen.getByRole('checkbox', { name: /read the ai salon website/i })).toBeChecked()
+  })
+})
+
+describe('WelcomeDashboard — linkable tabs', () => {
+  afterEach(() => {
+    window.history.replaceState(null, '', '/')
+    vi.mocked(useSearchParams).mockReturnValue({ get: vi.fn().mockReturnValue(null) } as never)
+  })
+
+  it('opens the tab named in ?tab=', () => {
+    vi.mocked(useSearchParams).mockReturnValue({ get: (k: string) => (k === 'tab' ? 'event-creator' : null) } as never)
+    renderHost()
+    expect(screen.getByRole('textbox', { name: /theme/i })).toBeInTheDocument()
+  })
+
+  it('falls back to Getting Started for an unknown tab', () => {
+    vi.mocked(useSearchParams).mockReturnValue({ get: () => 'nope' } as never)
+    renderHost()
+    expect(screen.getByRole('heading', { name: /your first salon/i })).toBeInTheDocument()
+  })
+
+  it('writes the tab to the URL when switching, and follows back/forward', () => {
+    renderHost()
+    fireEvent.click(screen.getByRole('button', { name: /^🗓️ create event$/i }))
+    expect(new URL(window.location.href).searchParams.get('tab')).toBe('event-creator')
+    expect(screen.getByRole('textbox', { name: /theme/i })).toBeInTheDocument()
+
+    window.history.replaceState(null, '', '/?tab=hosting-guide')
+    fireEvent.popState(window)
+    expect(screen.getByText(/one-time onboarding for new hosts/i)).toBeInTheDocument()
   })
 })
 
