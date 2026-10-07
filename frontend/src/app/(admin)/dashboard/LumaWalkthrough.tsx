@@ -46,7 +46,16 @@ function buildSteps({
     {
       id: "calendar",
       title: "Check it's under “the ai salon”",
-      detail: "The calendar picker at the top. Our Create link pre-selects it — just confirm it didn't switch to your personal calendar.",
+      detail: (
+        <>
+          The calendar picker at the top. Our Create link pre-selects it — just confirm it didn&apos;t switch to your
+          personal calendar. Already created the event somewhere else? Go to{" "}
+          <a href="https://luma.com/ai-salon" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>
+            luma.com/ai-salon
+          </a>{" "}
+          → <strong>Add Event</strong> → <strong>Add Existing Luma Event</strong> and select it.
+        </>
+      ),
       pin: { x: RAIL_X, y: 11.1 },
     },
     {
@@ -119,12 +128,13 @@ function buildSteps({
   const afterCreate: Step[] = [
     {
       id: "cohost",
-      title: "Add contact@aisalon.xyz as a co-host",
+      title: "Add contact@aisalon.xyz as a co-host (Manager)",
       detail: (
         <>
-          On the event&apos;s <strong>Overview</strong> tab → <strong>Hosts</strong> → Add Host, then paste:
+          On the event&apos;s <strong>Overview</strong> tab → <strong>Hosts</strong> → <strong>Add Host</strong>, paste
+          this email, and set the role to <strong>Manager</strong>:
           <CopyBox content="contact@aisalon.xyz" />
-          This lets the core team help with approvals and promotion.
+          Required for every event — it lets the core team help with approvals and promotion.
         </>
       ),
     },

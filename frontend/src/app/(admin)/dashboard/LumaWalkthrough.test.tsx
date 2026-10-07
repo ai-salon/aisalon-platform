@@ -88,6 +88,16 @@ describe('LumaWalkthrough', () => {
     expect(screen.getByText(`1 of ${total} done`)).toBeInTheDocument()
   })
 
+  it('tells hosts to add contact@aisalon.xyz as a Manager, and how to add an existing event', () => {
+    render(<LumaWalkthrough {...PROPS} />)
+    expect(step('cohost').getByText('Manager')).toBeInTheDocument()
+    expect(step('calendar').getByText(/add existing luma event/i)).toBeInTheDocument()
+    expect(step('calendar').getByRole('link', { name: /luma\.com\/ai-salon/i })).toHaveAttribute(
+      'href',
+      'https://luma.com/ai-salon'
+    )
+  })
+
   it('has no tagging step (hosts cannot tag on the Ai Salon calendar)', () => {
     render(<LumaWalkthrough {...PROPS} />)
     expect(screen.queryByText(/tag it/i)).not.toBeInTheDocument()
