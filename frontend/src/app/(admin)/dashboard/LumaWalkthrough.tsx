@@ -27,11 +27,11 @@ const CREATE_PAGE: Shot = {
   src: "/images/luma/create-page.png",
   alt: "Luma Create Event page with numbered pointers",
   width: 1087,
-  height: 704,
+  height: 820,
 };
 
 // Pins sit in the gutter left of Luma's form fields so they never cover the label.
-const RAIL_X = 36.6;
+const RAIL_X = 37.3;
 
 function buildSteps({
   eventTitle,
@@ -44,27 +44,6 @@ function buildSteps({
 }): { onCreatePage: Step[]; afterCreate: Step[] } {
   const onCreatePage: Step[] = [
     {
-      id: "calendar",
-      title: "Check it's under “the ai salon”",
-      detail: (
-        <>
-          The calendar picker at the top. Our Create link pre-selects it — just confirm it didn&apos;t switch to your
-          personal calendar. Already created the event somewhere else? Go to{" "}
-          <a href="https://luma.com/ai-salon" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>
-            luma.com/ai-salon
-          </a>{" "}
-          → <strong>Add Event</strong> → <strong>Add Existing Luma Event</strong> and select it.
-        </>
-      ),
-      pin: { x: RAIL_X, y: 11.1 },
-    },
-    {
-      id: "visibility",
-      title: "Set visibility to Private",
-      detail: "Top-right dropdown: Public → Private. You'll go public 2–3 weeks before the event (last step).",
-      pin: { x: 91.2, y: 11.1 },
-    },
-    {
       id: "name",
       title: "Add the event title",
       detail: (
@@ -73,19 +52,19 @@ function buildSteps({
           <CopyBox content={eventTitle || "Ai Salon: [Theme]"} />
         </>
       ),
-      pin: { x: RAIL_X, y: 19.3 },
+      pin: { x: RAIL_X, y: 12.5 },
     },
     {
       id: "time",
       title: "Set the date & time",
       detail: "Start and end should match the run of show in your description. Check the timezone box on the right.",
-      pin: { x: RAIL_X, y: 31.5 },
+      pin: { x: RAIL_X, y: 24.3 },
     },
     {
       id: "location",
       title: "Add the location",
       detail: "Fine to add later if the venue isn't locked. Keep the address hidden until guests are approved.",
-      pin: { x: RAIL_X, y: 43.8 },
+      pin: { x: RAIL_X, y: 35.7 },
     },
     {
       id: "description",
@@ -97,19 +76,19 @@ function buildSteps({
           <MarkdownCopyBox content={eventDescription} maxHeight={240} />
         </>
       ),
-      pin: { x: RAIL_X, y: 53 },
+      pin: { x: RAIL_X, y: 44.3 },
     },
     {
       id: "approval",
       title: "Turn on Require Approval",
       detail: "This is how you curate the room — you'll review every registration. Expect to approve about half: accept 20–30 for 15 attendees. Leave Ticket Price as Free.",
-      pin: { x: RAIL_X, y: 70.6 },
+      pin: { x: RAIL_X, y: 60.9 },
     },
     {
       id: "capacity",
       title: "Limit capacity",
       detail: "Click Capacity → toggle Limit Event Capacity → set Max Capacity to your room size (usually 15–20). Only approved guests count toward it. Leave the waitlist off.",
-      pin: { x: RAIL_X, y: 76.3 },
+      pin: { x: RAIL_X, y: 66.2 },
       shot: {
         src: "/images/luma/capacity.png",
         alt: "Luma Max Capacity dialog with Limit Event Capacity turned on",
@@ -118,10 +97,35 @@ function buildSteps({
       },
     },
     {
+      id: "calendar",
+      title: "Confirm it says “Submitting to the ai salon”",
+      detail: (
+        <>
+          The banner just above <strong>Create Event</strong>. Our Create link pre-fills it — leave it as is (don&apos;t
+          click the ✕). The calendar picker at the top will say <strong>Personal Calendar</strong>; that&apos;s normal.
+        </>
+      ),
+      pin: { x: RAIL_X, y: 78 },
+    },
+    {
+      id: "visibility",
+      title: "(Optional) Change visibility to Private",
+      detail: (
+        <>
+          Top-right dropdown: <strong>Public → Private</strong>. Skip this if you&apos;re ready to go public — just tick
+          it. If you aren&apos;t, you can keep the event private for now. Luma doesn&apos;t allow private events to be
+          submitted to third-party calendars, so you won&apos;t be able to submit to the Ai Salon calendar yet:{" "}
+          <strong>click the ✕ on the “Submitting to the ai salon” banner to remove the request</strong>, then add the
+          event to the calendar once it&apos;s public (see the last step below).
+        </>
+      ),
+      pin: { x: 85, y: 4.8 },
+    },
+    {
       id: "create",
       title: "Click Create Event",
       detail: "Luma opens your event's management page — the rest happens there.",
-      pin: { x: RAIL_X, y: 87.9 },
+      pin: { x: RAIL_X, y: 90.3 },
     },
   ];
 
@@ -160,8 +164,25 @@ function buildSteps({
     },
     {
       id: "public",
-      title: "Go public 2–3 weeks out",
-      detail: "Switch visibility back to Public once the description is final. You don't need the address yet.",
+      title: "If it's private: go public and add it to the Ai Salon calendar",
+      detail: (
+        <>
+          Skip this if you left the event public and submitted it when you created it. Otherwise, once the description
+          is final (2–3 weeks out — you don&apos;t need the address yet), switch visibility to <strong>Public</strong>,
+          then go to{" "}
+          <a href="https://luma.com/ai-salon" target="_blank" rel="noopener noreferrer" style={{ color: "#56a1d2" }}>
+            luma.com/ai-salon
+          </a>{" "}
+          → <strong>Add Event</strong> → <strong>Add Existing Luma Event</strong> and select it. The core team will
+          approve it from there.
+        </>
+      ),
+      shot: {
+        src: "/images/luma/add-existing-event.png",
+        alt: "Luma Ai Salon calendar page with the Add Event menu open to Add Existing Luma Event",
+        width: 1000,
+        height: 490,
+      },
     },
   ];
 

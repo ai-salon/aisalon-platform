@@ -9,14 +9,14 @@ const PROPS = {
 }
 
 const CREATE_PAGE_STEPS = [
-  /check it's under/i,
-  /set visibility to private/i,
   /add the event title/i,
   /set the date & time/i,
   /add the location/i,
   /fill out the description/i,
   /turn on require approval/i,
   /limit capacity/i,
+  /confirm it says/i,
+  /change visibility to private/i,
   /click create event/i,
 ]
 
@@ -28,12 +28,12 @@ describe('LumaWalkthrough', () => {
   it('annotates the Luma create page with numbered pointers', () => {
     render(<LumaWalkthrough {...PROPS} />)
     expect(screen.getByRole('img', { name: /luma create event page/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /pointer 7: turn on require approval/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /pointer 5: turn on require approval/i })).toBeInTheDocument()
   })
 
   it('clicking a pointer highlights its checklist step', () => {
     render(<LumaWalkthrough {...PROPS} />)
-    fireEvent.click(screen.getByRole('button', { name: /pointer 8: limit capacity/i }))
+    fireEvent.click(screen.getByRole('button', { name: /pointer 6: limit capacity/i }))
     expect(screen.getByTestId('luma-step-capacity')).toHaveAttribute('data-active', 'true')
   })
 
@@ -84,18 +84,40 @@ describe('LumaWalkthrough', () => {
     render(<LumaWalkthrough {...PROPS} />)
     const total = screen.getAllByRole('checkbox').length
     expect(screen.getByText(`0 of ${total} done`)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('checkbox', { name: /set visibility to private/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /change visibility to private/i }))
     expect(screen.getByText(`1 of ${total} done`)).toBeInTheDocument()
   })
 
-  it('tells hosts to add contact@aisalon.xyz as a Manager, and how to add an existing event', () => {
+  it('tells hosts to add contact@aisalon.xyz as a Manager', () => {
     render(<LumaWalkthrough {...PROPS} />)
     expect(step('cohost').getByText('Manager')).toBeInTheDocument()
-    expect(step('calendar').getByText(/add existing luma event/i)).toBeInTheDocument()
-    expect(step('calendar').getByRole('link', { name: /luma\.com\/ai-salon/i })).toHaveAttribute(
+  })
+
+  it('puts the Ai Salon submission and the optional private step last, just before Create Event', () => {
+    render(<LumaWalkthrough {...PROPS} />)
+    const ids = screen
+      .getAllByTestId(/^luma-step-/)
+      .map((el) => el.getAttribute('data-testid'))
+      .slice(0, 9)
+    expect(ids.slice(-3)).toEqual(['luma-step-calendar', 'luma-step-visibility', 'luma-step-create'])
+    expect(step('calendar').getByText(/submitting to the ai salon/i)).toBeInTheDocument()
+  })
+
+  it('explains that private events cannot be submitted, so the request must be removed', () => {
+    render(<LumaWalkthrough {...PROPS} />)
+    expect(step('visibility').getByText(/optional/i)).toBeInTheDocument()
+    expect(step('visibility').getByText(/doesn.t allow private events to be submitted/i)).toBeInTheDocument()
+    expect(step('visibility').getByText(/remove the request/i)).toBeInTheDocument()
+  })
+
+  it('after creation, tells private-event hosts how to go public and add it to the Ai Salon calendar', () => {
+    render(<LumaWalkthrough {...PROPS} />)
+    expect(step('public').getByText(/add existing luma event/i)).toBeInTheDocument()
+    expect(step('public').getByRole('link', { name: /luma\.com\/ai-salon/i })).toHaveAttribute(
       'href',
       'https://luma.com/ai-salon'
     )
+    expect(screen.getByRole('img', { name: /add event menu/i })).toBeInTheDocument()
   })
 
   it('has no tagging step (hosts cannot tag on the Ai Salon calendar)', () => {

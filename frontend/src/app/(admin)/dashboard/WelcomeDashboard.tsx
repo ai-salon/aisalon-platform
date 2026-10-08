@@ -360,9 +360,14 @@ function HostingGuide({
           </p>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "#444", lineHeight: 1.9 }}>
             <li>
-              Create the event early — set visibility to <strong>private</strong> first
+              Create the event early. If you&apos;re not ready to go public, set it to <strong>private</strong> — but
+              Luma won&apos;t let private events be submitted to the Ai Salon calendar, so remove the submission
+              request first
             </li>
-            <li>Go public 2–3 weeks before (you can do this before you have the location)</li>
+            <li>
+              Go public 2–3 weeks before (you can do this before you have the location), then add it via{" "}
+              <strong>Add Existing Luma Event</strong> on luma.com/ai-salon
+            </li>
             <li>Require approval; hide the address until approved</li>
             <li>Add registration questions to help curate attendees</li>
           </ul>
