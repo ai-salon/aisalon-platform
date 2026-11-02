@@ -24,6 +24,17 @@ interface NavGroup {
 
 type NavEntry = NavItem | ({ group: true } & NavGroup)
 
+function BadgePill({ count }: { count: number }) {
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10,
+      background: '#d2b356', color: '#fff', lineHeight: '16px',
+    }}>
+      {count}
+    </span>
+  )
+}
+
 const ROLE_LABELS: Record<string, string> = {
   superadmin: 'ADMIN',
   chapter_lead: 'CHAPTER LEAD',
@@ -81,6 +92,7 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
     (c) => pathname === c.href || pathname.startsWith(c.href)
   )
   const [open, setOpen] = useState(isAnyChildActive)
+  const badgeTotal = items.reduce((sum, item) => sum + (item.badge ?? 0), 0)
 
   return (
     <div>
@@ -108,6 +120,7 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
           aria-hidden="true"
         />
         <span style={{ flex: 1 }}>{label}</span>
+        {!open && badgeTotal > 0 && <BadgePill count={badgeTotal} />}
         <i
           className={`fa fa-chevron-${open ? 'down' : 'right'}`}
           style={{ fontSize: 10, color: '#9ca3af' }}
@@ -137,14 +150,7 @@ function NavGroupItem({ label, icon, items, pathname }: Omit<NavGroup, 'children
               color: '#56a1d2',
               fontSize: 12,
             }
-            const badgePill = badge !== undefined && (
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10,
-                background: '#d2b356', color: '#fff', lineHeight: '16px',
-              }}>
-                {badge}
-              </span>
-            )
+            const badgePill = badge !== undefined && <BadgePill count={badge} />
 
             if (external) {
               return (
@@ -305,14 +311,7 @@ export default function SidebarNav({ chapterName }: { chapterName?: string }) {
                 aria-hidden="true"
               />
               <span style={{ flex: 1 }}>{entry.label}</span>
-              {entry.badge !== undefined && (
-                <span style={{
-                  fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10,
-                  background: '#d2b356', color: '#fff', lineHeight: '16px',
-                }}>
-                  {entry.badge}
-                </span>
-              )}
+              {entry.badge !== undefined && <BadgePill count={entry.badge} />}
             </Link>
           )
         })}
