@@ -110,6 +110,18 @@ For `start_chapter` (superadmin-only, no chapter): same shape, but thanks them
 for their interest in starting a chapter in {city}, no event link, signed
 "{sender name} — AI Salon".
 
+A third case is reachable and superadmin-only: `host_existing` whose free-text
+chapter never resolved to a real chapter (`chapter_id` null — the public form's
+exact-match resolution in `api/hosting_interest.py` failed). Send stays
+available there too; the prefill is a generic hosting variant that references
+the applicant's typed `existing_chapter` (falling back to `city`) and omits the
+event-link sentence.
+
+Template guards: when `Chapter.event_link` is blank the event-link sentence is
+omitted entirely (no dangling "find our events here:"), and when the sending
+account has no name (break-glass ghosts) the signature falls back to
+"The AI Salon team" — Reply-To is always the sending account's email either way.
+
 ### Frontend (`/hosting-interest`)
 
 In the expanded inquiry detail: a **Send response** button. It opens an inline
@@ -140,3 +152,7 @@ stays as-is for inquiries dealt with outside the platform.
 - Sending a response auto-marks the inquiry handled.
 - Template wording above.
 - Response history is append-only; no editing or deleting sent responses.
+- Unresolved-chapter `host_existing` inquiries (superadmin-only) still get the
+  Send panel, with the generic prefill described above.
+- Missing-data fallbacks: omit the event-link sentence when the chapter has no
+  `event_link`; sign as "The AI Salon team" when the sender account is nameless.
